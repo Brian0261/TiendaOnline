@@ -1,5 +1,0 @@
-/*
-  Content-Security-Policy: default-src 'self'; img-src 'self' data: https://maps.gstatic.com https://maps.googleapis.com; script-src 'self' https://sandbox-checkout.izipay.pe https://maps.googleapis.com 'unsafe-inline'; connect-src 'self' https://api.staging.bodegaluchito.shop; frame-ancestors 'none';
-  X-Frame-Options: DENY
-  Referrer-Policy: strict-origin-when-cross-origin
-  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
