@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Nosotros – Bodega Luchito</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="/assets/css/styles.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+    <style>
+      .banner-nosotros {
+        background: linear-gradient(90deg, #25313ed0 55%, #222d3890), url("/assets/images/banner-bodega.jpg") center/cover no-repeat;
+        color: #fff;
+        min-height: 270px;
+        display: flex;
+        align-items: center;
+        border-radius: 28px;
+        box-shadow: 0 6px 26px rgba(60, 60, 60, 0.12);
+        margin-bottom: 48px;
+      }
+      .banner-nosotros .lead {
+        font-size: 1.25rem;
+      }
+      .about-section {
+        margin-bottom: 3.5rem;
+      }
+      .about-icon {
+        font-size: 2.3rem;
+        color: #198754;
+      }
+      .about-values .card {
+        border: none;
+        border-radius: 1rem;
+        background: #f8fafc;
+        box-shadow: 0 2px 10px rgba(30, 60, 90, 0.07);
+      }
+      .about-contact {
+        background: #fffbe6;
+        border-left: 6px solid #ffc107;
+        border-radius: 18px;
+        padding: 1.7rem 2.3rem;
+        margin-top: 2.7rem;
+        box-shadow: 0 2px 8px rgba(150, 100, 0, 0.09);
+      }
+      .timeline {
+        position: relative;
+        padding-left: 35px;
+        margin-top: 18px;
+        margin-bottom: 18px;
+        border-left: 3px solid #1987542a;
+      }
+      .timeline-event {
+        position: relative;
+        margin-bottom: 26px;
+      }
+      .timeline-event::before {
+        content: "";
+        position: absolute;
+        left: -16px;
+        top: 2px;
+        width: 17px;
+        height: 17px;
+        background: #198754;
+        border-radius: 50%;
+        border: 2px solid #fff;
+        box-shadow: 0 2px 7px #19875455;
+      }
+      .timeline-year {
+        font-weight: bold;
+        color: #198754;
+      }
+      .team-member {
+        border-radius: 50%;
+        border: 5px solid #198754;
+        width: 115px;
+        height: 115px;
+        object-fit: cover;
+        object-position: center;
+        box-shadow: 0 3px 14px rgba(40, 80, 50, 0.11);
+      }
+      .team-phrase {
+        font-size: 0.97rem;
+        color: #198754;
+        font-style: italic;
+      }
+      .testimonial-card {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 2px 16px rgba(60, 60, 60, 0.09);
+        padding: 1.7rem 1.1rem;
+        min-height: 210px;
+      }
+      .testimonial-stars {
+        color: #ffc107;
+        font-size: 1rem;
+      }
+      .gallery-img {
+        border-radius: 1rem;
+        box-shadow: 0 2px 12px rgba(70, 70, 70, 0.06);
+        width: 100%;
+        height: 170px;
+        object-fit: cover;
+      }
+      .faq-title {
+        font-size: 1.18rem;
+        font-weight: bold;
+        color: #198754;
+      }
+      .about-map {
+        width: 100%;
+        min-height: 260px;
+        border: none;
+        border-radius: 19px;
+        box-shadow: 0 2px 14px rgba(30, 60, 90, 0.12);
+      }
+      .provider-logo {
+        max-width: 100px;
+        max-height: 42px;
+        margin: 12px;
+        filter: grayscale(20%);
+      }
+      .ally-logo {
+        max-width: 100px;
+        max-height: 40px;
+        margin: 12px;
+        filter: grayscale(35%) brightness(1.2);
+      }
+      .cta-box {
+        background: linear-gradient(90deg, #f8fafc 70%, #ffeec2 130%);
+        border-radius: 17px;
+        box-shadow: 0 2px 10px rgba(30, 60, 90, 0.05);
+        padding: 2rem 2rem 1.6rem 2rem;
+        margin-top: 3.2rem;
+        text-align: center;
+      }
+      .cta-box h3 {
+        color: #198754;
+        font-weight: bold;
+      }
+      .cta-btn {
+        background: #198754;
+        color: #fff;
+        border-radius: 100px;
+        padding: 0.8rem 2.5rem;
+        font-weight: bold;
+        margin-top: 1.1rem;
+        transition: background 0.2s;
+        border: none;
+      }
+      .cta-btn:hover {
+        background: #155d43;
+      }
+      @media (max-width: 767px) {
+        .banner-nosotros {
+          min-height: 120px;
+        }
+        .banner-nosotros h1 {
+          font-size: 1.35rem;
+        }
+        .gallery-img {
+          height: 90px;
+        }
+        .cta-box {
+          padding: 1.2rem 0.7rem 1rem 0.7rem;
+        }
+        .about-map {
+          min-height: 170px;
+        }
+      }
+    </style>
+  </head>
+  <body class="bg-light">
+    <!-- Banner principal -->
+    <section class="banner-nosotros px-4 py-4 mb-5">
+      <div>
+        <h1>Bodega Luchito<br /><small class="fs-4">Más de 50 años contigo</small></h1>
+        <p class="lead mb-2">
+          Calidad, tradición y cercanía.<br />
+          <strong>¡Conoce quiénes somos y por qué amamos lo que hacemos!</strong>
+        </p>
+        <a href="/products/catalog.html" class="btn btn-warning fw-bold mt-2 shadow-sm px-4 py-2">
+          Comprar ahora <i class="fas fa-arrow-right ms-1"></i>
+        </a>
+      </div>
+    </section>
+
+    <main class="container mb-5">
+      <!-- Historia y línea de tiempo -->
+      <div class="about-section row align-items-center">
+        <div class="col-lg-5 mb-4 mb-lg-0">
+          <img src="/assets/images/banner-bodega.jpg" class="img-fluid rounded-4 shadow" alt="Foto histórica bodega" />
+        </div>
+        <div class="col-lg-7">
+          <h2 class="fw-bold text-success mb-2"><i class="fas fa-store-alt about-icon me-2"></i>Nuestra historia</h2>
+          <p class="fs-5 mb-3">
+            Somos una bodega familiar fundada en 1975 en el corazón de Lima. Desde entonces, acompañamos a generaciones de familias peruanas,
+            ofreciendo productos de calidad y una atención cercana, siempre con una sonrisa.
+          </p>
+          <div class="timeline">
+            <div class="timeline-event mb-2">
+              <span class="timeline-year">1975</span> — Fundación de Bodega Luchito por Don Luis Ramos, un joven emprendedor con pasión por servir a
+              su barrio.
+            </div>
+            <div class="timeline-event mb-2">
+              <span class="timeline-year">1985</span> — Ampliamos nuestro local y sumamos panadería y lácteos frescos.
+            </div>
+            <div class="timeline-event mb-2"><span class="timeline-year">1999</span> — Implementamos la atención telefónica.</div>
+            <div class="timeline-event mb-2">
+              <span class="timeline-year">2010</span> — Incorporamos productos ecológicos y expandimos el catálogo.
+            </div>
+            <div class="timeline-event"><span class="timeline-year">2025</span> — Lanzamos la tienda online y delivery rápido a toda Lima.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nuestra Misión, Visión, Valores -->
+      <div class="about-section row text-center about-values">
+        <div class="col-md-4 mb-4">
+          <div class="card py-4 px-3 h-100">
+            <div class="card-body">
+              <i class="fas fa-bullseye about-icon mb-3"></i>
+              <h5 class="fw-bold mb-2">Misión</h5>
+              <p class="mb-0">
+                Ofrecer la mejor experiencia de compra, uniendo la tradición familiar con innovación y calidad. Tu confianza, nuestro compromiso.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 mb-4">
+          <div class="card py-4 px-3 h-100">
+            <div class="card-body">
+              <i class="fas fa-lightbulb about-icon mb-3"></i>
+              <h5 class="fw-bold mb-2">Visión</h5>
+              <p class="mb-0">
+                Ser la bodega de confianza para miles de familias, creciendo juntos y manteniendo siempre el trato humano y personal.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 mb-4">
+          <div class="card py-4 px-3 h-100">
+            <div class="card-body">
+              <i class="fas fa-heart about-icon mb-3"></i>
+              <h5 class="fw-bold mb-2">Valores</h5>
+              <ul class="list-unstyled mb-0">
+                <li><i class="fas fa-check-circle text-success me-2"></i>Honestidad</li>
+                <li><i class="fas fa-check-circle text-success me-2"></i>Cercanía</li>
+                <li><i class="fas fa-check-circle text-success me-2"></i>Calidad</li>
+                <li><i class="fas fa-check-circle text-success me-2"></i>Responsabilidad</li>
+                <li><i class="fas fa-check-circle text-success me-2"></i>Innovación</li>
+                <li><i class="fas fa-check-circle text-success me-2"></i>Tradición</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nuestros proveedores -->
+      <section class="about-section">
+        <h2 class="fw-bold text-center mb-4"><i class="fas fa-handshake about-icon me-2"></i>Nuestros proveedores</h2>
+        <div class="row justify-content-center align-items-center text-center">
+          <div class="col-4 col-sm-2 mb-3">
+            <img src="/assets/images/gloria.webp" class="provider-logo" alt="Gloria" />
+          </div>
+          <div class="col-4 col-sm-2 mb-3">
+            <img src="/assets/images/nestle.webp" class="provider-logo" alt="Nestle" />
+          </div>
+          <div class="col-4 col-sm-2 mb-3">
+            <img src="/assets/images/coca-cola.webp" class="provider-logo" alt="CocaCola" />
+          </div>
+          <div class="col-4 col-sm-2 mb-3">
+            <img src="/assets/images/alicorp.webp" class="provider-logo" alt="Alicorp" />
+          </div>
+          <div class="col-4 col-sm-2 mb-3">
+            <img src="/assets/images/san-fernando.webp" class="provider-logo" alt="San Fernando" />
+          </div>
+          <div class="col-4 col-sm-2 mb-3">
+            <img src="/assets/images/pepsico.webp" class="provider-logo" alt="Pepsico" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Testimonios -->
+      <section class="about-section">
+        <h2 class="fw-bold text-center mb-4"><i class="fas fa-comments about-icon me-2"></i>Testimonios</h2>
+        <div class="row justify-content-center">
+          <div class="col-md-4 mb-4">
+            <div class="testimonial-card h-100">
+              <div class="testimonial-stars mb-1">
+                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i
+                ><i class="fas fa-star-half-alt"></i>
+              </div>
+              <p class="mb-2">
+                <i class="fas fa-quote-left fa-lg text-success me-2"></i>Siempre encuentro todo lo que necesito, y la atención es excelente.
+                ¡Recomiendo la bodega a todos mis amigos!
+              </p>
+              <div class="text-end"><strong>– Andrea Fernández</strong></div>
+            </div>
+          </div>
+          <div class="col-md-4 mb-4">
+            <div class="testimonial-card h-100">
+              <div class="testimonial-stars mb-1">
+                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i
+                ><i class="fas fa-star"></i>
+              </div>
+              <p class="mb-2">
+                <i class="fas fa-quote-left fa-lg text-success me-2"></i>El delivery es rapidísimo y los productos llegan frescos. Me encanta comprar
+                aquí desde hace años.
+              </p>
+              <div class="text-end"><strong>– Pedro Gutiérrez</strong></div>
+            </div>
+          </div>
+          <div class="col-md-4 mb-4">
+            <div class="testimonial-card h-100">
+              <div class="testimonial-stars mb-1">
+                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+              </div>
+              <p class="mb-2">
+                <i class="fas fa-quote-left fa-lg text-success me-2"></i>¡Una bodega con mucha historia! Siempre tienen promociones y buenos precios.
+              </p>
+              <div class="text-end"><strong>– Mónica Castillo</strong></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Preguntas frecuentes (FAQ) -->
+      <section class="about-section">
+        <h2 class="fw-bold text-center mb-4"><i class="fas fa-question-circle about-icon me-2"></i>Preguntas frecuentes</h2>
+        <div class="accordion" id="faqAccordion">
+          <div class="accordion-item mb-2">
+            <h2 class="accordion-header" id="faq1">
+              <button
+                class="accordion-button collapsed"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#faqCollapse1"
+                aria-expanded="false"
+                aria-controls="faqCollapse1"
+              >
+                <span class="faq-title">¿Hacen envíos a toda Lima?</span>
+              </button>
+            </h2>
+            <div id="faqCollapse1" class="accordion-collapse collapse" aria-labelledby="faq1" data-bs-parent="#faqAccordion">
+              <div class="accordion-body">
+                Sí, realizamos envíos a todos los distritos de Lima Metropolitana. Consulta por tu zona para tiempos de entrega.
+              </div>
+            </div>
+          </div>
+          <div class="accordion-item mb-2">
+            <h2 class="accordion-header" id="faq2">
+              <button
+                class="accordion-button collapsed"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#faqCollapse2"
+                aria-expanded="false"
+                aria-controls="faqCollapse2"
+              >
+                <span class="faq-title">¿Aceptan pagos con Yape, Plin y tarjetas?</span>
+              </button>
+            </h2>
+            <div id="faqCollapse2" class="accordion-collapse collapse" aria-labelledby="faq2" data-bs-parent="#faqAccordion">
+              <div class="accordion-body">Sí, puedes pagar con Yape, Plin, transferencia bancaria y tarjetas de crédito o débito.</div>
+            </div>
+          </div>
+          <div class="accordion-item mb-2">
+            <h2 class="accordion-header" id="faq3">
+              <button
+                class="accordion-button collapsed"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#faqCollapse3"
+                aria-expanded="false"
+                aria-controls="faqCollapse3"
+              >
+                <span class="faq-title">¿Cuánto demora el delivery?</span>
+              </button>
+            </h2>
+            <div id="faqCollapse3" class="accordion-collapse collapse" aria-labelledby="faq3" data-bs-parent="#faqAccordion">
+              <div class="accordion-body">
+                ¡En promedio, tu pedido llega en menos de 2 horas! Para compras programadas, también coordinamos la hora de entrega.
+              </div>
+            </div>
+          </div>
+          <div class="accordion-item mb-2">
+            <h2 class="accordion-header" id="faq4">
+              <button
+                class="accordion-button collapsed"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#faqCollapse4"
+                aria-expanded="false"
+                aria-controls="faqCollapse4"
+              >
+                <span class="faq-title">¿Puedo hacer pedidos al por mayor?</span>
+              </button>
+            </h2>
+            <div id="faqCollapse4" class="accordion-collapse collapse" aria-labelledby="faq4" data-bs-parent="#faqAccordion">
+              <div class="accordion-body">¡Claro! Ofrecemos precios especiales y atención preferencial para compras mayoristas y negocios.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Aliados y reconocimientos -->
+      <section class="about-section">
+        <h2 class="fw-bold text-center mb-4"><i class="fas fa-award about-icon me-2"></i>Aliados y reconocimientos</h2>
+        <div class="row justify-content-center text-center align-items-center">
+          <div class="col-4 col-sm-2 mb-3">
+            <img src="/assets/images/visa.webp" class="ally-logo" alt="Visa" />
+          </div>
+          <div class="col-4 col-sm-2 mb-3">
+            <img src="/assets/images/master-card.webp" class="ally-logo" alt="Mastercard" />
+          </div>
+          <div class="col-4 col-sm-2 mb-3">
+            <img src="/assets/images/yape.webp" class="ally-logo" alt="Yape" />
+          </div>
+          <div class="col-4 col-sm-2 mb-3">
+            <img src="/assets/images/plin.webp" class="ally-logo" alt="Plin" />
+          </div>
+        </div>
+        <div class="text-center mt-2">
+          <span class="badge rounded-pill bg-success px-3 py-2 fs-6 shadow-sm">Reconocidos por la comunidad desde 1975</span>
+        </div>
+      </section>
+
+      <!-- Contacto destacado -->
+      <div class="about-contact mt-5">
+        <h5 class="fw-bold mb-2"><i class="fas fa-envelope-open-text me-2"></i>Contacto</h5>
+        <p class="mb-1"><i class="fas fa-map-marker-alt text-warning me-2"></i>Av. Principal 123, Lima</p>
+        <p class="mb-1"><i class="fas fa-phone text-warning me-2"></i>(01) 123-4567</p>
+        <p class="mb-0"><i class="fas fa-envelope text-warning me-2"></i>info@bodegaluchito.com</p>
+      </div>
+
+      <!-- CTA final -->
+      <section class="cta-box">
+        <h3>¿Quieres ser parte de la familia <span style="color: #ffa300">Bodega Luchito</span>?</h3>
+        <p class="mb-2 fs-5">Regístrate hoy y disfruta de promociones exclusivas, ofertas y delivery rápido.</p>
+        <a href="/auth/register.html" class="cta-btn">Crear mi cuenta</a>
+      </section>
+
+      <!-- Pie de página breve -->
+      <div class="text-center text-muted mt-5" style="font-size: 0.92rem">&copy; 2025 Bodega Luchito. Todos los derechos reservados.</div>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

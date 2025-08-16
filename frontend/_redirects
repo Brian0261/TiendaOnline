@@ -1,0 +1,2 @@
+/        /views/index.html                               200
+/api/*   https://api.staging.bodegaluchito.shop/:splat   200

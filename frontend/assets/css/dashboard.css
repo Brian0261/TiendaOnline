@@ -1,0 +1,385 @@
+/* ======  PALETA (coincide con otras vistas) ====== */
+:root {
+  --primary-color: #dc3545; /* rojo principal */
+  --secondary-color: #343a40; /* gris oscuro   */
+  --light-color: #f8f9fa; /* gris claro    */
+  --dark-color: #212529; /* negro         */
+  --accent-color: #ffc107; /* amarillo      */
+}
+
+/* ======  BASE ====== */
+body {
+  background-color: var(--light-color);
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+main {
+  min-width: 0;
+  padding: 24px 32px 12px 32px !important; /* más compacto */
+  background: #f8f9fa;
+  height: 100vh;
+  overflow-y: auto;
+  min-height: 100vh;
+}
+
+/* ======  SIDEBAR ====== */
+#sidebar {
+  width: 240px;
+  min-height: 100vh;
+  background: linear-gradient(160deg, var(--secondary-color), #495057);
+  color: #fff;
+}
+#sidebar .nav-link {
+  width: 100%;
+  text-align: left;
+  color: rgba(255, 255, 255, 0.85);
+  border-radius: 0.5rem;
+  margin-bottom: 0.25rem;
+  font-size: 0.95rem;
+}
+#sidebar .nav-link:hover,
+#sidebar .nav-link.active {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+#sidebar .btn.bg-danger {
+  border: none;
+  width: 100%;
+}
+
+/* ======  CARDS / TABLAS ====== */
+.card {
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s;
+}
+.card:hover {
+  transform: scale(1.02);
+}
+
+.table thead {
+  background-color: var(--secondary-color);
+  color: #fff;
+}
+.table td,
+.table th {
+  vertical-align: middle;
+}
+
+/* ===  ⬇️ NUEVO: ancho fijo y sin “salto” entre filtros  === */
+#productsTable {
+  width: 100%;
+  table-layout: fixed; /* ❱❱ mantiene el ancho de cada columna */
+}
+
+#productsTable thead th:nth-child(1),
+#productsTable tbody td:nth-child(1) {
+  /* Imagen */
+  width: 90px;
+  min-width: 90px;
+}
+#productsTable thead th:nth-child(2),
+#productsTable tbody td:nth-child(2) {
+  /* Nombre */
+  width: 180px;
+  min-width: 180px;
+}
+#productsTable thead th:nth-child(3),
+#productsTable tbody td:nth-child(3) {
+  /* Descripción */
+  width: 260px;
+  min-width: 260px;
+}
+#productsTable thead th:nth-child(4),
+#productsTable tbody td:nth-child(4) {
+  /* Precio */
+  width: 110px;
+  min-width: 110px;
+}
+#productsTable thead th:nth-child(5),
+#productsTable tbody td:nth-child(5) {
+  /* Stock */
+  width: 90px;
+  min-width: 90px;
+}
+#productsTable thead th:nth-child(6),
+#productsTable tbody td:nth-child(6) {
+  /* Categoría */
+  width: 150px;
+  min-width: 150px;
+}
+#productsTable thead th:nth-child(7),
+#productsTable tbody td:nth-child(7) {
+  /* Marca */
+  width: 150px;
+  min-width: 150px;
+}
+#productsTable thead th:nth-child(8),
+#productsTable tbody td:nth-child(8) {
+  /* Acciones */
+  width: 110px;
+  min-width: 110px;
+  text-align: center;
+}
+
+/* Permite que el texto se corte con “…” si no cabe */
+#productsTable td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Quitar el sombreado que Bootstrap aplica al tener .table-secondary
+   cuando vuelvas al filtro “Todos” (las filas ya no llevan esa clase)   */
+#productsTable tr.table-secondary {
+  background-color: var(--light-color) !important;
+}
+
+/* ======  BOTONES DE ACCIÓN EN TABLAS ====== */
+.table .btn-action {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+.btn-edit {
+  color: #0d6efd;
+}
+.btn-delete {
+  color: #dc3545;
+}
+
+/* =================== AJUSTES VISUALES PARA REPORTE DE VENTAS =================== */
+#section-reports {
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+
+#reporteKPIs .card {
+  min-height: 100px;
+  padding: 12px 0;
+}
+#reporteKPIs .card-body {
+  padding: 16px 10px 10px 10px;
+}
+
+#reporteKPIs .h4,
+#reporteKPIs .h5,
+#reporteKPIs .h6 {
+  font-size: 1.2rem;
+}
+#reporteKPIs .card-title {
+  font-size: 1rem;
+}
+#reporteKPIs i {
+  font-size: 2.2rem;
+}
+
+#reporteGraficosYTablas {
+  margin-top: 0;
+}
+#reporteGraficosYTablas .card {
+  min-height: 320px;
+  padding: 10px 0;
+}
+#reporteGraficosYTablas .card-title {
+  font-size: 1rem;
+  margin-bottom: 6px;
+}
+
+#chartTopProductos,
+#chartMetodosPago {
+  max-height: 170px !important;
+  height: 170px !important;
+}
+
+/* ======  HISTORIAL DE PEDIDOS ====== */
+#ordersTable {
+  font-size: 0.95rem;
+}
+#ordersTable td {
+  vertical-align: top;
+  word-break: break-word;
+}
+#ordersTable .badge {
+  font-size: 0.8em;
+  margin-left: 4px;
+}
+
+/* ======  MEDIA QUERY ====== */
+@media (max-width: 1100px) {
+  main {
+    padding: 18px 2vw 8px 2vw !important;
+  }
+  #reporteGraficosYTablas .card {
+    min-height: 270px;
+  }
+  #chartTopProductos,
+  #chartMetodosPago {
+    max-height: 135px !important;
+    height: 135px !important;
+  }
+}
+@media (max-width: 800px) {
+  #reporteGraficosYTablas {
+    flex-direction: column;
+  }
+  #reporteGraficosYTablas .col-lg-6 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+  #chartTopProductos,
+  #chartMetodosPago {
+    max-height: 120px !important;
+    height: 120px !important;
+  }
+}
+@media (max-width: 768px) {
+  #sidebar {
+    width: 200px;
+  }
+  #sidebar .nav-link {
+    font-size: 0.9rem;
+  }
+}
+
+/* ===== KPIs compactos y grilla auto-fit ===== */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  align-items: stretch;
+}
+
+.kpi-card.compact {
+  padding: 0.65rem 0.8rem;
+  border-radius: 0.75rem;
+  background: #fff;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.kpi-card.compact:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.06);
+}
+
+/* Label unificada (vale para compact y no-compact) */
+.kpi-card .kpi-label {
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: #64748b; /* gris medio */
+  text-transform: uppercase;
+  margin-bottom: 0.15rem;
+}
+
+/* Valor unificado (fino y profesional) */
+.kpi-card .kpi-value {
+  font-weight: 500;
+  font-size: 1.2rem;
+  line-height: 1.05;
+  letter-spacing: 0.02em;
+  color: #0f172a; /* gris-oscuro elegante */
+  font-variant-numeric: tabular-nums lining-nums;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Delta (pill) */
+.kpi-card .kpi-delta {
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-top: 0.25rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: #f1f3f5;
+}
+
+/* Icono discreto */
+.kpi-card.compact .kpi-icon {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  font-size: 1.15rem;
+  opacity: 0.25;
+}
+
+/* Responsive: grid a 2 col en mobile */
+@media (max-width: 576px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Desktop: un pelín más grande */
+@media (min-width: 992px) {
+  .kpi-card .kpi-value {
+    font-size: 1.3rem;
+  }
+}
+
+/* ==== Sidebar FIXED (Admin + Empleado) ==== */
+body.d-flex {
+  /* asegura altura de la vista para el layout horizontal */
+  min-height: 100vh;
+}
+
+#sidebar {
+  position: sticky; /* se pega al borde superior del viewport */
+  top: 0; /* como el admin no tiene navbar fija, va 0 */
+  height: 100vh; /* ocupa todo el alto visible */
+  overflow-y: auto; /* si crece, scroll sólo dentro del sidebar */
+  align-self: flex-start; /* evita estiramiento vertical por flex */
+}
+
+/* Título de sección en el sidebar (igual que empleado) */
+#sidebar .menu-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  opacity: 0.55;
+  letter-spacing: 1px;
+  margin: 0.75rem 0 0.35rem;
+}
+
+/* Alineación consistente de iconos en los items del menú */
+#sidebar .nav-link i {
+  width: 18px;
+  text-align: center;
+  margin-right: 0.5rem;
+}
+
+/* El scroll principal vive en el panel derecho */
+main {
+  height: 100vh; /* ya tienes min-height y overflow, esto lo unifica */
+  overflow-y: auto;
+}
+
+/* ===== Logout (Admin) – igual al "Salir" del empleado, pero rojo sólido y altura fija ===== */
+#sidebar .logout-btn {
+  background: #dc3545;
+  border: 1px solid #dc3545;
+  color: #fff;
+  font-weight: 600;
+  border-radius: 0.5rem;
+
+  /* ↓ Ajusta aquí para bajar la altura */
+  padding: 0.4rem 0.7rem; /* antes .60rem .80rem */
+  min-height: 34px; /* antes 40px (o elimínalo) */
+  font-size: 0.9rem; /* opcional: reduce un poco el texto */
+
+  width: 100%;
+  transition: background-color 0.2s, border-color 0.2s, filter 0.2s;
+}
+
+#sidebar .logout-btn:hover,
+#sidebar .logout-btn:focus {
+  background: #bb2d3b; /* tono más oscuro al hover */
+  border-color: #bb2d3b;
+  color: #fff;
+  filter: brightness(1.02);
+}

@@ -1,0 +1,8 @@
+/* frontend/assets/css/product.css */
+#product-detail img {
+  object-fit: cover;
+  background: #f7f7f7;
+}
+#product-detail #p-desc {
+  white-space: pre-line;
+}
