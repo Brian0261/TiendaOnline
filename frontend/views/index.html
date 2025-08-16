@@ -2,19 +2,18 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Bodega Luchito - Tienda en Línea</title>
 
-    <!-- Bootstrap (CSS) -->
+    <!-- Bootstrap CSS (CDN) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
 
-    <!-- Font Awesome (solo CSS por CDN; SIN script del kit) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <!-- Font Awesome (solo CSS por CDN) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
 
-    <!-- Estilos locales -->
+    <!-- Tus estilos locales -->
     <link rel="stylesheet" href="/assets/css/styles.css" />
 
-    <!-- Estilos de la página -->
     <style>
       :root {
         --primary-color: #dc3545;
@@ -30,7 +29,7 @@
       }
 
       .hero-section {
-        background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url("/assets/images/banner-bodega.jpg");
+        background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url("assets/images/banner-bodega.jpg");
         background-size: cover;
         background-position: center;
         min-height: 400px;
@@ -127,7 +126,6 @@
       }
     </style>
   </head>
-
   <body>
     <!-- NAVBAR Y LOGIN MODAL (se cargan como parciales) -->
     <div id="navbar-container"></div>
@@ -141,8 +139,8 @@
             <h1 class="display-4 fw-bold mb-4 text-overlay">Los mejores productos para tu hogar</h1>
             <p class="lead mb-4 text-overlay">Encuentra todo lo que necesitas a precios de bodega con la comodidad de comprar desde casa.</p>
             <div class="d-flex gap-3">
-              <a href="/products/catalog.html" class="btn btn-light btn-lg px-4 py-2 fw-bold">Ver Catálogo</a>
-              <a href="/auth/register.html" class="btn btn-outline-light btn-lg px-4 py-2 fw-bold">Regístrate Gratis</a>
+              <a href="products/catalog.html" class="btn btn-light btn-lg px-4 py-2 fw-bold">Ver Catálogo</a>
+              <a href="auth/register.html" class="btn btn-outline-light btn-lg px-4 py-2 fw-bold">Regístrate Gratis</a>
             </div>
           </div>
         </div>
@@ -158,7 +156,7 @@
         </div>
         <div class="row g-4">
           <div class="col-md-3">
-            <a href="/products/catalog.html?category=1" class="text-decoration-none">
+            <a href="products/catalog.html?category=1" class="text-decoration-none">
               <div class="category-card card h-100 text-center p-4">
                 <div class="category-icon"><i class="fas fa-shopping-basket"></i></div>
                 <h3 class="h5">Abarrotes</h3>
@@ -167,7 +165,7 @@
             </a>
           </div>
           <div class="col-md-3">
-            <a href="/products/catalog.html?category=2" class="text-decoration-none">
+            <a href="products/catalog.html?category=2" class="text-decoration-none">
               <div class="category-card card h-100 text-center p-4">
                 <div class="category-icon"><i class="fas fa-wine-bottle"></i></div>
                 <h3 class="h5">Bebidas</h3>
@@ -176,7 +174,7 @@
             </a>
           </div>
           <div class="col-md-3">
-            <a href="/products/catalog.html?category=3" class="text-decoration-none">
+            <a href="products/catalog.html?category=3" class="text-decoration-none">
               <div class="category-card card h-100 text-center p-4">
                 <div class="category-icon"><i class="fas fa-cheese"></i></div>
                 <h3 class="h5">Lácteos</h3>
@@ -185,7 +183,7 @@
             </a>
           </div>
           <div class="col-md-3">
-            <a href="/products/catalog.html?category=4" class="text-decoration-none">
+            <a href="products/catalog.html?category=4" class="text-decoration-none">
               <div class="category-card card h-100 text-center p-4">
                 <div class="category-icon"><i class="fas fa-cookie"></i></div>
                 <h3 class="h5">Snacks</h3>
@@ -206,7 +204,7 @@
         </div>
         <div class="row g-4" id="featured-product-grid"></div>
         <div class="text-center mt-4">
-          <a href="/products/catalog.html" class="btn btn-primary-custom btn-lg px-4">Ver todos los productos</a>
+          <a href="products/catalog.html" class="btn btn-primary-custom btn-lg px-4">Ver todos los productos</a>
         </div>
       </div>
     </section>
@@ -249,21 +247,19 @@
       <div class="container text-center">
         <h2 class="fw-bold mb-4">¿Aún no tienes una cuenta?</h2>
         <p class="lead mb-4">Regístrate ahora y obtén acceso a ofertas exclusivas y descuentos especiales.</p>
-        <a href="/auth/register.html" class="btn btn-primary-custom btn-lg px-4">Regístrate Gratis</a>
+        <a href="auth/register.html" class="btn btn-primary-custom btn-lg px-4">Regístrate Gratis</a>
       </div>
     </section>
 
     <!-- FOOTER -->
     <div id="footer-container"></div>
 
-    <!-- SCRIPTS (Bootstrap primero, luego tus módulos) -->
+    <!-- SCRIPTS -->
+    <!-- Bootstrap Bundle (incluye Popper) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Carga de parciales (navbar/footer) y lógica compartida -->
+    <!-- Carga de parciales (navbar/footer) y menú de usuario -->
     <script type="module" src="/assets/js/shared/partials-init.js" defer></script>
-    <!-- Puedes añadir otros módulos si los necesitas:
-    <script type="module" src="/assets/js/shared/cartUtils.js" defer></script>
-    <script type="module" src="/assets/js/shared/addToCart.js" defer></script>
-    -->
+    <!-- Si luego necesitas más scripts, agrégalos aquí con type="module" y defer -->
   </body>
 </html>
