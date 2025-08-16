@@ -3,9 +3,6 @@ node_modules/
 npm-debug.log*
 yarn-error.log*
 .pnpm-store/
-pnpm-lock.yaml
-package-lock.json
-# (si quieres subir los lockfiles, borra estas líneas)
 
 # Builds / bundles / caches
 dist/
@@ -16,7 +13,7 @@ build/
 out/
 coverage/
 
-# Env y secretos
+# Entornos y secretos (¡nunca los subas!)
 .env
 .env.*
 backend/.env
@@ -34,11 +31,11 @@ Thumbs.db
 .vscode/
 *.swp
 
-# Frontend estático (Cloudflare Pages)
+# Herramientas de hosting
 frontend/.vercel/
 frontend/.netlify/
 frontend/.wrangler/
 
-# Otros
+# Otros temporales
 tmp/
 temp/
