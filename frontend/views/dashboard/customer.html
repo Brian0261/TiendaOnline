@@ -1,11 +1,11 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <title>Dashboard Cliente â€“ Bodega Luchito</title>
+    <title>Dashboard Cliente  Bodega Luchito</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css" referrerpolicy="no-referrer" />
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.0.0/css/all.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="/assets/css/styles.css" />
     <link rel="stylesheet" href="/assets/css/dashboard.css" />
     <style>
@@ -41,15 +41,15 @@
     </style>
   </head>
   <body>
-    <!-- â–‘â–‘â–‘ NAVBAR â–‘â–‘â–‘ -->
+    <!--  NAVBAR  -->
     <div id="navbar-container"></div>
 
     <main class="container py-4" style="max-width: 900px">
-      <h1 class="mb-3">Hola, <span id="cliente-nombre">Cliente</span> ðŸ‘‹</h1>
+      <h1 class="mb-3">Hola, <span id="cliente-nombre">Cliente</span> </h1>
       <nav class="nav-dashboard mb-3">
         <a href="#" class="nav-link" id="tab-profile"><i class="fa fa-user-circle me-1"></i> Datos personales</a>
         <a href="#" class="nav-link" id="tab-orders"><i class="fa fa-shopping-bag me-1"></i> Mis compras</a>
-        <a href="#" class="nav-link text-danger" id="logout-btn"><i class="fa fa-sign-out-alt me-1"></i> Cerrar sesiÃ³n</a>
+        <a href="#" class="nav-link text-danger" id="logout-btn"><i class="fa fa-sign-out-alt me-1"></i> Cerrar sesión</a>
       </nav>
 
       <!-- DATOS PERSONALES -->
@@ -64,15 +64,15 @@
             <input type="text" class="form-control" id="pf-apellido" name="apellido" required />
           </div>
           <div class="col-md-6">
-            <label for="pf-email" class="form-label">Correo electrÃ³nico</label>
+            <label for="pf-email" class="form-label">Correo electrónico</label>
             <input type="email" class="form-control" id="pf-email" name="email" readonly />
           </div>
           <div class="col-md-6">
-            <label for="pf-telefono" class="form-label">TelÃ©fono</label>
+            <label for="pf-telefono" class="form-label">Teléfono</label>
             <input type="text" class="form-control" id="pf-telefono" name="telefono" />
           </div>
           <div class="col-12">
-            <label for="pf-direccion" class="form-label">DirecciÃ³n principal</label>
+            <label for="pf-direccion" class="form-label">Dirección principal</label>
             <input type="text" class="form-control" id="pf-direccion" name="direccion_principal" />
           </div>
           <div class="col-12 text-end">
@@ -108,6 +108,4 @@
     <script type="module" src="/assets/js/shared/toast.js"></script>
   </body>
 </html>
-
-
 
