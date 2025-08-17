@@ -1,0 +1,442 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Panel de AdministraciÃ³n â€“ Bodega Luchito</title>
+    <!-- Bootstrap + Iconos -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.0/css/all.min.css" />
+    <!-- Estilos -->
+    <link rel="stylesheet" href="/assets/css/styles.css" />
+    <link rel="stylesheet" href="/assets/css/dashboard.css" />
+  </head>
+  <body class="d-flex">
+    <!-- â–‘â–‘â–‘ SIDEBAR â–‘â–‘â–‘ -->
+    <aside id="sidebar" class="d-flex flex-column flex-shrink-0 p-3">
+      <div class="text-center mb-4">
+        <img src="/assets/images/avatar-admin.png" alt="avatar" class="rounded-circle mb-2" width="80" height="80" />
+        <h5 class="m-0 fw-semibold">Administrador</h5>
+      </div>
+      <div class="menu-title">Panel Administrador</div>
+      <ul class="nav nav-pills flex-column mb-auto" id="sideNav">
+        <li class="nav-item">
+          <button class="nav-link active" data-section="dashboard"><i class="bi bi-speedometer2 me-2"></i>Dashboard</button>
+        </li>
+        <li>
+          <button class="nav-link" data-section="products"><i class="bi bi-box-seam me-2"></i>Productos</button>
+        </li>
+        <li>
+          <button class="nav-link" data-section="reports"><i class="bi bi-bar-chart me-2"></i>Reporte de Ventas</button>
+        </li>
+        <li>
+          <button class="nav-link" data-section="orders"><i class="bi bi-receipt me-2"></i>Historial de Pedidos</button>
+        </li>
+        <li class="mt-auto">
+          <button id="logout-btn" class="btn logout-btn w-100 d-inline-flex align-items-center justify-content-center">
+            <i class="bi bi-box-arrow-right me-2"></i>
+            Salir
+          </button>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- â–‘â–‘â–‘ CONTENIDO â–‘â–‘â–‘ -->
+    <main class="flex-grow-1 p-4">
+      <!-- DASHBOARD -->
+      <section id="section-dashboard">
+        <h4 class="mb-3">Bienvenido, Administrador</h4>
+        <div class="row g-4">
+          <div class="col-md-4">
+            <div class="card shadow-sm">
+              <div class="card-body">
+                <h5 class="card-title">Ingresos de hoy</h5>
+                <h2 class="fw-bold mb-0 text-primary" id="todayIncome">S/ 0.00</h2>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-8">
+            <div class="card shadow-sm">
+              <div class="card-body">
+                <canvas id="salesChart" height="110"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- GESTIÃ“N DE PRODUCTOS -->
+      <section id="section-products" class="d-none">
+        <!-- SubpestaÃ±as: Listado / CategorÃ­as -->
+        <ul class="nav nav-tabs mb-3" id="prodSubTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tab-listado-tab" data-bs-toggle="tab" data-bs-target="#tab-listado" type="button" role="tab">
+              Listado
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-categorias-tab" data-bs-toggle="tab" data-bs-target="#tab-categorias" type="button" role="tab">
+              CategorÃ­as
+            </button>
+          </li>
+        </ul>
+
+        <div class="tab-content">
+          <!-- ====== TAB: LISTADO DE PRODUCTOS ====== -->
+          <div class="tab-pane fade show active" id="tab-listado" role="tabpanel" aria-labelledby="tab-listado-tab">
+            <div class="d-flex flex-wrap align-items-center mb-3 gap-2">
+              <h4 class="m-0 me-auto">GestiÃ³n de Productos</h4>
+              <!-- Buscador -->
+              <input id="productSearch" type="text" class="form-control form-control-sm w-auto" placeholder="Buscar producto..." />
+              <!-- Filtro estado -->
+              <label for="statusFilter" class="mb-0">Mostrar:</label>
+              <select id="statusFilter" class="form-select form-select-sm w-auto">
+                <option value="active" selected>Activos</option>
+                <option value="inactive">Inactivos</option>
+                <option value="all">Todos</option>
+              </select>
+              <button class="btn btn-primary d-flex align-items-center gap-1 ms-auto" data-bs-toggle="modal" data-bs-target="#modalProduct">
+                <i class="bi bi-plus-lg"></i>Nuevo
+              </button>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-striped align-middle" id="productsTable">
+                <thead class="table-dark">
+                  <tr>
+                    <th>Imagen</th>
+                    <th>Nombre</th>
+                    <th>DescripciÃ³n</th>
+                    <th>Precio&nbsp;(S/)</th>
+                    <th>Stock</th>
+                    <th>CategorÃ­a</th>
+                    <th>Marca</th>
+                    <th class="text-center">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- generado por JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- ====== TAB: CRUD DE CATEGORÃAS ====== -->
+          <div class="tab-pane fade" id="tab-categorias" role="tabpanel" aria-labelledby="tab-categorias-tab">
+            <div class="d-flex flex-wrap align-items-center mb-3 gap-2">
+              <h4 class="m-0 me-auto">CategorÃ­as</h4>
+              <button id="btn-new-category" class="btn btn-primary"><i class="bi bi-plus-lg"></i>Nueva categorÃ­a</button>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-hover align-middle" id="categoriesTable">
+                <thead class="table-dark">
+                  <tr>
+                    <th style="width: 70px">#</th>
+                    <th>Nombre</th>
+                    <th class="text-center" style="width: 180px">Acciones</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  <!-- generado por JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- â–‘â–‘â–‘ REPORTE DE VENTAS â–‘â–‘â–‘ -->
+      <section id="section-reports" class="d-none">
+        <div class="d-flex flex-wrap align-items-center mb-4 gap-2">
+          <h4 class="m-0 me-auto"><i class="bi bi-bar-chart me-2"></i>Reporte de Ventas</h4>
+          <label for="reporteRango" class="mb-0">Rango:</label>
+          <select id="reporteRango" class="form-select form-select-sm w-auto">
+            <option value="dia" selected>Hoy</option>
+            <option value="semana">Esta semana</option>
+            <option value="mes">Este mes</option>
+            <option value="personalizado">Personalizado</option>
+          </select>
+          <input type="date" id="reporteFechaInicio" class="form-control form-control-sm w-auto d-none" />
+          <input type="date" id="reporteFechaFin" class="form-control form-control-sm w-auto d-none" />
+          <button id="btnGenerarReporte" class="btn btn-primary ms-2"><i class="bi bi-graph-up"></i> Generar</button>
+          <button id="btnExportarReporte" class="btn btn-success ms-2" disabled><i class="bi bi-file-earmark-excel"></i> Exportar</button>
+        </div>
+        <div id="reporteFeedback"></div>
+        <div id="reporteKPIs" class="row g-4 mb-4 d-none">
+          <div class="col-md-3">
+            <div class="card text-bg-primary shadow-sm h-100">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <i class="bi bi-currency-dollar display-6 me-3"></i>
+                  <div>
+                    <h6 class="card-title mb-1">Total Ventas</h6>
+                    <div class="h4 mb-0" id="kpiTotalVentas">S/ 0.00</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card text-bg-success shadow-sm h-100">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <i class="bi bi-receipt display-6 me-3"></i>
+                  <div>
+                    <h6 class="card-title mb-1">Pedidos Completados</h6>
+                    <div class="h4 mb-0" id="kpiPedidosCompletados">0</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card text-bg-warning shadow-sm h-100">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <i class="bi bi-star-fill display-6 me-3"></i>
+                  <div>
+                    <h6 class="card-title mb-1">Producto Top</h6>
+                    <div class="h5 mb-0" id="kpiProductoTop">-</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card text-bg-secondary shadow-sm h-100">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <i class="bi bi-credit-card-2-front display-6 me-3"></i>
+                  <div>
+                    <h6 class="card-title mb-1">MÃ©todo de Pago MÃ¡s Usado</h6>
+                    <div class="h6 mb-0" id="kpiMetodoPagoTop">-</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-4" id="reporteGraficosYTablas" style="display: none">
+          <!-- Productos mÃ¡s vendidos -->
+          <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+              <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-star-half me-2"></i>Top 5 productos mÃ¡s vendidos</h6>
+                <canvas id="chartTopProductos" height="180"></canvas>
+                <div id="tablaTopProductos" class="mt-3"></div>
+              </div>
+            </div>
+          </div>
+          <!-- MÃ©todos de pago -->
+          <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+              <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-wallet2 me-2"></i>MÃ©todos de pago utilizados</h6>
+                <canvas id="chartMetodosPago" height="180"></canvas>
+                <div id="tablaMetodosPago" class="mt-3"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- â–‘â–‘â–‘ HISTORIAL DE PEDIDOS â–‘â–‘â–‘ -->
+      <section id="section-orders" class="d-none">
+        <div class="d-flex flex-wrap align-items-center mb-3 gap-2">
+          <h4 class="m-0 me-auto"><i class="bi bi-receipt me-2"></i>Historial de Pedidos</h4>
+          <input type="text" id="ordersSearch" class="form-control form-control-sm w-auto" placeholder="Buscar cliente, email o ID pedido" />
+          <label class="mb-0 ms-2">Estado:</label>
+          <select id="ordersStateFilter" class="form-select form-select-sm w-auto">
+            <option value="">Todos</option>
+            <option value="PENDIENTE">Pendiente</option>
+            <option value="EN CAMINO">En camino</option>
+            <option value="ENTREGADO">Entregado</option>
+            <option value="CANCELADO">Cancelado</option>
+          </select>
+          <label class="mb-0 ms-2">Desde:</label>
+          <input type="date" id="ordersDateStart" class="form-control form-control-sm w-auto" />
+          <label class="mb-0 ms-2">Hasta:</label>
+          <input type="date" id="ordersDateEnd" class="form-control form-control-sm w-auto" />
+          <button class="btn btn-primary btn-sm ms-2" id="ordersFilterBtn"><i class="bi bi-funnel"></i> Filtrar</button>
+          <button class="btn btn-success btn-sm ms-2" id="ordersExportBtn"><i class="bi bi-file-earmark-excel"></i> Exportar</button>
+        </div>
+        <div id="ordersFeedback" class="mb-3"></div>
+        <div class="table-responsive">
+          <table class="table table-bordered table-hover align-middle" id="ordersTable">
+            <thead class="table-dark">
+              <tr>
+                <th>NÂ° Pedido</th>
+                <th>Fecha y hora</th>
+                <th>Cliente</th>
+                <th>Email</th>
+                <th>Productos</th>
+                <th>Estado</th>
+                <th>Total&nbsp;(S/)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- generado por JS -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- â–‘â–‘â–‘ MODAL ALTA / EDICIÃ“N PRODUCTO â–‘â–‘â–‘ -->
+      <div class="modal fade" id="modalProduct" tabindex="-1" aria-labelledby="modalProductLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <form id="productForm" class="needs-validation" novalidate enctype="multipart/form-data">
+              <div class="modal-header">
+                <h5 class="modal-title" id="modalProductLabel">Registrar Producto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <input type="hidden" id="productId" name="id" />
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label">Nombre *</label>
+                    <input type="text" id="productName" name="name" class="form-control" required />
+                    <div class="invalid-feedback">Nombre obligatorio.</div>
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label">CategorÃ­a *</label>
+                    <select id="productCategory" name="categoryId" class="form-select" required>
+                      <!-- JS -->
+                    </select>
+                    <div class="invalid-feedback">Selecciona categorÃ­a.</div>
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label">Precio&nbsp;(S/)*</label>
+                    <input type="number" step="0.01" min="0.01" id="productPrice" name="price" class="form-control" required />
+                    <div class="invalid-feedback">Precio positivo.</div>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">Stock inicial *</label>
+                    <input type="number" min="0" id="productStock" name="stock" class="form-control" required />
+                    <div class="invalid-feedback">Stock no vÃ¡lido.</div>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">Marca *</label>
+                    <select id="productBrand" name="brandId" class="form-select" required>
+                      <!-- JS -->
+                    </select>
+                    <div class="invalid-feedback">Selecciona marca.</div>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">DescripciÃ³n</label>
+                    <textarea id="productDescription" name="description" class="form-control" rows="2"></textarea>
+                  </div>
+                  <!-- Imagen -->
+                  <div class="col-md-6">
+                    <label class="form-label">Imagen</label>
+                    <input type="file" id="productImage" name="image" accept="image/*" class="form-control" />
+                    <button type="button" id="removeImageBtn" class="btn btn-outline-secondary mt-2 d-none">
+                      <i class="bi bi-x-circle"></i> Quitar imagen
+                    </button>
+                    <small class="text-muted d-block mt-1">Opcional â€“ mÃ¡x&nbsp;1&nbsp;MB.</small>
+                  </div>
+                  <div class="col-md-6 text-center">
+                    <img
+                      id="productPreview"
+                      src="/assets/images/agregar-producto.webp"
+                      alt="preview"
+                      class="img-thumbnail mt-4"
+                      style="max-height: 150px"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Guardar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- â–‘â–‘â–‘ MODAL CATEGORÃA â–‘â–‘â–‘ -->
+      <div class="modal fade" id="modalCategory" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+          <form id="categoryForm" class="modal-content needs-validation" novalidate>
+            <div class="modal-header">
+              <h5 class="modal-title">Nueva categorÃ­a</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <input type="hidden" id="categoryId" />
+              <div class="mb-3">
+                <label class="form-label">Nombre</label>
+                <input id="categoryName" type="text" class="form-control" required />
+                <div class="invalid-feedback">Ingrese un nombre</div>
+              </div>
+              <div id="categoryAlert"></div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Cancelar</button>
+              <button class="btn btn-primary" type="submit">Guardar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+
+    <!-- Bootstrap JS + Chart.js para reportes -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <!-- LÃ³gica -->
+    <script type="module" src="/assets/js/dashboard/admin.js"></script>
+
+    <!-- Guardas -->
+    <script type="module">
+      import { requireRole } from "/assets/js/shared/authGuard.js";
+      import bindLogout from "/assets/js/shared/logout.js";
+      requireRole("ADMINISTRADOR");
+      bindLogout();
+    </script>
+
+    <!-- NavegaciÃ³n simple -->
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const links = document.querySelectorAll("#sideNav .nav-link");
+        const sections = document.querySelectorAll("main > section");
+
+        links.forEach(btn =>
+          btn.addEventListener("click", () => {
+            links.forEach(l => l.classList.remove("active"));
+            btn.classList.add("active");
+            const target = btn.dataset.section;
+            sections.forEach(sec => {
+              if (sec.id === `section-${target}`) {
+                sec.classList.remove("d-none");
+                // Disparar evento personalizado cuando es "reports"
+                if (target === "reports") {
+                  document.dispatchEvent(new Event("show-sales-report-section"));
+                }
+              } else {
+                sec.classList.add("d-none");
+              }
+            });
+          })
+        );
+
+        // Rango de fechas personalizado: mostrar campos si corresponde
+        const selectRango = document.getElementById("reporteRango");
+        const fi = document.getElementById("reporteFechaInicio");
+        const ff = document.getElementById("reporteFechaFin");
+        selectRango?.addEventListener("change", () => {
+          if (selectRango.value === "personalizado") {
+            fi.classList.remove("d-none");
+            ff.classList.remove("d-none");
+          } else {
+            fi.classList.add("d-none");
+            ff.classList.add("d-none");
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
+
