@@ -1,17 +1,17 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <title>CatÃ¡logo de Productos - Bodega Luchito</title>
+    <title>Catálogo de Productos - Bodega Luchito</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- PolÃ­tica CSP mÃ­nima para desarrollo local -->
+    <!-- Política CSP mínima para desarrollo local -->
     
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="/assets/css/styles.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.0.0/css/all.min.css" />
 
-    <!-- ðŸŽ¨ Estilos locales (puedes extraerlos a un .css si lo prefieres) -->
+    <!--  Estilos locales (puedes extraerlos a un .css si lo prefieres) -->
     <style>
       :root {
         --primary-color: #dc3545;
@@ -73,7 +73,7 @@
         background-color: var(--primary-color);
       }
 
-      /* â€œSin resultadosâ€ */
+      /* Sin resultados */
       .no-results {
         padding: 50px 0;
         text-align: center;
@@ -90,19 +90,19 @@
     <!-- Navbar parcial -->
     <div id="navbar-container"></div>
 
-    <!-- â–‘â–‘â–‘ CONTENIDO PRINCIPAL â–‘â–‘â–‘ -->
+    <!--  CONTENIDO PRINCIPAL  -->
     <section class="py-4 container">
       <div class="text-center mb-5">
-        <h2 class="fw-bold">CatÃ¡logo de Productos</h2>
+        <h2 class="fw-bold">Catálogo de Productos</h2>
         <p class="text-muted">Encuentra todos nuestros productos disponibles</p>
       </div>
 
       <!-- Filtros -->
       <div class="row mb-4 g-3">
-        <!-- ðŸ”Ž CategorÃ­a â€“ se llena dinÃ¡micamente -->
+        <!--  Categoría  se llena dinámicamente -->
         <div class="col-md-4">
           <select class="form-select" id="category-select">
-            <option value="">Todas las categorÃ­as</option>
+            <option value="">Todas las categorías</option>
           </select>
         </div>
 
@@ -113,11 +113,11 @@
             <option value="precio_asc">Precio: Menor a Mayor</option>
             <option value="precio_desc">Precio: Mayor a Menor</option>
             <option value="nuevo">Novedades</option>
-            <option value="popular">MÃ¡s populares</option>
+            <option value="popular">Más populares</option>
           </select>
         </div>
 
-        <!-- LÃ­mite -->
+        <!-- Límite -->
         <div class="col-md-4">
           <div class="input-group">
             <span class="input-group-text">Mostrar</span>
@@ -138,10 +138,10 @@
       <div id="no-results" class="no-results" style="display: none">
         <i class="fas fa-search"></i>
         <h4>No encontramos productos</h4>
-        <p class="text-muted">Prueba con otros tÃ©rminos de bÃºsqueda o filtros</p>
+        <p class="text-muted">Prueba con otros términos de búsqueda o filtros</p>
       </div>
 
-      <!-- PaginaciÃ³n -->
+      <!-- Paginación -->
       <nav aria-label="Page navigation" class="mt-4" id="pagination">
         <!-- se genera por JS -->
       </nav>
@@ -153,10 +153,10 @@
     <!-- Modals parciales -->
     <div id="modal-container"></div>
 
-    <!-- â–‘â–‘â–‘ SCRIPTS â–‘â–‘â–‘ -->
+    <!--  SCRIPTS  -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Helpers y lÃ³gica de negocio (type="module" para usar import/export) -->
+    <!-- Helpers y lógica de negocio (type="module" para usar import/export) -->
     <script type="module" src="/assets/js/shared/api.js" defer></script>
     <script type="module" src="/assets/js/products/catalog.js" defer></script>
     <script type="module" src="/assets/js/shared/cartUtils.js" defer></script>
@@ -164,7 +164,5 @@
     <script type="module" src="/assets/js/shared/partials-init.js" defer></script>
   </body>
 </html>
-
-
 
 
