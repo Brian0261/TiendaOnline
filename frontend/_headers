@@ -12,3 +12,8 @@
 
 /*.css
   Content-Type: text/css; charset=UTF-8
+# Charset explícito para HTML en parciales y vistas
+/partials/*
+  Content-Type: text/html; charset=UTF-8
+/views/*
+  Content-Type: text/html; charset=UTF-8
