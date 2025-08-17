@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es" data-page="employee-dashboard">
   <head>
     <meta charset="UTF-8" />
@@ -364,7 +364,7 @@
             <button class="btn btn-sm btn-outline-light" id="btn-refresh-all"><i class="fa-solid fa-rotate me-1"></i> Actualizar</button>
             <button class="btn btn-sm btn-outline-danger" id="logout-btn-side"><i class="fa-solid fa-right-from-bracket me-1"></i> Salir</button>
           </div>
-          <div class="footer-mini mt-3">Ã‚Â© 2025 Bodega Luchito</div>
+          <div class="footer-mini mt-3">© 2025 Bodega Luchito</div>
         </aside>
 
         <!-- ========== PANEL PRINCIPAL ========== -->
@@ -437,7 +437,7 @@
             <div class="tab-content" id="employee-tab-content">
               <!-- ========== TAB: PEDIDOS PENDIENTES ========== -->
               <div class="tab-pane fade show active" id="tab-pendientes" role="tabpanel">
-                <h5 class="mb-3 fw-semibold"><i class="fa-solid fa-box-open me-2 text-secondary"></i>Pedidos pendientes de preparaciÃƒÂ³n / despacho</h5>
+                <h5 class="mb-3 fw-semibold"><i class="fa-solid fa-box-open me-2 text-secondary"></i>Pedidos pendientes de preparación / despacho</h5>
                 <div class="filters-bar mb-3" id="filters-pendientes">
                   <div>
                     <label class="form-label" for="f-pendiente-fecha-inicio">Desde</label>
@@ -449,7 +449,7 @@
                   </div>
                   <div class="flex-grow-1 min-w-150">
                     <label class="form-label" for="f-pendiente-buscar">Buscar</label>
-                    <input type="text" id="f-pendiente-buscar" class="form-control form-control-sm" placeholder="Cliente / Producto / NÃ‚Âº Pedido" />
+                    <input type="text" id="f-pendiente-buscar" class="form-control form-control-sm" placeholder="Cliente / Producto / Nº Pedido" />
                   </div>
                   <div class="d-flex gap-2">
                     <button class="btn btn-sm btn-outline-secondary" id="btn-filtrar-pendientes">
@@ -473,7 +473,7 @@
                       <thead>
                         <tr>
                           <th><input type="checkbox" id="chk-all-pendientes" /></th>
-                          <th>NÃ‚Â° Pedido</th>
+                          <th>N° Pedido</th>
                           <th>Fecha</th>
                           <th>Cliente</th>
                           <th>Productos</th>
@@ -487,7 +487,7 @@
                         <!-- Ejemplo Placeholder -->
                         <tr class="placeholder-row">
                           <td><input type="checkbox" disabled /></td>
-                          <td colspan="7" class="text-muted fst-italic">(Sin datos todavÃƒÂ­a)</td>
+                          <td colspan="7" class="text-muted fst-italic">(Sin datos todavía)</td>
                         </tr>
                       </tbody>
                     </table>
@@ -499,7 +499,7 @@
               <div class="tab-pane fade" id="tab-estados" role="tabpanel">
                 <h5 class="mb-3 fw-semibold"><i class="fa-solid fa-arrows-rotate me-2 text-secondary"></i>Cambio de estado de pedidos</h5>
                 <div class="alert alert-info py-2 small" role="alert">
-                  <i class="fa-solid fa-circle-info me-1"></i> Transiciones vÃƒÂ¡lidas: <strong>En preparaciÃƒÂ³n  Enviado</strong> y
+                  <i class="fa-solid fa-circle-info me-1"></i> Transiciones válidas: <strong>En preparación  Enviado</strong> y
                   <strong>Enviado  Entregado</strong>. Otros cambios deben bloquearse.
                 </div>
                 <div class="data-table-wrapper mb-3">
@@ -513,7 +513,7 @@
                     <table class="table table-sm table-striped" id="orders-status-table">
                       <thead>
                         <tr>
-                          <th>NÃ‚Â° Pedido</th>
+                          <th>N° Pedido</th>
                           <th>Cliente</th>
                           <th>Estado Actual</th>
                           <th>Siguiente Estado</th>
@@ -522,14 +522,14 @@
                       </thead>
                       <tbody>
                         <tr class="placeholder-row">
-                          <td colspan="5" class="text-muted fst-italic">(Sin datos todavÃƒÂ­a)</td>
+                          <td colspan="5" class="text-muted fst-italic">(Sin datos todaví­a)</td>
                         </tr>
                       </tbody>
                     </table>
                   </div>
                 </div>
                 <div class="data-table-wrapper">
-                  <h6 class="fw-semibold mb-3"><i class="fa-solid fa-clipboard-list me-2 text-secondary"></i>ltimos cambios de estado (log)</h6>
+                  <h6 class="fw-semibold mb-3"><i class="fa-solid fa-clipboard-list me-2 text-secondary"></i>Ultimos cambios de estado (log)</h6>
                   <div class="table-responsive">
                     <table class="table table-sm" id="orders-status-log-table">
                       <thead>
@@ -543,7 +543,7 @@
                       </thead>
                       <tbody>
                         <tr class="placeholder-row">
-                          <td colspan="5" class="text-muted fst-italic">(Sin registros aÃƒÂºn)</td>
+                          <td colspan="5" class="text-muted fst-italic">(Sin registros aún)</td>
                         </tr>
                       </tbody>
                     </table>
@@ -570,7 +570,7 @@
                               <th>Producto</th>
                               <th>Stock</th>
                               <th>Salida</th>
-                              <th>AcciÃƒÂ³n</th>
+                              <th>Acción</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -591,7 +591,7 @@
                         <input type="text" class="form-control form-control-sm" id="despacho-responsable" placeholder="Empleado" disabled />
                       </div>
                       <div class="mb-3">
-                        <label class="form-label" for="despacho-observacion">ObservaciÃƒÂ³n / Motivo</label>
+                        <label class="form-label" for="despacho-observacion">Observación / Motivo</label>
                         <textarea
                           class="form-control form-control-sm"
                           id="despacho-observacion"
@@ -688,7 +688,7 @@
                         <!-- Items timeline dinÃƒÂ¡micos -->
                         <div class="timeline-item">
                           <div class="t-time">--:--</div>
-                          <div class="t-desc text-muted">(Sin eventos aÃƒÂºn)</div>
+                          <div class="t-desc text-muted">(Sin eventos aún)</div>
                         </div>
                       </div>
                     </div>
@@ -784,11 +784,11 @@
           </div>
           <div class="modal-body small">
             <p class="mb-2">
-              Ã‚Â¿Deseas cambiar el estado del pedido <strong id="confirm-estado-pedido"></strong> de
+              ¿Deseas cambiar el estado del pedido <strong id="confirm-estado-pedido"></strong> de
               <span class="badge bg-secondary" id="confirm-estado-actual"></span> a <span class="badge bg-primary" id="confirm-estado-nuevo"></span>?
             </p>
             <div class="alert alert-warning py-1 px-2 small mb-0">
-              <i class="fa-solid fa-circle-info me-1"></i> Esta acciÃƒÂ³n se registrarÃƒÂ¡ con tu usuario y hora actual.
+              <i class="fa-solid fa-circle-info me-1"></i> Esta acción se registrará con tu usuario y hora actual.
             </div>
           </div>
           <div class="modal-footer">
@@ -799,23 +799,23 @@
       </div>
     </div>
 
-    <!-- Modal ConfirmaciÃƒÂ³n GenÃƒÂ©rico -->
+    <!-- Modal Confirmación Genérico -->
     <div class="modal fade" id="modalConfirmSimple" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
             <h6 class="modal-title fw-semibold">
               <i class="fa-solid fa-triangle-exclamation me-2 text-warning"></i>
-              Confirmar acciÃƒÂ³n
+              Confirmar acción
             </h6>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
 
           <div class="modal-body small">
-            <p id="confirmSimpleMsg" class="mb-2">Ã‚Â¿Confirmas la acciÃƒÂ³n?</p>
+            <p id="confirmSimpleMsg" class="mb-2">¿Confirmas la acción?</p>
             <div class="alert alert-warning py-1 px-2 small mb-0">
               <i class="fa-solid fa-circle-info me-1"></i>
-              Esta acciÃƒÂ³n se registrarÃƒÂ¡ con tu usuario y hora actual.
+              Esta acción se registrará con tu usuario y hora actual.
             </div>
           </div>
 
@@ -827,13 +827,13 @@
       </div>
     </div>
 
-    <!-- Offcanvas (opcional futuro para ediciÃƒÂ³n u otros) -->
+    <!-- Offcanvas (opcional futuro para edición u otros) -->
     <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasGeneric" aria-labelledby="offcanvasGenericLabel">
       <div class="offcanvas-header offcanvas-despacho-header">
-        <h6 class="offcanvas-title fw-semibold" id="offcanvasGenericLabel">AcciÃƒÂ³n</h6>
+        <h6 class="offcanvas-title fw-semibold" id="offcanvasGenericLabel">Acción</h6>
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
       </div>
-      <div class="offcanvas-body small" id="offcanvasGenericBody">(Contenido dinÃƒÂ¡mico)</div>
+      <div class="offcanvas-body small" id="offcanvasGenericBody">(Contenido dinámico)</div>
     </div>
 
     <!-- ===== TOAST CONTAINER (si se requiere) ===== -->
