@@ -1,4 +1,4 @@
-/* frontend/assets/css/auth.css */
+﻿/* frontend/assets/css/auth.css */
 
 /* Ya NO centrar todo el body, solo el formulario */
 body {
@@ -94,3 +94,4 @@ body {
   margin-bottom: 1rem;
   font-size: 0.9rem;
 }
+

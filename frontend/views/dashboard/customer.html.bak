@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
@@ -49,7 +49,7 @@
       <nav class="nav-dashboard mb-3">
         <a href="#" class="nav-link" id="tab-profile"><i class="fa fa-user-circle me-1"></i> Datos personales</a>
         <a href="#" class="nav-link" id="tab-orders"><i class="fa fa-shopping-bag me-1"></i> Mis compras</a>
-        <a href="#" class="nav-link text-danger" id="logout-btn"><i class="fa fa-sign-out-alt me-1"></i> Cerrar sesión</a>
+        <a href="#" class="nav-link text-danger" id="logout-btn"><i class="fa fa-sign-out-alt me-1"></i> Cerrar sesiÃ³n</a>
       </nav>
 
       <!-- DATOS PERSONALES -->
@@ -64,15 +64,15 @@
             <input type="text" class="form-control" id="pf-apellido" name="apellido" required />
           </div>
           <div class="col-md-6">
-            <label for="pf-email" class="form-label">Correo electrónico</label>
+            <label for="pf-email" class="form-label">Correo electrÃ³nico</label>
             <input type="email" class="form-control" id="pf-email" name="email" readonly />
           </div>
           <div class="col-md-6">
-            <label for="pf-telefono" class="form-label">Teléfono</label>
+            <label for="pf-telefono" class="form-label">TelÃ©fono</label>
             <input type="text" class="form-control" id="pf-telefono" name="telefono" />
           </div>
           <div class="col-12">
-            <label for="pf-direccion" class="form-label">Dirección principal</label>
+            <label for="pf-direccion" class="form-label">DirecciÃ³n principal</label>
             <input type="text" class="form-control" id="pf-direccion" name="direccion_principal" />
           </div>
           <div class="col-12 text-end">
@@ -108,4 +108,5 @@
     <script type="module" src="/assets/js/shared/toast.js"></script>
   </body>
 </html>
+
 

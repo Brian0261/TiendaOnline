@@ -1,4 +1,4 @@
-/* styles.css */
+﻿/* styles.css */
 
 /* ---------- Base ---------- */
 body {
@@ -39,7 +39,7 @@ a {
   margin-bottom: 20px;
 }
 
-/* ---------- Categorías ---------- */
+/* ---------- CategorÃ­as ---------- */
 .category-card {
   height: 200px;
   background-size: cover;
@@ -105,12 +105,12 @@ footer {
   color: #212529;
 }
 
-/* Evitar “brincos” cuando aparece/desaparece el scrollbar */
+/* Evitar â€œbrincosâ€ cuando aparece/desaparece el scrollbar */
 html {
   overflow-y: scroll; /* siempre reserva espacio vertical */
 }
 
-/* ───── Sugerencias de búsqueda ───── */
+/* â”€â”€â”€â”€â”€ Sugerencias de bÃºsqueda â”€â”€â”€â”€â”€ */
 .suggestions-dropdown {
   z-index: 1050; /* sobre la navbar */
   top: 100%; /* justo debajo del input */
@@ -123,15 +123,15 @@ html {
   object-fit: contain;
 }
 
-/* ── Ajuste de resaltado en sugerencias ── */
+/* â”€â”€ Ajuste de resaltado en sugerencias â”€â”€ */
 #search-suggestions mark {
   background-color: var(--accent-color, #ffc107); /* el que ya usas */
-  padding: 0; /* ← elimina el espacio extra */
+  padding: 0; /* â† elimina el espacio extra */
   margin: 0; /* seguridad extra */
   border-radius: 2px; /* opcional: esquinas suaves */
 }
 
-/* ────── Avatar circular usuario menú ────── */
+/* â”€â”€â”€â”€â”€â”€ Avatar circular usuario menÃº â”€â”€â”€â”€â”€â”€ */
 .user-avatar {
   display: inline-flex;
   align-items: center;
@@ -147,7 +147,7 @@ html {
   box-shadow: 0 2px 4px rgba(44, 44, 44, 0.1);
 }
 
-/* --- Checkout: fila 'Envío' bonita --- */
+/* --- Checkout: fila 'EnvÃ­o' bonita --- */
 .summary-row {
   display: flex;
   justify-content: space-between;
@@ -162,7 +162,7 @@ html {
   letter-spacing: 0.2px;
 }
 
-/* --- Fila 'Envío' del resumen --- */
+/* --- Fila 'EnvÃ­o' del resumen --- */
 .summary-row {
   display: flex;
   justify-content: space-between;
@@ -212,7 +212,7 @@ html {
   color: #6c757d;
 }
 
-/* ===== Sticky footer global (todas las páginas) ===== */
+/* ===== Sticky footer global (todas las pÃ¡ginas) ===== */
 html,
 body {
   height: 100%;
@@ -234,3 +234,4 @@ body {
 footer {
   margin-top: 0 !important; /* sobreescribe la regla previa de 60px */
 }
+
