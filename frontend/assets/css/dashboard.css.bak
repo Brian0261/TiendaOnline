@@ -1,4 +1,4 @@
-﻿/* ======  PALETA (coincide con otras vistas) ====== */
+/* ======  PALETA (coincide con otras vistas) ====== */
 :root {
   --primary-color: #dc3545; /* rojo principal */
   --secondary-color: #343a40; /* gris oscuro   */
@@ -15,7 +15,7 @@ body {
 
 main {
   min-width: 0;
-  padding: 24px 32px 12px 32px !important; /* mÃ¡s compacto */
+  padding: 24px 32px 12px 32px !important; /* más compacto */
   background: #f8f9fa;
   height: 100vh;
   overflow-y: auto;
@@ -67,10 +67,10 @@ main {
   vertical-align: middle;
 }
 
-/* ===  â¬‡ï¸ NUEVO: ancho fijo y sin â€œsaltoâ€ entre filtros  === */
+/* ===  ⬇️ NUEVO: ancho fijo y sin “salto” entre filtros  === */
 #productsTable {
   width: 100%;
-  table-layout: fixed; /* â±â± mantiene el ancho de cada columna */
+  table-layout: fixed; /* ❱❱ mantiene el ancho de cada columna */
 }
 
 #productsTable thead th:nth-child(1),
@@ -87,7 +87,7 @@ main {
 }
 #productsTable thead th:nth-child(3),
 #productsTable tbody td:nth-child(3) {
-  /* DescripciÃ³n */
+  /* Descripción */
   width: 260px;
   min-width: 260px;
 }
@@ -105,7 +105,7 @@ main {
 }
 #productsTable thead th:nth-child(6),
 #productsTable tbody td:nth-child(6) {
-  /* CategorÃ­a */
+  /* Categoría */
   width: 150px;
   min-width: 150px;
 }
@@ -123,7 +123,7 @@ main {
   text-align: center;
 }
 
-/* Permite que el texto se corte con â€œâ€¦â€ si no cabe */
+/* Permite que el texto se corte con “…” si no cabe */
 #productsTable td {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -131,12 +131,12 @@ main {
 }
 
 /* Quitar el sombreado que Bootstrap aplica al tener .table-secondary
-   cuando vuelvas al filtro â€œTodosâ€ (las filas ya no llevan esa clase)   */
+   cuando vuelvas al filtro “Todos” (las filas ya no llevan esa clase)   */
 #productsTable tr.table-secondary {
   background-color: var(--light-color) !important;
 }
 
-/* ======  BOTONES DE ACCIÃ“N EN TABLAS ====== */
+/* ======  BOTONES DE ACCIÓN EN TABLAS ====== */
 .table .btn-action {
   width: 32px;
   height: 32px;
@@ -315,7 +315,7 @@ main {
   }
 }
 
-/* Desktop: un pelÃ­n mÃ¡s grande */
+/* Desktop: un pelín más grande */
 @media (min-width: 992px) {
   .kpi-card .kpi-value {
     font-size: 1.3rem;
@@ -332,11 +332,11 @@ body.d-flex {
   position: sticky; /* se pega al borde superior del viewport */
   top: 0; /* como el admin no tiene navbar fija, va 0 */
   height: 100vh; /* ocupa todo el alto visible */
-  overflow-y: auto; /* si crece, scroll sÃ³lo dentro del sidebar */
+  overflow-y: auto; /* si crece, scroll sólo dentro del sidebar */
   align-self: flex-start; /* evita estiramiento vertical por flex */
 }
 
-/* TÃ­tulo de secciÃ³n en el sidebar (igual que empleado) */
+/* Título de sección en el sidebar (igual que empleado) */
 #sidebar .menu-title {
   font-size: 0.75rem;
   font-weight: 600;
@@ -346,7 +346,7 @@ body.d-flex {
   margin: 0.75rem 0 0.35rem;
 }
 
-/* AlineaciÃ³n consistente de iconos en los items del menÃº */
+/* Alineación consistente de iconos en los items del menú */
 #sidebar .nav-link i {
   width: 18px;
   text-align: center;
@@ -359,7 +359,7 @@ main {
   overflow-y: auto;
 }
 
-/* ===== Logout (Admin) â€“ igual al "Salir" del empleado, pero rojo sÃ³lido y altura fija ===== */
+/* ===== Logout (Admin) – igual al "Salir" del empleado, pero rojo sólido y altura fija ===== */
 #sidebar .logout-btn {
   background: #dc3545;
   border: 1px solid #dc3545;
@@ -367,9 +367,9 @@ main {
   font-weight: 600;
   border-radius: 0.5rem;
 
-  /* â†“ Ajusta aquÃ­ para bajar la altura */
+  /* ↓ Ajusta aquí para bajar la altura */
   padding: 0.4rem 0.7rem; /* antes .60rem .80rem */
-  min-height: 34px; /* antes 40px (o elimÃ­nalo) */
+  min-height: 34px; /* antes 40px (o elimínalo) */
   font-size: 0.9rem; /* opcional: reduce un poco el texto */
 
   width: 100%;
@@ -378,9 +378,8 @@ main {
 
 #sidebar .logout-btn:hover,
 #sidebar .logout-btn:focus {
-  background: #bb2d3b; /* tono mÃ¡s oscuro al hover */
+  background: #bb2d3b; /* tono más oscuro al hover */
   border-color: #bb2d3b;
   color: #fff;
   filter: brightness(1.02);
 }
-

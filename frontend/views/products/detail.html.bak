@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
@@ -47,6 +47,5 @@
     <script type="module" src="/assets/js/products/detail.js"></script>
   </body>
 </html>
-
 
 

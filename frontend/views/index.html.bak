@@ -29,7 +29,7 @@
       }
 
       .hero-section {
-        background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(/assets/images/banner-bodega.jpg);
+        background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url("assets/images/banner-bodega.jpg");
         background-size: cover;
         background-position: center;
         min-height: 400px;
@@ -263,6 +263,4 @@
     <!-- Si luego necesitas más scripts, agrégalos aquí con type="module" y defer -->
   </body>
 </html>
-
-
 
