@@ -1,9 +1,13 @@
-/                 /views/index.html                  200
-/about            /views/about.html                  200
-/products/*       /views/products/:splat             200
-/cart/*           /views/cart/:splat                 200
-/dashboard/*      /views/dashboard/:splat            200
-/auth/*           /views/auth/:splat                 200
+# 1. Rutas directas
+/                /views/index.html              200
+/about           /views/about.html              200
+/products/*      /views/products/:splat         200
+/cart/*          /views/cart/:splat             200
+/dashboard/*     /views/dashboard/:splat        200
+/auth/*          /views/auth/:splat             200
 
-# API (proxy al backend de staging)
-/api/*            https://api.staging.bodegaluchito.shop/:splat   200
+# 2. API (siempre antes del catch-all)
+/api/*           https://api.staging.bodegaluchito.shop/:splat   200
+
+# 3. Fallback global (garantiza que / también funcione)
+ /*               /views/index.html              200
