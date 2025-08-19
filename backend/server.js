@@ -98,6 +98,7 @@ const dispatchRoutes = require("./routes/dispatchRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const configRoutes = require("./routes/configRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
+const diagnosticRoutes = require("./routes/diagnosticRoutes");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
@@ -109,6 +110,7 @@ app.use("/api/dispatch", dispatchRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/config", configRoutes);
 app.use("/api/categories", categoryRoutes);
+app.use("/api/diag", diagnosticRoutes);
 
 /* ────────────────────────────
    Vistas (no bloquean si no existen)
