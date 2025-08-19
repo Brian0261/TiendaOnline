@@ -4,7 +4,7 @@
 //  (robustecido: timeouts, try/catch, consultas directas a SQL
 //   para los endpoints públicos que listan/leen productos)
 // ────────────────────────────────────────────────────────────
-const { sql, poolPromise } = require("../config/db.config");
+const { sql, getPool } = require("../config/db.config");
 const Product = require("../models/Product");
 
 /* Utilidades */
@@ -146,12 +146,14 @@ exports.hardDeleteProduct = async (req, res) => {
    ========================================================= */
 exports.getCategories = async (_req, res) => {
   try {
-    const pool = await poolPromise;
-    const result = await pool.request().timeout(SQL_TIMEOUT).query(`
-        SELECT id_categoria AS id, nombre_categoria AS name
-        FROM   CATEGORIA
-        ORDER  BY nombre_categoria;
-      `);
+    const pool = await getPool();
+    const request = pool.request();
+    request.timeout = SQL_TIMEOUT; // ← propiedad, no método
+    const result = await request.query(`
+      SELECT id_categoria AS id, nombre_categoria AS name
+      FROM   CATEGORIA
+      ORDER  BY nombre_categoria;
+    `);
     res.json(result.recordset);
   } catch (err) {
     console.error("Error al obtener categorías:", err?.message || err);
@@ -161,12 +163,14 @@ exports.getCategories = async (_req, res) => {
 
 exports.getBrands = async (_req, res) => {
   try {
-    const pool = await poolPromise;
-    const result = await pool.request().timeout(SQL_TIMEOUT).query(`
-        SELECT id_marca AS id, nombre_marca AS name
-        FROM   MARCA
-        ORDER  BY nombre_marca;
-      `);
+    const pool = await getPool();
+    const request = pool.request();
+    request.timeout = SQL_TIMEOUT;
+    const result = await request.query(`
+      SELECT id_marca AS id, nombre_marca AS name
+      FROM   MARCA
+      ORDER  BY nombre_marca;
+    `);
     res.json(result.recordset);
   } catch (err) {
     console.error("Error al obtener marcas:", err?.message || err);
@@ -194,8 +198,9 @@ exports.getAllProducts = async (req, res) => {
     const page = Math.max(1, toInt(req.query.page, 1));
     const offset = (page - 1) * limit;
 
-    const pool = await poolPromise;
-    const request = pool.request().timeout(SQL_TIMEOUT);
+    const pool = await getPool();
+    const request = pool.request();
+    request.timeout = SQL_TIMEOUT;
 
     let where = "1=1";
     if (status === "active") where += " AND p.activo = 1";
@@ -249,20 +254,24 @@ exports.getProductById = async (req, res) => {
     const id = toInt(req.params.id, 0);
     if (!id) return res.status(400).json({ message: "ID inválido" });
 
-    const pool = await poolPromise;
-    const result = await pool.request().timeout(SQL_TIMEOUT).input("id", sql.Int, id).query(`
-        SELECT
-          p.id_producto      AS id,
-          p.nombre_producto  AS nombre,
-          p.descripcion,
-          p.precio,
-          p.imagen,
-          p.activo,
-          p.id_categoria,
-          p.id_marca
-        FROM PRODUCTO p
-        WHERE p.id_producto = @id AND p.activo = 1;
-      `);
+    const pool = await getPool();
+    const request = pool.request();
+    request.timeout = SQL_TIMEOUT;
+    request.input("id", sql.Int, id);
+
+    const result = await request.query(`
+      SELECT
+        p.id_producto      AS id,
+        p.nombre_producto  AS nombre,
+        p.descripcion,
+        p.precio,
+        p.imagen,
+        p.activo,
+        p.id_categoria,
+        p.id_marca
+      FROM PRODUCTO p
+      WHERE p.id_producto = @id AND p.activo = 1;
+    `);
 
     if (result.recordset.length === 0) {
       return res.status(404).json({ message: "Producto no encontrado" });
