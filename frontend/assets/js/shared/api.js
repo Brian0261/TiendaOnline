@@ -6,26 +6,34 @@
  *  - Este archivo detecta el hostname y arma un BASE absoluto:
  *      • Local:      http://localhost:3000/api
  *      • Staging/Prod (Cloudflare Pages): FQDN de Azure + /api
+ *
+ *  ✅ Mejora: si el path ya es una URL absoluta (http/https),
+ *     NO se le antepone BASE (útil para pruebas puntuales).
  ******************************************************************/
 
 /* ─────────────────────────  Detección de BASE  ───────────────────────── */
 const hostname = typeof window !== "undefined" ? window.location.hostname : "";
 
-// FQDN actual de tu API en Azure (staging)
+// FQDN actual de tu API en Azure (staging). Cámbialo si mueves la API.
 const AZURE_API_FQDN = "https://bodega-api-stg.bluemoss-a77fa1fc.brazilsouth.azurecontainerapps.io";
 
-// Si luego publicas un dominio para la API (ej. https://api.staging.bodegaluchito.shop),
-// reemplaza AZURE_API_FQDN por ese dominio.
-let BASE = "/api"; // fallback por si se sirve todo desde el mismo host (dev muy local)
+// Por defecto (fallback) asumimos mismo host sirviendo /api.
+let BASE = "/api";
 
 if (hostname === "localhost" || hostname === "127.0.0.1") {
+  // Desarrollo local → backend local
   BASE = "http://localhost:3000/api";
 } else if (hostname === "staging.bodegaluchito.shop" || hostname === "bodegaluchito.shop" || hostname === "www.bodegaluchito.shop") {
+  // Staging / Producción (Cloudflare Pages) → API en Azure
   BASE = `${AZURE_API_FQDN}/api`;
 } else if (hostname) {
-  // Cualquier otro host (por ejemplo otro subdominio que uses)
+  // Cualquier otro host (p.ej. otro subdominio) → API en Azure
   BASE = `${AZURE_API_FQDN}/api`;
 }
+
+// Export útil para diagnóstico desde la consola
+export const API_BASE = BASE;
+export const AZURE_FQDN = AZURE_API_FQDN;
 
 /* ─────────────────────────  JWT helpers  ───────────────────────── */
 export const getToken = () => localStorage.getItem("token");
@@ -46,6 +54,10 @@ export function getUserInfo() {
 /* ─────────────────────── fetch wrapper ────────────────────────── */
 const DEFAULT_TIMEOUT_MS = 15000; // 15s
 
+function isAbsoluteUrl(path) {
+  return /^https?:\/\//i.test(path);
+}
+
 async function request(method, path, body = null, auth = false, timeoutMs = DEFAULT_TIMEOUT_MS) {
   const headers = {};
   // Si NO es FormData, seteamos Content-Type
@@ -62,12 +74,14 @@ async function request(method, path, body = null, auth = false, timeoutMs = DEFA
     method,
     headers,
     signal: controller.signal,
-    // credentials: "include", // <- Úsalo sólo si autenticas por cookies
+    // credentials: "include", // Úsalo solo si autenticas por cookies
   };
   if (body) opts.body = body instanceof FormData ? body : JSON.stringify(body);
 
   try {
-    const url = `${BASE}${path}`;
+    // Si path ya es absoluto, respétalo; si no, anteponemos BASE
+    const url = isAbsoluteUrl(path) ? path : `${BASE}${path.startsWith("/") ? path : `/${path}`}`;
+
     const res = await fetch(url, opts);
 
     // Puede venir 204 (sin contenido)
