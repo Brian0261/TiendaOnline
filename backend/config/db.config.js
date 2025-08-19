@@ -1,54 +1,76 @@
 // backend/config/db.config.js
 const sql = require("mssql");
-require("dotenv").config();
 
-// Pool settings
-const poolCfg = {
-  max: parseInt(process.env.SQL_POOL_MAX || "10", 10),
-  min: parseInt(process.env.SQL_POOL_MIN || "0", 10),
-  idleTimeoutMillis: parseInt(process.env.SQL_POOL_IDLE || "30000", 10),
+const CONN_TIMEOUT = Number(process.env.SQL_CONN_TIMEOUT || 15000); // ms
+const REQ_TIMEOUT = Number(process.env.SQL_REQUEST_TIMEOUT || 15000); // ms
+
+const CONNECTION_STRING = (process.env.DB_CONN || "").trim();
+
+// Config de respaldo por variables separadas (local/dev)
+const fallbackConfig = {
+  server: process.env.DB_SERVER || "localhost",
+  database: process.env.DB_DATABASE || "db_bodega",
+  user: process.env.DB_USER || "",
+  password: process.env.DB_PASSWORD || "",
+  options: {
+    encrypt: process.env.DB_ENCRYPT === "true" || false,
+    trustServerCertificate: process.env.DB_TRUSTED_CONNECTION === "true" || false,
+  },
+  pool: { max: 20, min: 0, idleTimeoutMillis: 30000 },
+  connectionTimeout: CONN_TIMEOUT,
+  requestTimeout: REQ_TIMEOUT,
 };
 
-const connectionTimeout = parseInt(process.env.SQL_CONN_TIMEOUT || "15000", 10);
-const requestTimeout = parseInt(process.env.SQL_REQUEST_TIMEOUT || "15000", 10);
+let _pool = null;
+let _connecting = null;
 
-// Usa DB_CONN si existe (Azure), si no, variables sueltas (local)
-let config;
-if (process.env.DB_CONN) {
-  config = {
-    connectionString: process.env.DB_CONN,
-    options: { encrypt: true, trustServerCertificate: false },
-    pool: poolCfg,
-    connectionTimeout,
-    requestTimeout,
-  };
-} else {
-  config = {
-    server: process.env.DB_SERVER || "localhost",
-    database: process.env.DB_NAME || "db_bodega",
-    user: process.env.DB_USER || "bodega_user",
-    password: process.env.DB_PASSWORD || "123",
-    options: { encrypt: false, trustServerCertificate: true },
-    pool: poolCfg,
-    connectionTimeout,
-    requestTimeout,
-  };
+async function createPool() {
+  // 1) Si hay DB_CONN, úsala directamente (forma soportada por mssql)
+  const pool = CONNECTION_STRING ? new sql.ConnectionPool(CONNECTION_STRING) : new sql.ConnectionPool(fallbackConfig);
+
+  // 2) Evitar que connect() se quede colgado: timebox con Promise.race
+  const connectPromise = pool.connect();
+  const timeoutMs = CONN_TIMEOUT + 2000;
+  const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error(`SQL connect timeout after ${timeoutMs}ms`)), timeoutMs));
+
+  await Promise.race([connectPromise, timeout]);
+
+  // 3) Escucha errores del pool para forzar reconexión en el futuro
+  pool.on("error", err => {
+    console.error("⚠️  Pool SQL error:", err?.message || err);
+    _pool = null;
+  });
+
+  console.log("✅ Pool SQL conectado");
+  return pool;
 }
 
-// Con reintentos infinitos (útil cuando Azure SQL está en autopause)
-async function connectWithRetry(retryMs = 5000) {
-  while (true) {
+async function getPool() {
+  if (_pool && _pool.connected) return _pool;
+  if (_connecting) return _connecting;
+
+  _connecting = (async () => {
     try {
-      const pool = await new sql.ConnectionPool(config).connect();
-      console.log("✅ Conexión a SQL establecida");
-      return pool;
-    } catch (err) {
-      console.error("⚠️ Error conectando a SQL:", err?.message || err);
-      await new Promise(r => setTimeout(r, retryMs));
+      _pool = await createPool();
+      return _pool;
+    } finally {
+      _connecting = null;
     }
-  }
+  })();
+
+  return _connecting;
 }
 
-const poolPromise = connectWithRetry();
-
-module.exports = { sql, poolPromise };
+module.exports = {
+  sql,
+  getPool,
+  // compatibilidad con código que espera poolPromise
+  poolPromise: (async () => {
+    try {
+      return await getPool();
+    } catch (e) {
+      console.error("❌ Error conectando a SQL:", e?.message || e);
+      throw e; // importantísimo: rechazar para que el controlador responda 500 y no se cuelgue
+    }
+  })(),
+};
