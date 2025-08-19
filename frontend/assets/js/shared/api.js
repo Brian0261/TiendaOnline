@@ -2,18 +2,37 @@
  *  Micro-SDK para acceder al backend
  *  Archivo: frontend/assets/js/shared/api.js
  *
- *  - Todas las rutas usan el prefijo /api (definido en server.js)
- *  - Sólo emplea fetch nativo + pequeños helpers de negocio
+ *  - Todas las rutas usan el prefijo /api en el servidor Node
+ *  - Este archivo detecta el hostname y arma un BASE absoluto:
+ *      • Local:      http://localhost:3000/api
+ *      • Staging/Prod (Cloudflare Pages): FQDN de Azure + /api
  ******************************************************************/
 
-/* ─────────────────────────  Config base  ───────────────────────── */
-const BASE = "/api";
+/* ─────────────────────────  Detección de BASE  ───────────────────────── */
+const hostname = typeof window !== "undefined" ? window.location.hostname : "";
+
+// FQDN actual de tu API en Azure (staging)
+const AZURE_API_FQDN = "https://bodega-api-stg.bluemoss-a77fa1fc.brazilsouth.azurecontainerapps.io";
+
+// Si luego publicas un dominio para la API (ej. https://api.staging.bodegaluchito.shop),
+// reemplaza AZURE_API_FQDN por ese dominio.
+let BASE = "/api"; // fallback por si se sirve todo desde el mismo host (dev muy local)
+
+if (hostname === "localhost" || hostname === "127.0.0.1") {
+  BASE = "http://localhost:3000/api";
+} else if (hostname === "staging.bodegaluchito.shop" || hostname === "bodegaluchito.shop" || hostname === "www.bodegaluchito.shop") {
+  BASE = `${AZURE_API_FQDN}/api`;
+} else if (hostname) {
+  // Cualquier otro host (por ejemplo otro subdominio que uses)
+  BASE = `${AZURE_API_FQDN}/api`;
+}
 
 /* ─────────────────────────  JWT helpers  ───────────────────────── */
 export const getToken = () => localStorage.getItem("token");
 export const setToken = t => localStorage.setItem("token", t);
 export const removeToken = () => localStorage.removeItem("token");
-/** Decodifica el payload ( NO usar para datos sensibles ) */
+
+/** Decodifica el payload (NO usar para datos sensibles). */
 export function getUserInfo() {
   const token = getToken();
   if (!token) return null;
@@ -25,32 +44,63 @@ export function getUserInfo() {
 }
 
 /* ─────────────────────── fetch wrapper ────────────────────────── */
-async function request(method, path, body = null, auth = false) {
+const DEFAULT_TIMEOUT_MS = 15000; // 15s
+
+async function request(method, path, body = null, auth = false, timeoutMs = DEFAULT_TIMEOUT_MS) {
   const headers = {};
+  // Si NO es FormData, seteamos Content-Type
   if (!(body instanceof FormData)) headers["Content-Type"] = "application/json";
   if (auth) {
     const token = getToken();
     if (token) headers.Authorization = `Bearer ${token}`;
   }
 
-  const opts = { method, headers };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  const opts = {
+    method,
+    headers,
+    signal: controller.signal,
+    // credentials: "include", // <- Úsalo sólo si autenticas por cookies
+  };
   if (body) opts.body = body instanceof FormData ? body : JSON.stringify(body);
 
-  const res = await fetch(`${BASE}${path}`, opts);
-  const text = await res.text(); // puede ser vacío (204)
-  const data = text ? JSON.parse(text) : null;
+  try {
+    const url = `${BASE}${path}`;
+    const res = await fetch(url, opts);
 
-  if (!res.ok) throw new Error(data?.message || `${res.status} ${res.statusText}`);
-  return data;
+    // Puede venir 204 (sin contenido)
+    if (res.status === 204) return null;
+
+    const ct = res.headers.get("content-type") || "";
+    const isJson = ct.includes("application/json");
+    const payload = isJson ? await res.json().catch(() => null) : await res.text().catch(() => "");
+
+    if (!res.ok) {
+      const msg = (isJson && payload && (payload.message || payload.error)) || `${res.status} ${res.statusText}`;
+      throw new Error(msg);
+    }
+
+    return payload;
+  } catch (err) {
+    // Uniformiza error
+    if (err?.name === "AbortError") {
+      throw new Error("Tiempo de espera agotado (timeout)");
+    }
+    throw new Error(err?.message || "Error de red");
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /* Helpers de verbo (capa baja) */
 export const api = {
-  get: (p, a = false) => request("GET", p, null, a),
-  post: (p, b, a = false) => request("POST", p, b, a),
-  put: (p, b, a = false) => request("PUT", p, b, a),
-  patch: (p, b, a = false) => request("PATCH", p, b, a),
-  del: (p, a = false) => request("DELETE", p, null, a),
+  get: (p, a = false, t) => request("GET", p, null, a, t),
+  post: (p, b, a = false, t) => request("POST", p, b, a, t),
+  put: (p, b, a = false, t) => request("PUT", p, b, a, t),
+  patch: (p, b, a = false, t) => request("PATCH", p, b, a, t),
+  del: (p, a = false, t) => request("DELETE", p, null, a, t),
 };
 
 /* =================================================================
@@ -71,6 +121,7 @@ export const refreshUser = () => api.get("/auth/me", true);
  *    {number} category → id_categoria
  *    {string} status   → "active" | "inactive" | "all"
  *    {number} limit    → TOP n
+ *    {number} page     → página (1..n)
  */
 export function getProducts(params = {}) {
   const qs = new URLSearchParams(params).toString();
@@ -101,8 +152,7 @@ export const addToCart = payload => api.post("/cart/add", payload, true);
 // GET /api/cart  → { success: true, cart: [...] }
 export const getCart = () => api.get("/cart", true);
 
-// PUT /api/cart/update/:id_carrito  (el :id_carrito no se usa en el controlador)
-// body: { id_producto, cantidad }
+// PUT /api/cart/update/:id_carrito  (el :id_carrito no se usa en el backend)
 export const updateCartItem = payload => api.put(`/cart/update/0`, payload, true);
 
 // Eliminar por producto: mandamos cantidad 0 al mismo endpoint de update
@@ -122,7 +172,6 @@ export const getDeliveryConfig = () => api.get("/config/delivery");
 
 /* ========== Reporte de ventas (ADMIN) ========== */
 export const getSalesReport = (params = {}) => {
-  // Traduce nombres de parámetros a los que espera el backend
   const mapped = { ...params };
   if (params.startDate) mapped.fechaInicio = params.startDate;
   if (params.endDate) mapped.fechaFin = params.endDate;
@@ -133,15 +182,19 @@ export const getSalesReport = (params = {}) => {
 };
 
 /* ========== Historial de pedidos (ADMIN) ========== */
-
-/**
- * Lista pedidos con filtros
- * @param {Object} params - { estado, fechaInicio, fechaFin, search }
- */
 export const getOrders = (params = {}) => {
   const qs = new URLSearchParams(params).toString();
   return api.get(`/orders${qs ? `?${qs}` : ""}`, true);
 };
+
+/* Descargas CSV/Blob: usar BASE absoluto + Authorization */
+async function fetchBlob(pathWithQuery, errMsg) {
+  const res = await fetch(`${BASE}${pathWithQuery}`, {
+    headers: { Authorization: `Bearer ${getToken()}` },
+  });
+  if (!res.ok) throw new Error(errMsg || "Error descargando archivo");
+  return await res.blob();
+}
 
 /**
  * Exporta pedidos como CSV (para Excel)
@@ -150,15 +203,8 @@ export const getOrders = (params = {}) => {
  */
 export const exportOrders = async (params = {}, urlBlob = false) => {
   const qs = new URLSearchParams(params).toString();
-  const token = getToken();
-  const res = await fetch(`/api/orders/export${qs ? `?${qs}` : ""}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error("No se pudo exportar el historial");
-  const blob = await res.blob();
-  if (urlBlob) return URL.createObjectURL(blob);
-  // Si no, retorna blob
-  return blob;
+  const blob = await fetchBlob(`/orders/export${qs ? `?${qs}` : ""}`, "No se pudo exportar el historial");
+  return urlBlob ? URL.createObjectURL(blob) : blob;
 };
 
 /** Pedidos pendientes (empleado) */
@@ -207,41 +253,23 @@ export const getOutbound = (params = {}) => {
 // Exportar salidas (CSV)
 export const exportOutbound = async (params = {}, urlBlob = false) => {
   const qs = new URLSearchParams(params).toString();
-  const token = getToken();
-  const res = await fetch(`/api/dispatch/outbound/export${qs ? `?${qs}` : ""}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error("No se pudo exportar las salidas");
-  const blob = await res.blob();
-  if (urlBlob) return URL.createObjectURL(blob);
-  return blob;
+  const blob = await fetchBlob(`/dispatch/outbound/export${qs ? `?${qs}` : ""}`, "No se pudo exportar las salidas");
+  return urlBlob ? URL.createObjectURL(blob) : blob;
 };
 
 export const exportPendingOrders = async (params = {}) => {
   const qs = new URLSearchParams(params).toString();
-  const res = await fetch(`/api/orders/pending/export${qs ? `?${qs}` : ""}`, {
-    headers: { Authorization: `Bearer ${getToken()}` },
-  });
-  if (!res.ok) throw new Error("No se pudo exportar pendientes");
-  return await res.blob();
+  return await fetchBlob(`/orders/pending/export${qs ? `?${qs}` : ""}`, "No se pudo exportar pendientes");
 };
 
 export const exportStatusLogCsv = async (params = {}) => {
   const qs = new URLSearchParams(params).toString();
-  const res = await fetch(`/api/orders/status-log/export${qs ? `?${qs}` : ""}`, {
-    headers: { Authorization: `Bearer ${getToken()}` },
-  });
-  if (!res.ok) throw new Error("No se pudo exportar historial de estados");
-  return await res.blob();
+  return await fetchBlob(`/orders/status-log/export${qs ? `?${qs}` : ""}`, "No se pudo exportar historial de estados");
 };
 
 export const exportInventoryCsv = async (params = {}) => {
   const qs = new URLSearchParams(params).toString();
-  const res = await fetch(`/api/inventory/export${qs ? `?${qs}` : ""}`, {
-    headers: { Authorization: `Bearer ${getToken()}` },
-  });
-  if (!res.ok) throw new Error("No se pudo exportar el inventario");
-  return await res.blob();
+  return await fetchBlob(`/inventory/export${qs ? `?${qs}` : ""}`, "No se pudo exportar el inventario");
 };
 
 /* ========== Checkout / Pago ========== */
@@ -251,7 +279,7 @@ export const payIzipayMockConfirm = d => api.post("/payments/izipay/mock-confirm
 
 // ---- CATEGORÍAS (ADMIN) ----
 export const listCategoriesAdmin = () => api.get("/categories", true);
-export const createCategory = payload => api.post("/categories", payload, true); // (ya estaba bien)
+export const createCategory = payload => api.post("/categories", payload, true);
 export const updateCategory = (id, payload) => api.put(`/categories/${id}`, payload, true);
 export const deleteCategory = id => api.del(`/categories/${id}`, true);
 
