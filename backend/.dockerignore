@@ -1,0 +1,11 @@
+# No metas cosas innecesarias en la imagen
+node_modules
+npm-debug.log
+.yarn
+.dockerignore
+Dockerfile
+.git
+.gitignore
+.env
+*.md
+frontend/
