@@ -5,7 +5,7 @@
  *  - Todas las rutas usan el prefijo /api en el servidor Node
  *  - Detección y fallback de BASE:
  *      • Local:      http://localhost:3000/api
- *      • Staging/Prod (Pages): api.staging.bodegaluchito.shop/api
+ *      • Staging/Prod (Pages): Azure FQDN primero, luego api.staging...
  *      • Fallback:   FQDN de Azure (Container Apps) /api
  *
  *  ✅ Si el path ya es absoluto (http/https), NO antepone BASE.
@@ -31,8 +31,9 @@ function computeBaseCandidates() {
   }
 
   if (ON_BODEGA_DOMAIN) {
-    // Staging/Prod (Cloudflare Pages): primero CF, luego Azure FQDN como respaldo
-    return [`${CF_API_STG}/api`, `${AZURE_API_FQDN}/api`];
+    // En staging/prod: **Primero Azure FQDN** (siempre disponible),
+    // y si ya creaste el subdominio api.staging... lo tomará como fallback.
+    return [`${AZURE_API_FQDN}/api`, `${CF_API_STG}/api`];
   }
 
   // Cualquier otro host (por ejemplo vista previa de Pages/otro dominio): usa Azure FQDN
@@ -57,7 +58,7 @@ const BASE_CANDIDATES = (() => {
   return computeBaseCandidates();
 })();
 
-// Export dinámico para diagnosticar desde consola (se irá actualizando si cambiamos)
+// Export dinámico para diagnosticar desde consola (se actualizará si hay fallback)
 export let API_BASE = BASE_CANDIDATES[0];
 
 // Extras para diagnóstico
@@ -177,6 +178,7 @@ async function request(method, path, body = null, auth = false, timeoutMs = DEFA
 
       if (res2.status === 204) {
         API_BASE = nextBase;
+        if (typeof window !== "undefined") window.API_BASE = API_BASE;
         return null;
       }
 
@@ -194,6 +196,7 @@ async function request(method, path, body = null, auth = false, timeoutMs = DEFA
 
       // Éxito con fallback → fija BASE para el resto de la sesión
       API_BASE = nextBase;
+      if (typeof window !== "undefined") window.API_BASE = API_BASE;
       return payload2;
     } catch (err2) {
       if (err2?.name === "AbortError") throw new Error("Tiempo de espera agotado (timeout)");
