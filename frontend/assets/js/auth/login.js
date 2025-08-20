@@ -1,95 +1,111 @@
 // frontend/assets/js/auth/login.js
-// Envia el login al backend (API_BASE) y maneja respuestas/errores con robustez.
+// Login desde modal o página dedicada, usando el helper window.API
+// Funciona en staging y en localhost.
 
 (function () {
-  const onSubmit = async e => {
-    // Sólo nos interesa el formulario de login
-    if (!e.target || e.target.id !== "login-form") return;
-    e.preventDefault();
+  const $ = (sel, root = document) => root.querySelector(sel);
 
-    const form = e.target;
-    const emailEl = form.querySelector("#email");
-    const passEl = form.querySelector("#password");
-    const msgEl = form.querySelector("#login-error");
-    const btn = form.querySelector('button[type="submit"]');
+  function getLoginForm() {
+    // Acepta ambas variantes de id por compatibilidad
+    return document.getElementById("loginForm") || document.getElementById("login-form");
+  }
 
-    const email = (emailEl?.value || "").trim();
-    const pass = passEl?.value || "";
-
-    // Toma la base definida en /assets/js/shared/api.js (ya apunta al subdominio API)
-    const API_HOST = (window.API_BASE || "").replace(/\/$/, "");
-    const LOGIN_URL = `${API_HOST}/api/auth/login`;
-
-    // Limpia mensaje y deshabilita botón
-    if (msgEl) {
-      msgEl.textContent = "";
-      msgEl.style.display = "none";
+  function bind() {
+    const form = getLoginForm();
+    if (form && !form.__bound) {
+      form.addEventListener("submit", onSubmit);
+      form.__bound = true;
     }
-    if (btn) btn.disabled = true;
+  }
+
+  // El modal puede cargarse dinámicamente: nos enganchamos en varios eventos
+  document.addEventListener("DOMContentLoaded", bind);
+  document.addEventListener("shown.bs.modal", bind);
+  document.addEventListener("submit", e => {
+    const id = e.target?.id || "";
+    if (id === "loginForm" || id === "login-form") onSubmit(e);
+  });
+
+  function ui(form) {
+    return {
+      emailEl: form.querySelector('#loginEmail, input[name="email"]'),
+      passEl: form.querySelector('#loginPassword, input[name="password"]'),
+      btn: form.querySelector('button[type="submit"], #login-submit'),
+      errBox: document.getElementById("login-error"),
+    };
+  }
+
+  function showError(U, msg) {
+    if (U.errBox) {
+      U.errBox.textContent = msg;
+      U.errBox.style.display = "block";
+    } else if (window.Toast?.error) {
+      window.Toast.error(msg);
+    } else {
+      alert(msg);
+    }
+  }
+  function clearError(U) {
+    if (U.errBox) U.errBox.style.display = "none";
+  }
+  function setBusy(U, busy) {
+    if (U.btn) {
+      U.btn.disabled = !!busy;
+      U.btn.dataset.loading = busy ? "1" : "";
+    }
+  }
+
+  async function onSubmit(e) {
+    e.preventDefault();
+    const form = e.target;
+    const U = ui(form);
+    clearError(U);
+
+    const email = (U.emailEl?.value || "").trim();
+    const password = U.passEl?.value || "";
+
+    if (!email || !password) {
+      showError(U, "Completa tu correo y contraseña.");
+      return;
+    }
 
     try {
-      const payload = {
-        email,
-        // Enviamos ambas claves por compatibilidad (tu backend puede esperar 'password' o 'contrasena')
-        password: pass,
-        contrasena: pass,
-      };
+      setBusy(U, true);
 
-      const res = await fetch(LOGIN_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        // credentials: "include", // habilítalo sólo si usas cookies de sesión
-        body: JSON.stringify(payload),
-      });
+      // Usa SIEMPRE el helper API. Importante: sin "/" inicial para evitar // en la URL.
+      // Mandamos también "correo" por si el backend lo espera con ese nombre.
+      const resp = await window.API.post("auth/login", { email, correo: email, password });
 
-      // Evita "Unexpected end of JSON input" si el body viene vacío
-      const raw = await res.text();
-      let data = null;
-      if (raw) {
-        try {
-          data = JSON.parse(raw);
-        } catch {
-          /* ignora parse */
-        }
+      if (!resp?.token) {
+        throw new Error(resp?.message || resp?.error || "Credenciales inválidas.");
       }
 
-      if (!res.ok) {
-        const msg = data?.message || data?.error || `Error ${res.status}`;
-        throw new Error(msg);
+      // Persistencia de sesión (claves compatibles)
+      localStorage.setItem("token", resp.token);
+      localStorage.setItem("auth_token", resp.token);
+      if (resp.user) localStorage.setItem("user", JSON.stringify(resp.user));
+
+      // Notifica a la app (navbar, etc.)
+      window.dispatchEvent(new CustomEvent("auth:changed", { detail: { loggedIn: true, user: resp.user || null } }));
+
+      // Cierra modal si existe (Bootstrap 5)
+      const modalEl = document.getElementById("loginModal");
+      if (modalEl && window.bootstrap?.Modal) {
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.hide();
       }
 
-      // Guarda token/usuario si vienen en la respuesta
-      if (data?.token) localStorage.setItem("token", data.token);
-      if (data?.user) localStorage.setItem("user", JSON.stringify(data.user));
-
-      // Redirección por rol (ajusta rutas si tus páginas viven bajo /views/)
-      const role = (data?.user?.rol || "").toUpperCase();
-      switch (role) {
-        case "ADMINISTRADOR":
-          window.location.href = "/dashboard/admin.html";
-          break;
-        case "EMPLEADO":
-          window.location.href = "/dashboard/employee.html";
-          break;
-        case "CLIENTE":
-          window.location.href = "/dashboard/customer.html";
-          break;
-        default:
-          window.location.href = "/";
-      }
+      // Redirección
+      const next = new URLSearchParams(location.search).get("next");
+      location.href = next || "/";
     } catch (err) {
       console.error("Login error:", err);
-      if (msgEl) {
-        msgEl.textContent = err.message || "No se pudo iniciar sesión. Intenta más tarde.";
-        msgEl.style.display = "block";
-      } else {
-        alert(err.message || "No se pudo iniciar sesión.");
-      }
+      if (err?.status === 401) showError(U, "Credenciales inválidas.");
+      else if (err?.status === 405) showError(U, "Método no permitido en este host. Asegúrate de no tener 'action' en el formulario.");
+      else if (err?.status === 404) showError(U, "Ruta de autenticación no encontrada.");
+      else showError(U, err?.message || "No se pudo iniciar sesión.");
     } finally {
-      if (btn) btn.disabled = false;
+      setBusy(U, false);
     }
-  };
-
-  // Escucha a nivel documento como tenías, pero filtra por #login-form
-  document.addEventListener("submit", onSubmit);
+  }
 })();

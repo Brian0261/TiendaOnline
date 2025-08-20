@@ -80,18 +80,26 @@ export function getUserInfo() {
   }
 }
 
+/* ─────────────────────── util: imágenes ────────────────────────── */
+function fixImagePath(img) {
+  if (!img) return "/assets/images/placeholder-product.png";
+  if (/^https?:\/\//i.test(img)) return img;
+  // fuerza raíz absoluta y normaliza si vino como "assets/images/..."
+  const cleaned = String(img).replace(/^\/?assets\/images\//i, "");
+  return `/assets/images/${cleaned}`;
+}
+
 /* ─────────────────────── fetch wrapper ────────────────────────── */
 const DEFAULT_TIMEOUT_MS = 15000; // 15s
 const isAbsoluteUrl = path => /^https?:\/\//i.test(path);
 
 /**
  * Determina si un error es de red/CSP/DNS que amerita intentar fallback.
- * (Mensaje típico en navegadores: "Failed to fetch", CSP blocked, ERR_NAME_NOT_RESOLVED)
  */
 function shouldTryFallback(err) {
   const msg = String(err?.message || "").toLowerCase();
   return (
-    err?.name === "AbortError" || // timeout → probamos fallback
+    err?.name === "AbortError" ||
     msg.includes("failed to fetch") ||
     msg.includes("networkerror") ||
     msg.includes("net::err_name_not_resolved") ||
@@ -126,7 +134,7 @@ async function request(method, path, body = null, auth = false, timeoutMs = DEFA
   const opts = { method, headers };
   if (body) opts.body = body instanceof FormData ? body : JSON.stringify(body);
 
-  // Arma URL (respeta rutas absolutas)
+  // Arma URL (respeta rutas absolutas y evita //)
   const buildUrl = base => (isAbsoluteUrl(path) ? path : `${base}${path.startsWith("/") ? path : `/${path}`}`);
 
   // Intento 1 con API_BASE actual
@@ -142,7 +150,10 @@ async function request(method, path, body = null, auth = false, timeoutMs = DEFA
 
     if (!res1.ok) {
       const msg1 = (isJson1 && payload1 && (payload1.message || payload1.error)) || `${res1.status} ${res1.statusText}`;
-      throw new Error(msg1);
+      const e = new Error(msg1);
+      e.status = res1.status;
+      e.detail = payload1;
+      throw e;
     }
 
     return payload1;
@@ -150,14 +161,14 @@ async function request(method, path, body = null, auth = false, timeoutMs = DEFA
     // Si la URL era absoluta (el caller pidió algo concreto), no hacemos fallback
     if (isAbsoluteUrl(path) || BASE_CANDIDATES.length < 2 || !shouldTryFallback(err1)) {
       if (err1?.name === "AbortError") throw new Error("Tiempo de espera agotado (timeout)");
-      throw new Error(err1?.message || "Error de red");
+      throw err1;
     }
 
     // Intento 2 con el siguiente candidato
     const nextBase = BASE_CANDIDATES.find(b => b !== API_BASE);
     if (!nextBase) {
       if (err1?.name === "AbortError") throw new Error("Tiempo de espera agotado (timeout)");
-      throw new Error(err1?.message || "Error de red");
+      throw err1;
     }
 
     try {
@@ -165,7 +176,6 @@ async function request(method, path, body = null, auth = false, timeoutMs = DEFA
       const res2 = await doFetch(url2, opts, timeoutMs);
 
       if (res2.status === 204) {
-        // Cambiamos BASE para siguientes requests
         API_BASE = nextBase;
         return null;
       }
@@ -176,7 +186,10 @@ async function request(method, path, body = null, auth = false, timeoutMs = DEFA
 
       if (!res2.ok) {
         const msg2 = (isJson2 && payload2 && (payload2.message || payload2.error)) || `${res2.status} ${res2.statusText}`;
-        throw new Error(msg2);
+        const e = new Error(msg2);
+        e.status = res2.status;
+        e.detail = payload2;
+        throw e;
       }
 
       // Éxito con fallback → fija BASE para el resto de la sesión
@@ -184,8 +197,7 @@ async function request(method, path, body = null, auth = false, timeoutMs = DEFA
       return payload2;
     } catch (err2) {
       if (err2?.name === "AbortError") throw new Error("Tiempo de espera agotado (timeout)");
-      // Lanza el error del fallback (más cercano a la causa real)
-      throw new Error(err2?.message || "Error de red");
+      throw err2;
     }
   }
 }
@@ -203,17 +215,20 @@ export const api = {
    Normalizadores
    ================================================================= */
 
-// Convierte claves ES -> EN y asegura tipos (precio como número)
-const normalizeProduct = (p = {}) => ({
-  id: p.id ?? p.id_producto ?? null,
-  name: p.name ?? p.nombre ?? p.nombre_producto ?? "",
-  description: p.description ?? p.descripcion ?? "",
-  price: Number(p.price ?? p.precio ?? 0),
-  image: p.image ?? p.imagen ?? "assets/images/placeholder-product.png",
-  categoryId: p.categoryId ?? p.id_categoria ?? null,
-  brandId: p.brandId ?? p.id_marca ?? null,
-  active: p.active ?? p.activo ?? 1,
-});
+// Convierte claves ES -> EN y asegura tipos (precio como número / imagen absoluta)
+const normalizeProduct = (p = {}) => {
+  const rawImg = p.image ?? p.imagen ?? null;
+  return {
+    id: p.id ?? p.id_producto ?? null,
+    name: p.name ?? p.nombre ?? p.nombre_producto ?? "",
+    description: p.description ?? p.descripcion ?? "",
+    price: Number(p.price ?? p.precio ?? 0),
+    image: fixImagePath(rawImg),
+    categoryId: p.categoryId ?? p.id_categoria ?? null,
+    brandId: p.brandId ?? p.id_marca ?? null,
+    active: p.active ?? p.activo ?? 1,
+  };
+};
 
 /* =================================================================
    High-level helpers por dominio
@@ -385,3 +400,24 @@ export const deleteCategory = id => api.del(`/categories/${id}`, true);
 
 /* Export por defecto la capa baja por si se necesita algo puntual */
 export default api;
+
+/* ──────────── Soporte global para scripts NO-módulo (ej. modal login) ──────────── */
+if (typeof window !== "undefined") {
+  window.API_BASE = API_BASE;
+  window.API = {
+    get: (p, a = false, t) => api.get(p, a, t),
+    post: (p, b, a = false, t) => api.post(p, b, a, t),
+    put: (p, b, a = false, t) => api.put(p, b, a, t),
+    patch: (p, b, a = false, t) => api.patch(p, b, a, t),
+    del: (p, a = false, t) => api.del(p, a, t),
+
+    // helpers típicos que el modal podría usar:
+    login: data => loginUser(data),
+    register: data => registerUser(data),
+    token: {
+      get: getToken,
+      set: setToken,
+      remove: removeToken,
+    },
+  };
+}
