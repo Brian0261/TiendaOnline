@@ -3,9 +3,10 @@
  *  Archivo: frontend/assets/js/shared/api.js
  *
  *  - Todas las rutas usan el prefijo /api en el servidor Node
- *  - Detecta el hostname y arma BASE absoluto:
+ *  - Detección y fallback de BASE:
  *      • Local:      http://localhost:3000/api
- *      • Staging/Prod: api.staging.bodegaluchito.shop/api (CF) o FQDN de Azure
+ *      • Staging/Prod (Pages): api.staging.bodegaluchito.shop/api
+ *      • Fallback:   FQDN de Azure (Container Apps) /api
  *
  *  ✅ Si el path ya es absoluto (http/https), NO antepone BASE.
  ******************************************************************/
@@ -19,23 +20,49 @@ const AZURE_API_FQDN = "https://bodega-api-stg.bluemoss-a77fa1fc.brazilsouth.azu
 // Subdominio de API detrás de Cloudflare (proxy hacia Azure)
 const CF_API_STG = "https://api.staging.bodegaluchito.shop";
 
-// Por defecto asumimos mismo host sirviendo /api (fallback)
-let BASE = "/api";
+// Lista ordenada por preferencia para elegir BASE en este entorno
+function computeBaseCandidates() {
+  const IS_LOCAL = hostname === "localhost" || hostname === "127.0.0.1";
+  const ON_BODEGA_DOMAIN = /\.bodegaluchito\.shop$/i.test(hostname);
 
-if (hostname === "localhost" || hostname === "127.0.0.1") {
-  // Desarrollo local → backend local
-  BASE = "http://localhost:3000/api";
-} else if (hostname === "staging.bodegaluchito.shop" || hostname === "bodegaluchito.shop" || hostname === "www.bodegaluchito.shop") {
-  // Staging/Prod (Cloudflare Pages) → usa el subdominio API en CF
-  BASE = `${CF_API_STG}/api`;
-} else if (hostname) {
-  // Cualquier otro host → pega directo al FQDN de Azure
-  BASE = `${AZURE_API_FQDN}/api`;
+  if (IS_LOCAL) {
+    // Desarrollo local → backend local
+    return ["http://localhost:3000/api"];
+  }
+
+  if (ON_BODEGA_DOMAIN) {
+    // Staging/Prod (Cloudflare Pages): primero CF, luego Azure FQDN como respaldo
+    return [`${CF_API_STG}/api`, `${AZURE_API_FQDN}/api`];
+  }
+
+  // Cualquier otro host (por ejemplo vista previa de Pages/otro dominio): usa Azure FQDN
+  return [`${AZURE_API_FQDN}/api`];
 }
 
-// Exports útiles para diagnóstico desde la consola
-export const API_BASE = BASE;
+// Permite forzar BASE por querystring: ?api=azure | ?api=cf | ?api=local
+function forcedBaseByQuery() {
+  try {
+    const q = new URLSearchParams(window.location.search);
+    const v = (q.get("api") || "").toLowerCase();
+    if (v === "azure") return `${AZURE_API_FQDN}/api`;
+    if (v === "cf") return `${CF_API_STG}/api`;
+    if (v === "local") return "http://localhost:3000/api";
+  } catch {}
+  return null;
+}
+
+const BASE_CANDIDATES = (() => {
+  const forced = forcedBaseByQuery();
+  if (forced) return [forced];
+  return computeBaseCandidates();
+})();
+
+// Export dinámico para diagnosticar desde consola (se irá actualizando si cambiamos)
+export let API_BASE = BASE_CANDIDATES[0];
+
+// Extras para diagnóstico
 export const AZURE_FQDN = AZURE_API_FQDN;
+export const CF_API_BASE = `${CF_API_STG}/api`;
 
 /* ─────────────────────────  JWT helpers  ───────────────────────── */
 export const getToken = () => localStorage.getItem("token");
@@ -57,6 +84,37 @@ export function getUserInfo() {
 const DEFAULT_TIMEOUT_MS = 15000; // 15s
 const isAbsoluteUrl = path => /^https?:\/\//i.test(path);
 
+/**
+ * Determina si un error es de red/CSP/DNS que amerita intentar fallback.
+ * (Mensaje típico en navegadores: "Failed to fetch", CSP blocked, ERR_NAME_NOT_RESOLVED)
+ */
+function shouldTryFallback(err) {
+  const msg = String(err?.message || "").toLowerCase();
+  return (
+    err?.name === "AbortError" || // timeout → probamos fallback
+    msg.includes("failed to fetch") ||
+    msg.includes("networkerror") ||
+    msg.includes("net::err_name_not_resolved") ||
+    msg.includes("csp") ||
+    msg.includes("refused to connect")
+  );
+}
+
+async function doFetch(url, opts, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...opts, signal: controller.signal });
+    return res;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Hace una solicitud intentando con API_BASE actual y, si hay error de red/CSP/DNS,
+ * reintenta **una vez** con el siguiente candidato de BASE_CANDIDATES.
+ */
 async function request(method, path, body = null, auth = false, timeoutMs = DEFAULT_TIMEOUT_MS) {
   const headers = {};
   if (!(body instanceof FormData)) headers["Content-Type"] = "application/json";
@@ -65,40 +123,70 @@ async function request(method, path, body = null, auth = false, timeoutMs = DEFA
     if (token) headers.Authorization = `Bearer ${token}`;
   }
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-  const opts = {
-    method,
-    headers,
-    signal: controller.signal,
-    // credentials: "include", // Úsalo si autenticas por cookies
-  };
+  const opts = { method, headers };
   if (body) opts.body = body instanceof FormData ? body : JSON.stringify(body);
 
+  // Arma URL (respeta rutas absolutas)
+  const buildUrl = base => (isAbsoluteUrl(path) ? path : `${base}${path.startsWith("/") ? path : `/${path}`}`);
+
+  // Intento 1 con API_BASE actual
   try {
-    // Si path ya es absoluto, respétalo; si no, anteponemos BASE
-    const url = isAbsoluteUrl(path) ? path : `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+    const url1 = buildUrl(API_BASE);
+    const res1 = await doFetch(url1, opts, timeoutMs);
 
-    const res = await fetch(url, opts);
+    if (res1.status === 204) return null;
 
-    if (res.status === 204) return null;
+    const ct1 = res1.headers.get("content-type") || "";
+    const isJson1 = ct1.includes("application/json");
+    const payload1 = isJson1 ? await res1.json().catch(() => null) : await res1.text().catch(() => "");
 
-    const ct = res.headers.get("content-type") || "";
-    const isJson = ct.includes("application/json");
-    const payload = isJson ? await res.json().catch(() => null) : await res.text().catch(() => "");
-
-    if (!res.ok) {
-      const msg = (isJson && payload && (payload.message || payload.error)) || `${res.status} ${res.statusText}`;
-      throw new Error(msg);
+    if (!res1.ok) {
+      const msg1 = (isJson1 && payload1 && (payload1.message || payload1.error)) || `${res1.status} ${res1.statusText}`;
+      throw new Error(msg1);
     }
 
-    return payload;
-  } catch (err) {
-    if (err?.name === "AbortError") throw new Error("Tiempo de espera agotado (timeout)");
-    throw new Error(err?.message || "Error de red");
-  } finally {
-    clearTimeout(timer);
+    return payload1;
+  } catch (err1) {
+    // Si la URL era absoluta (el caller pidió algo concreto), no hacemos fallback
+    if (isAbsoluteUrl(path) || BASE_CANDIDATES.length < 2 || !shouldTryFallback(err1)) {
+      if (err1?.name === "AbortError") throw new Error("Tiempo de espera agotado (timeout)");
+      throw new Error(err1?.message || "Error de red");
+    }
+
+    // Intento 2 con el siguiente candidato
+    const nextBase = BASE_CANDIDATES.find(b => b !== API_BASE);
+    if (!nextBase) {
+      if (err1?.name === "AbortError") throw new Error("Tiempo de espera agotado (timeout)");
+      throw new Error(err1?.message || "Error de red");
+    }
+
+    try {
+      const url2 = buildUrl(nextBase);
+      const res2 = await doFetch(url2, opts, timeoutMs);
+
+      if (res2.status === 204) {
+        // Cambiamos BASE para siguientes requests
+        API_BASE = nextBase;
+        return null;
+      }
+
+      const ct2 = res2.headers.get("content-type") || "";
+      const isJson2 = ct2.includes("application/json");
+      const payload2 = isJson2 ? await res2.json().catch(() => null) : await res2.text().catch(() => "");
+
+      if (!res2.ok) {
+        const msg2 = (isJson2 && payload2 && (payload2.message || payload2.error)) || `${res2.status} ${res2.statusText}`;
+        throw new Error(msg2);
+      }
+
+      // Éxito con fallback → fija BASE para el resto de la sesión
+      API_BASE = nextBase;
+      return payload2;
+    } catch (err2) {
+      if (err2?.name === "AbortError") throw new Error("Tiempo de espera agotado (timeout)");
+      // Lanza el error del fallback (más cercano a la causa real)
+      throw new Error(err2?.message || "Error de red");
+    }
   }
 }
 
@@ -175,25 +263,12 @@ export const getCategories = () => api.get("/products/categories");
 export const getBrands = () => api.get("/products/brands");
 
 /* ========== Carrito (requiere login) ========== */
-// POST /api/cart/add  body: { id_producto, cantidad }
 export const addToCart = payload => api.post("/cart/add", payload, true);
-
-// GET /api/cart  → { success: true, cart: [...] }
 export const getCart = () => api.get("/cart", true);
-
-// PUT /api/cart/update/:id_carrito  (el :id_carrito no se usa en el backend)
 export const updateCartItem = payload => api.put(`/cart/update/0`, payload, true);
-
-// Eliminar por producto: cantidad 0 al mismo endpoint de update
 export const removeFromCart = idProducto => api.put(`/cart/update/0`, { id_producto: Number(idProducto), cantidad: 0 }, true);
-
-// (opcional) borrar por id_carrito
 export const deleteCartItem = idCarrito => api.del(`/cart/remove/${idCarrito}`, true);
-
-// Contador
 export const getCartCount = () => api.get("/cart/count", true);
-
-// Vaciar carrito completo
 export const clearCart = () => api.del("/cart/clear", true);
 
 /** Config de reparto (centro, radio, reglas de precios) */
