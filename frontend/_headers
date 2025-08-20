@@ -1,8 +1,9 @@
 /*
-  Content-Security-Policy: default-src 'self'; img-src 'self' data: https://maps.gstatic.com https://maps.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; connect-src 'self' https://api.staging.bodegaluchito.shop https://maps.googleapis.com; script-src 'self' 'unsafe-inline' https://sandbox-checkout.izipay.pe https://maps.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://kit.fontawesome.com; script-src-elem 'self' 'unsafe-inline' https://sandbox-checkout.izipay.pe https://maps.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://kit.fontawesome.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' data: https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.gstatic.com https://ka-f.fontawesome.com; frame-ancestors 'none';
+  Content-Security-Policy: default-src 'self'; img-src 'self' data: https://maps.gstatic.com https://maps.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; connect-src 'self' https://api.staging.bodegaluchito.shop https://*.brazilsouth.azurecontainerapps.io https://bodega-api-stg.bluemoss-a77fa1fc.brazilsouth.azurecontainerapps.io https://maps.googleapis.com https://maps.gstatic.com; script-src 'self' 'unsafe-inline' https://sandbox-checkout.izipay.pe https://maps.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://kit.fontawesome.com; script-src-elem 'self' 'unsafe-inline' https://sandbox-checkout.izipay.pe https://maps.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://kit.fontawesome.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' data: https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.gstatic.com https://ka-f.fontawesome.com; frame-ancestors 'none';
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+
 # --- Charset por tipo de archivo ---
 /*.html
   Content-Type: text/html; charset=UTF-8
@@ -12,7 +13,8 @@
 
 /*.css
   Content-Type: text/css; charset=UTF-8
-# Charset explícito para HTML en parciales y vistas
+
+# Charset explÃ­cito para HTML en parciales y vistas
 /partials/*
   Content-Type: text/html; charset=UTF-8
 /views/*
