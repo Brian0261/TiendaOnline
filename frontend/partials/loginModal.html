@@ -1,41 +1,40 @@
 <!-- frontend/partials/loginModal.html -->
 <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
+  <div class="modal-dialog modal-dialog-scrollable mt-4">
+    <!-- arriba: mt-4 y SIN modal-dialog-centered -->
     <div class="modal-content">
-      <!-- Importante: sin action ni method; el submit lo maneja login.js con API.post() -->
-      <form id="login-form" autocomplete="off" novalidate>
+      <form id="login-form" autocomplete="off">
+        <!-- sin action ni method -->
         <div class="modal-header">
-          <h5 class="modal-title" id="loginModalLabel">Iniciar Sesión</h5>
+          <h5 class="modal-title" id="loginModalLabel">Iniciar sesión</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
 
         <div class="modal-body">
-          <!-- Mensaje de error -->
           <div id="login-error" class="alert alert-danger py-2" style="display: none"></div>
 
           <div class="mb-3">
             <label for="login-email" class="form-label">Correo electrónico</label>
-            <input type="email" class="form-control" id="login-email" placeholder="tu@correo.com" required />
+            <input type="email" class="form-control" id="login-email" name="email" placeholder="tu@correo.com" required />
           </div>
 
           <div class="mb-2">
             <label for="login-password" class="form-label">Contraseña</label>
-            <input type="password" class="form-control" id="login-password" required />
-            <div class="form-text text-end">
-              <a href="#" class="text-decoration-none">¿Olvidaste tu contraseña?</a>
-            </div>
+            <input type="password" class="form-control" id="login-password" name="password" required />
           </div>
+
+          <div class="form-text">¿No tienes cuenta? <a href="/views/auth/register.html">Regístrate</a></div>
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button id="login-submit" type="submit" class="btn btn-primary-custom">Iniciar Sesión</button>
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button id="login-submit" type="submit" class="btn btn-danger">Ingresar</button>
         </div>
       </form>
     </div>
   </div>
 </div>
 
-<!-- Si aún no lo cargas en la página, asegúrate de incluir estos scripts en algún lugar global: -->
-<!-- <script src="/assets/js/shared/api.js"></script> -->
-<!-- <script src="/assets/js/auth/login.js"></script> -->
+<!-- Asegura que api.js y login.js estén cargados cuando uses el modal -->
+<!-- <script src="/assets/js/shared/api.js"></script>
+<script src="/assets/js/auth/login.js"></script> -->
