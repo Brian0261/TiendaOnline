@@ -1,8 +1,8 @@
 // backend/controllers/productController.js
 // ────────────────────────────────────────────────────────────
 //  Controlador de PRODUCTO – CRUD + catálogos + activación
-//  (robustecido: timeouts, try/catch, consultas directas a SQL
-//   para los endpoints públicos que listan/leen productos)
+//  (robustizado: timeouts, try/catch, consultas directas a SQL
+//   para endpoints públicos de listado/lectura)
 // ────────────────────────────────────────────────────────────
 const { sql, getPool } = require("../config/db.config");
 const Product = require("../models/Product");
@@ -18,6 +18,36 @@ const toNum = (v, def) => {
   return Number.isFinite(n) ? n : def;
 };
 
+/** Normaliza cualquier valor de imagen a una URL válida del sitio.
+ *  Acepta:
+ *   - vacío/undefined -> placeholder
+ *   - absoluta (http...) -> la deja igual
+ *   - "lays-140g.webp" -> "/assets/images/lays-140g.webp"
+ *   - "assets/images/lays-140g.webp" -> "/assets/images/lays-140g.webp"
+ *   - "/views/products/assets/images/..." -> "/assets/images/..."
+ */
+const normalizeImage = raw => {
+  if (!raw) return "/assets/images/placeholder-product.png";
+  if (typeof raw !== "string") return "/assets/images/placeholder-product.png";
+  if (raw.startsWith("http")) return raw;
+
+  // Limpia prefijos accidentales y fuerza carpeta assets/images
+  let cleaned = raw
+    .trim()
+    .replace(/^\/?views\/products\//, "") // quita /views/products/
+    .replace(/^\/?assets\//, "assets/"); // normaliza "assets/..."
+
+  // Si viene solo el nombre de archivo, anteponer carpeta
+  if (!/^assets\/images\//.test(cleaned)) {
+    // si ya venía "images/xxx", anteponer "assets/"
+    if (/^images\//.test(cleaned)) cleaned = `assets/${cleaned}`;
+    // si no tiene "images/", forzarla
+    if (!/^assets\/images\//.test(cleaned)) cleaned = `assets/images/${cleaned}`;
+  }
+
+  return cleaned.startsWith("/") ? cleaned : `/${cleaned}`;
+};
+
 /* =========================================================
    CREAR  (POST /api/products)
    ========================================================= */
@@ -25,7 +55,6 @@ exports.createProduct = async (req, res) => {
   try {
     const { name, description = "", price, categoryId, brandId, stock } = req.body;
 
-    // Validaciones mínimas
     if (!name || price == null || !categoryId || !brandId) {
       return res.status(400).json({ message: "Campos obligatorios faltantes." });
     }
@@ -35,7 +64,8 @@ exports.createProduct = async (req, res) => {
       return res.status(400).json({ message: "Precio y stock deben ser positivos." });
     }
 
-    const imagePath = req.file ? `assets/images/products/${req.file.filename}` : "assets/images/placeholder-product.png";
+    // Guardamos bajo assets/images/ para que coincida con el frontend
+    const imagePath = req.file ? `assets/images/${req.file.filename}` : "assets/images/placeholder-product.png";
 
     const newId = await Product.createProduct({
       name: String(name).trim(),
@@ -47,8 +77,9 @@ exports.createProduct = async (req, res) => {
       imagePath,
     });
 
-    // Devuelve el creado
     const created = await Product.getProductById(newId);
+    // Normalizamos imagen en la respuesta
+    if (created) created.imagen = normalizeImage(created.imagen);
     return res.status(201).json(created);
   } catch (err) {
     console.error("Error al crear producto:", err?.message || err);
@@ -74,7 +105,7 @@ exports.updateProduct = async (req, res) => {
       return res.status(400).json({ message: "Precio inválido." });
     }
 
-    const imagePath = req.file ? `assets/images/products/${req.file.filename}` : null;
+    const imagePath = req.file ? `assets/images/${req.file.filename}` : null;
 
     await Product.updateProduct(id, {
       name: String(name).trim(),
@@ -86,6 +117,7 @@ exports.updateProduct = async (req, res) => {
     });
 
     const updated = await Product.getProductById(id);
+    if (updated) updated.imagen = normalizeImage(updated.imagen);
     res.json(updated);
   } catch (err) {
     console.error("Error al actualizar producto:", err?.message || err);
@@ -148,7 +180,7 @@ exports.getCategories = async (_req, res) => {
   try {
     const pool = await getPool();
     const request = pool.request();
-    request.timeout = SQL_TIMEOUT; // ← propiedad, no método
+    request.timeout = SQL_TIMEOUT;
     const result = await request.query(`
       SELECT id_categoria AS id, nombre_categoria AS name
       FROM   CATEGORIA
@@ -180,14 +212,6 @@ exports.getBrands = async (_req, res) => {
 
 /* =========================================================
    LISTADO PÚBLICO (GET /api/products)
-   - Soporta filtros y pagina/limita
-   - Consulta directa a SQL con timeout (evita colgados/504)
-   Parámetros:
-     status: active | inactive | all   (default: active)
-     category: id_categoria             (opcional)
-     search: texto                      (opcional)
-     limit: 1..100 (default 20)
-     page: 1..n   (default 1)
    ========================================================= */
 exports.getAllProducts = async (req, res) => {
   try {
@@ -205,7 +229,6 @@ exports.getAllProducts = async (req, res) => {
     let where = "1=1";
     if (status === "active") where += " AND p.activo = 1";
     else if (status === "inactive") where += " AND p.activo = 0";
-    // 'all' -> sin filtro de activo
 
     if (category) {
       where += " AND p.id_categoria = @cat";
@@ -219,7 +242,6 @@ exports.getAllProducts = async (req, res) => {
     request.input("limit", sql.Int, limit);
     request.input("offset", sql.Int, offset);
 
-    // Usa OFFSET/FETCH para paginar en Azure SQL
     const sqlText = `
       SELECT
         p.id_producto      AS id,
@@ -227,6 +249,7 @@ exports.getAllProducts = async (req, res) => {
         p.descripcion,
         p.precio,
         p.imagen,
+        p.stock,
         p.activo,
         p.id_categoria,
         p.id_marca
@@ -237,8 +260,14 @@ exports.getAllProducts = async (req, res) => {
     `;
 
     const result = await request.query(sqlText);
-    // Para compatibilidad con front existentes, devolvemos el array simple
-    return res.json(result.recordset);
+
+    // Normaliza imágenes en la respuesta
+    const list = result.recordset.map(p => ({
+      ...p,
+      imagen: normalizeImage(p.imagen),
+    }));
+
+    return res.json(list);
   } catch (err) {
     console.error("Error al obtener productos:", err?.message || err);
     res.status(500).json({ message: "Error interno del servidor" });
@@ -247,7 +276,6 @@ exports.getAllProducts = async (req, res) => {
 
 /* =========================================================
    DETALLE PÚBLICO (GET /api/products/:id)
-   - Consulta directa a SQL con timeout (evita colgados/504)
    ========================================================= */
 exports.getProductById = async (req, res) => {
   try {
@@ -266,6 +294,7 @@ exports.getProductById = async (req, res) => {
         p.descripcion,
         p.precio,
         p.imagen,
+        p.stock,
         p.activo,
         p.id_categoria,
         p.id_marca
@@ -276,7 +305,10 @@ exports.getProductById = async (req, res) => {
     if (result.recordset.length === 0) {
       return res.status(404).json({ message: "Producto no encontrado" });
     }
-    return res.json(result.recordset[0]);
+
+    const prod = result.recordset[0];
+    prod.imagen = normalizeImage(prod.imagen);
+    return res.json(prod);
   } catch (err) {
     console.error("Error al obtener el producto:", err?.message || err);
     res.status(500).json({ message: "Error interno del servidor" });

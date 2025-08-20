@@ -15,6 +15,50 @@ const toNumber = v => {
 };
 const formatPrice = v => toNumber(v).toFixed(2);
 
+/* Normaliza una URL de imagen para que siempre salga de /assets/... */
+const imgUrl = raw => {
+  if (!raw) return "/assets/images/placeholder-product.png";
+  if (raw.startsWith("http")) return raw;
+
+  // limpia prefijos accidentales y fuerza raiz
+  let cleaned = String(raw)
+    .replace(/^\/?views\/products\//, "")
+    .replace(/^\/?assets\//, "assets/");
+
+  if (!cleaned.startsWith("assets/")) {
+    // si sólo viene el nombre, asumimos carpeta por defecto
+    cleaned = `assets/images/${cleaned}`;
+  }
+  return cleaned.startsWith("/") ? cleaned : `/${cleaned}`;
+};
+
+/* Normaliza la forma del producto venga como venga del backend */
+const normalizeProduct = p => {
+  const id = p.id ?? p.id_producto ?? p.productId ?? p.ID ?? null;
+
+  const name = p.name ?? p.nombre ?? p.nombre_producto ?? p.title ?? "Producto";
+
+  const description = p.description ?? p.descripcion ?? p.details ?? "";
+
+  const price = p.price ?? p.precio ?? 0;
+
+  const stock = p.stock ?? p.cantidad ?? p.qty ?? undefined; // lo resolvemos más abajo
+
+  const active = (p.activo !== undefined ? p.activo : p.active) ?? 1;
+
+  const image = p.image ?? p.imagen ?? p.img ?? "";
+
+  return {
+    id,
+    name,
+    description,
+    price: toNumber(price),
+    stock,
+    active,
+    image: imgUrl(image),
+  };
+};
+
 /* 🔄  Estado global */
 let currentPage = 1;
 let totalPages = 1;
@@ -122,7 +166,9 @@ async function init() {
         ...(currentSearch && { search: currentSearch }),
         ...(currentCategory && { category: currentCategory }),
       };
-      let products = await getProducts(params); // ← ya normalizados en api.js
+
+      // Trae y normaliza todo (imagen, nombres de campos, etc.)
+      let products = (await getProducts(params)).map(normalizeProduct);
       console.log("Productos recibidos del backend:", products);
 
       /* 2️⃣ Ordenamiento cliente-side */
@@ -173,15 +219,16 @@ async function init() {
       const col = document.createElement("div");
       col.className = "col-md-4 col-lg-3";
 
-      const stock = toNumber(prod.stock ?? 0);
-      const outOfStock = stock <= 0;
+      // si el backend no manda stock, asumimos stock seguro (p.ej. 10) para no bloquear el carrito
+      const stock = Number.isFinite(prod.stock) ? toNumber(prod.stock) : 10;
+      const outOfStock = prod.active === 0 || prod.active === false || stock <= 0;
       const disabled = outOfStock ? "disabled" : "";
       const stockMsg = outOfStock ? '<span class="text-danger">Agotado</span>' : `<span class="text-success">Disponible (${stock})</span>`;
 
-      const imgSrc = prod.image || "/assets/images/placeholder-product.png";
+      const imgSrc = imgUrl(prod.image);
 
       col.innerHTML = `
-        <a href="/products/detail.html?id=${prod.id}"
+        <a href="/views/products/detail.html?id=${prod.id}"
            class="text-decoration-none text-reset d-block h-100">
           <div class="product-card card h-100">
             <img src="${imgSrc}"
@@ -219,23 +266,18 @@ async function init() {
       btn.addEventListener("click", async e => {
         e.preventDefault();
         e.stopPropagation(); // evita que el <a> navegue
+
         const d = e.currentTarget.dataset;
-        const producto = products.find(p => String(p.id) === String(d.productId)) || {
+
+        const producto = {
           id: d.productId,
           name: d.productName,
           price: toNumber(d.productPrice),
-          image: d.productImage,
+          image: imgUrl(d.productImage),
           description: d.productDescription || "",
         };
 
-        await addProductToCart({
-          id: producto.id,
-          name: producto.name,
-          price: toNumber(producto.price),
-          image: producto.image,
-          description: producto.description || "",
-        });
-
+        await addProductToCart(producto);
         await updateCartCounter();
         showToast("¡Agregado!", `${producto.name} agregado al carrito`, "success");
       });
