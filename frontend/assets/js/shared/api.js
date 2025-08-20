@@ -3,36 +3,38 @@
  *  Archivo: frontend/assets/js/shared/api.js
  *
  *  - Todas las rutas usan el prefijo /api en el servidor Node
- *  - Este archivo detecta el hostname y arma un BASE absoluto:
+ *  - Detecta el hostname y arma BASE absoluto:
  *      • Local:      http://localhost:3000/api
- *      • Staging/Prod (Cloudflare Pages): FQDN de Azure + /api
+ *      • Staging/Prod: api.staging.bodegaluchito.shop/api (CF) o FQDN de Azure
  *
- *  ✅ Mejora: si el path ya es una URL absoluta (http/https),
- *     NO se le antepone BASE (útil para pruebas puntuales).
+ *  ✅ Si el path ya es absoluto (http/https), NO antepone BASE.
  ******************************************************************/
 
 /* ─────────────────────────  Detección de BASE  ───────────────────────── */
 const hostname = typeof window !== "undefined" ? window.location.hostname : "";
 
-// FQDN actual de tu API en Azure (staging). Cámbialo si mueves la API.
+// FQDN actual de tu API en Azure (staging). Cambia si mueves la API.
 const AZURE_API_FQDN = "https://bodega-api-stg.bluemoss-a77fa1fc.brazilsouth.azurecontainerapps.io";
 
-// Por defecto (fallback) asumimos mismo host sirviendo /api.
+// Subdominio de API detrás de Cloudflare (proxy hacia Azure)
+const CF_API_STG = "https://api.staging.bodegaluchito.shop";
+
+// Por defecto asumimos mismo host sirviendo /api (fallback)
 let BASE = "/api";
 
 if (hostname === "localhost" || hostname === "127.0.0.1") {
   // Desarrollo local → backend local
   BASE = "http://localhost:3000/api";
 } else if (hostname === "staging.bodegaluchito.shop" || hostname === "bodegaluchito.shop" || hostname === "www.bodegaluchito.shop") {
-  // Staging / Producción (Cloudflare Pages) → API en Azure
-  BASE = `${AZURE_API_FQDN}/api`;
+  // Staging/Prod (Cloudflare Pages) → usa el subdominio API en CF
+  BASE = `${CF_API_STG}/api`;
 } else if (hostname) {
-  // Cualquier otro host (p.ej. otro subdominio) → API en Azure
+  // Cualquier otro host → pega directo al FQDN de Azure
   BASE = `${AZURE_API_FQDN}/api`;
 }
 
-// Export útil para diagnóstico desde la consola
-export const API_BASE = "https://api.staging.bodegaluchito.shop";
+// Exports útiles para diagnóstico desde la consola
+export const API_BASE = BASE;
 export const AZURE_FQDN = AZURE_API_FQDN;
 
 /* ─────────────────────────  JWT helpers  ───────────────────────── */
@@ -53,14 +55,10 @@ export function getUserInfo() {
 
 /* ─────────────────────── fetch wrapper ────────────────────────── */
 const DEFAULT_TIMEOUT_MS = 15000; // 15s
-
-function isAbsoluteUrl(path) {
-  return /^https?:\/\//i.test(path);
-}
+const isAbsoluteUrl = path => /^https?:\/\//i.test(path);
 
 async function request(method, path, body = null, auth = false, timeoutMs = DEFAULT_TIMEOUT_MS) {
   const headers = {};
-  // Si NO es FormData, seteamos Content-Type
   if (!(body instanceof FormData)) headers["Content-Type"] = "application/json";
   if (auth) {
     const token = getToken();
@@ -74,17 +72,16 @@ async function request(method, path, body = null, auth = false, timeoutMs = DEFA
     method,
     headers,
     signal: controller.signal,
-    // credentials: "include", // Úsalo solo si autenticas por cookies
+    // credentials: "include", // Úsalo si autenticas por cookies
   };
   if (body) opts.body = body instanceof FormData ? body : JSON.stringify(body);
 
   try {
     // Si path ya es absoluto, respétalo; si no, anteponemos BASE
-    const url = isAbsoluteUrl(path) ? path : `${BASE}${path.startsWith("/") ? path : `/${path}`}`;
+    const url = isAbsoluteUrl(path) ? path : `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
 
     const res = await fetch(url, opts);
 
-    // Puede venir 204 (sin contenido)
     if (res.status === 204) return null;
 
     const ct = res.headers.get("content-type") || "";
@@ -98,10 +95,7 @@ async function request(method, path, body = null, auth = false, timeoutMs = DEFA
 
     return payload;
   } catch (err) {
-    // Uniformiza error
-    if (err?.name === "AbortError") {
-      throw new Error("Tiempo de espera agotado (timeout)");
-    }
+    if (err?.name === "AbortError") throw new Error("Tiempo de espera agotado (timeout)");
     throw new Error(err?.message || "Error de red");
   } finally {
     clearTimeout(timer);
@@ -116,6 +110,22 @@ export const api = {
   patch: (p, b, a = false, t) => request("PATCH", p, b, a, t),
   del: (p, a = false, t) => request("DELETE", p, null, a, t),
 };
+
+/* =================================================================
+   Normalizadores
+   ================================================================= */
+
+// Convierte claves ES -> EN y asegura tipos (precio como número)
+const normalizeProduct = (p = {}) => ({
+  id: p.id ?? p.id_producto ?? null,
+  name: p.name ?? p.nombre ?? p.nombre_producto ?? "",
+  description: p.description ?? p.descripcion ?? "",
+  price: Number(p.price ?? p.precio ?? 0),
+  image: p.image ?? p.imagen ?? "assets/images/placeholder-product.png",
+  categoryId: p.categoryId ?? p.id_categoria ?? null,
+  brandId: p.brandId ?? p.id_marca ?? null,
+  active: p.active ?? p.activo ?? 1,
+});
 
 /* =================================================================
    High-level helpers por dominio
@@ -137,12 +147,17 @@ export const refreshUser = () => api.get("/auth/me", true);
  *    {number} limit    → TOP n
  *    {number} page     → página (1..n)
  */
-export function getProducts(params = {}) {
+export async function getProducts(params = {}) {
   const qs = new URLSearchParams(params).toString();
-  return api.get(`/products${qs ? `?${qs}` : ""}`);
+  const data = await api.get(`/products${qs ? `?${qs}` : ""}`);
+  const arr = Array.isArray(data) ? data : [];
+  return arr.map(normalizeProduct);
 }
 
-export const getProductById = id => api.get(`/products/${id}`);
+export async function getProductById(id) {
+  const data = await api.get(`/products/${id}`);
+  return normalizeProduct(data);
+}
 
 export const createProduct = data => api.post("/products", data, true);
 export const updateProduct = (id, d) => api.put(`/products/${id}`, d, true);
@@ -169,10 +184,10 @@ export const getCart = () => api.get("/cart", true);
 // PUT /api/cart/update/:id_carrito  (el :id_carrito no se usa en el backend)
 export const updateCartItem = payload => api.put(`/cart/update/0`, payload, true);
 
-// Eliminar por producto: mandamos cantidad 0 al mismo endpoint de update
+// Eliminar por producto: cantidad 0 al mismo endpoint de update
 export const removeFromCart = idProducto => api.put(`/cart/update/0`, { id_producto: Number(idProducto), cantidad: 0 }, true);
 
-// (opcional) borrar por id_carrito — si algún día lo usas desde el admin
+// (opcional) borrar por id_carrito
 export const deleteCartItem = idCarrito => api.del(`/cart/remove/${idCarrito}`, true);
 
 // Contador
@@ -203,18 +218,14 @@ export const getOrders = (params = {}) => {
 
 /* Descargas CSV/Blob: usar BASE absoluto + Authorization */
 async function fetchBlob(pathWithQuery, errMsg) {
-  const res = await fetch(`${BASE}${pathWithQuery}`, {
+  const res = await fetch(`${API_BASE}${pathWithQuery}`, {
     headers: { Authorization: `Bearer ${getToken()}` },
   });
   if (!res.ok) throw new Error(errMsg || "Error descargando archivo");
   return await res.blob();
 }
 
-/**
- * Exporta pedidos como CSV (para Excel)
- * @param {Object} params - igual que getOrders
- * @param {boolean} urlBlob - si true, devuelve blob URL
- */
+/** Exporta pedidos como CSV (para Excel) */
 export const exportOrders = async (params = {}, urlBlob = false) => {
   const qs = new URLSearchParams(params).toString();
   const blob = await fetchBlob(`/orders/export${qs ? `?${qs}` : ""}`, "No se pudo exportar el historial");
@@ -297,5 +308,5 @@ export const createCategory = payload => api.post("/categories", payload, true);
 export const updateCategory = (id, payload) => api.put(`/categories/${id}`, payload, true);
 export const deleteCategory = id => api.del(`/categories/${id}`, true);
 
-/* Export por defecto la capa baja en caso de requerir algo puntual */
+/* Export por defecto la capa baja por si se necesita algo puntual */
 export default api;

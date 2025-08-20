@@ -3,16 +3,23 @@
 // Catálogo de productos + búsqueda, filtros y paginación
 // -------------------------------------------------------------
 import { getProducts, getCategories } from "../shared/api.js";
-import { addProductToCart } from "../shared/addToCart.js"; // <-- NUEVO
-import { updateCartCounter } from "../shared/cartUtils.js"; // <-- NUEVO
+import { addProductToCart } from "../shared/addToCart.js";
+import { updateCartCounter } from "../shared/cartUtils.js";
 import { onCatalogRefresh } from "../shared/pubsub.js";
 import showToast from "../shared/toast.js";
+
+/* 🔧 utilidades seguras */
+const toNumber = v => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+};
+const formatPrice = v => toNumber(v).toFixed(2);
 
 /* 🔄  Estado global */
 let currentPage = 1;
 let totalPages = 1;
 let currentCategory = ""; // id numérico ("" = todas)
-let currentSort = "nuevo"; // 👈 por defecto: más recientes primero
+let currentSort = "nuevo"; // más recientes primero
 let currentLimit = 10;
 let currentSearch = "";
 
@@ -24,7 +31,7 @@ let searchInput = null;
 
 /* ─────────── Init flexible ─────────── */
 async function init() {
-  // ---- refs que sí existen desde el principio ----
+  // ---- refs que existen desde el principio ----
   const productGrid = document.getElementById("product-grid");
   const categorySelect = document.getElementById("category-select");
   const sortSelect = document.getElementById("sort-select");
@@ -32,7 +39,6 @@ async function init() {
   const noResults = document.getElementById("no-results");
   const pagination = document.getElementById("pagination");
 
-  /* fuerza el <select> al valor "nuevo" */
   if (sortSelect) sortSelect.value = "nuevo";
 
   /* 0️⃣ Lee ?search=… si llegó desde la barra superior */
@@ -41,7 +47,7 @@ async function init() {
 
   /* 1️⃣ Cargar categorías y poblar combo */
   try {
-    categories = await getCategories();
+    categories = await getCategories(); // [{id,name}]
     populateCategorySelect();
   } catch (err) {
     console.error("Error cargando categorías:", err);
@@ -97,7 +103,7 @@ async function init() {
 
     searchForm.addEventListener("submit", async e => {
       e.preventDefault();
-      currentSearch = searchInput.value.trim();
+      currentSearch = (searchInput.value || "").trim();
       currentPage = 1;
 
       const newUrl = new URL(window.location.href);
@@ -116,14 +122,14 @@ async function init() {
         ...(currentSearch && { search: currentSearch }),
         ...(currentCategory && { category: currentCategory }),
       };
-      let products = await getProducts(params);
+      let products = await getProducts(params); // ← ya normalizados en api.js
       console.log("Productos recibidos del backend:", products);
 
       /* 2️⃣ Ordenamiento cliente-side */
       products = sortProducts(products, currentSort);
 
       /* 3️⃣ Paginación cliente-side */
-      totalPages = Math.ceil(products.length / currentLimit);
+      totalPages = Math.ceil(products.length / currentLimit) || 1;
       const start = (currentPage - 1) * currentLimit;
       const end = start + currentLimit;
       const pageSlice = products.slice(start, end);
@@ -149,14 +155,14 @@ async function init() {
     const list = [...arr];
     switch (option) {
       case "precio_asc":
-        return list.sort((a, b) => a.price - b.price);
+        return list.sort((a, b) => toNumber(a.price) - toNumber(b.price));
       case "precio_desc":
-        return list.sort((a, b) => b.price - a.price);
-      case "nuevo": // 👈 id DESC
-        return list.sort((a, b) => b.id - a.id);
+        return list.sort((a, b) => toNumber(b.price) - toNumber(a.price));
+      case "nuevo": // id DESC
+        return list.sort((a, b) => toNumber(b.id) - toNumber(a.id));
       case "popular":
-        return list.sort((a, b) => a.name.localeCompare(b.name));
-      default: // "" u otro -> sin cambio
+        return list.sort((a, b) => String(a.name).localeCompare(String(b.name)));
+      default:
         return list;
     }
   }
@@ -167,33 +173,36 @@ async function init() {
       const col = document.createElement("div");
       col.className = "col-md-4 col-lg-3";
 
-      const outOfStock = (prod.stock ?? 0) <= 0;
+      const stock = toNumber(prod.stock ?? 0);
+      const outOfStock = stock <= 0;
       const disabled = outOfStock ? "disabled" : "";
-      const stockMsg = outOfStock ? '<span class="text-danger">Agotado</span>' : `<span class="text-success">Disponible (${prod.stock})</span>`;
+      const stockMsg = outOfStock ? '<span class="text-danger">Agotado</span>' : `<span class="text-success">Disponible (${stock})</span>`;
+
+      const imgSrc = prod.image || "/assets/images/placeholder-product.png";
 
       col.innerHTML = `
         <a href="/products/detail.html?id=${prod.id}"
            class="text-decoration-none text-reset d-block h-100">
           <div class="product-card card h-100">
-            <img src="${prod.image}"
+            <img src="${imgSrc}"
                  class="card-img-top product-img"
-                 alt="${prod.name}"
+                 alt="${String(prod.name || "Producto")}"
                  onerror="this.src='/assets/images/placeholder-product.png'"/>
             <div class="card-body">
-              <h5 class="card-title">${prod.name}</h5>
+              <h5 class="card-title">${prod.name || "Producto"}</h5>
               <p class="card-text text-muted">
                 ${prod.description || "Producto de calidad"}
               </p>
               <div class="mb-2">${stockMsg}</div>
               <div class="d-flex justify-content-between align-items-center">
                 <span class="fw-bold text-primary-custom">
-                  S/ ${prod.price.toFixed(2)}
+                  S/ ${formatPrice(prod.price)}
                 </span>
                 <button class="btn btn-sm btn-primary-custom add-to-cart-btn"
                         data-product-id="${prod.id}"
-                        data-product-name="${prod.name}"
-                        data-product-price="${prod.price}"
-                        data-product-image="${prod.image}"
+                        data-product-name="${prod.name || ""}"
+                        data-product-price="${toNumber(prod.price)}"
+                        data-product-image="${imgSrc}"
                         data-product-description="${prod.description || ""}"
                         ${disabled}>
                   <i class="fas fa-cart-plus"></i> Agregar
@@ -209,15 +218,22 @@ async function init() {
     document.querySelectorAll(".add-to-cart-btn").forEach(btn => {
       btn.addEventListener("click", async e => {
         e.preventDefault();
+        e.stopPropagation(); // evita que el <a> navegue
         const d = e.currentTarget.dataset;
-        const producto = products.find(p => p.id == d.productId);
+        const producto = products.find(p => String(p.id) === String(d.productId)) || {
+          id: d.productId,
+          name: d.productName,
+          price: toNumber(d.productPrice),
+          image: d.productImage,
+          description: d.productDescription || "",
+        };
 
         await addProductToCart({
           id: producto.id,
           name: producto.name,
-          price: producto.price,
+          price: toNumber(producto.price),
           image: producto.image,
-          description: producto.description,
+          description: producto.description || "",
         });
 
         await updateCartCounter();
