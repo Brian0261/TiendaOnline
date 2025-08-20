@@ -32,7 +32,7 @@ if (hostname === "localhost" || hostname === "127.0.0.1") {
 }
 
 // Export útil para diagnóstico desde la consola
-export const API_BASE = BASE;
+export const API_BASE = "https://api.staging.bodegaluchito.shop";
 export const AZURE_FQDN = AZURE_API_FQDN;
 
 /* ─────────────────────────  JWT helpers  ───────────────────────── */
