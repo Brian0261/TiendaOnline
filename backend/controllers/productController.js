@@ -213,6 +213,7 @@ exports.getBrands = async (_req, res) => {
 /* =========================================================
    LISTADO PÚBLICO (GET /api/products)
    ========================================================= */
+// LISTADO PÚBLICO (GET /api/products)
 exports.getAllProducts = async (req, res) => {
   try {
     const status = String(req.query.status || "active").toLowerCase();
@@ -226,7 +227,7 @@ exports.getAllProducts = async (req, res) => {
     const request = pool.request();
     request.timeout = SQL_TIMEOUT;
 
-    // WHERE solo sobre PRODUCTO (evitar afectar el LEFT JOIN)
+    // WHERE solo sobre PRODUCTO (evita romper el LEFT JOIN)
     const where = [];
     if (status === "active") where.push("p.activo = 1");
     else if (status === "inactive") where.push("p.activo = 0");
@@ -244,7 +245,8 @@ exports.getAllProducts = async (req, res) => {
     request.input("limit", sql.Int, limit);
     request.input("offset", sql.Int, offset);
 
-    // 🔹 Stock desde INVENTARIO (no hay columna p.stock)
+    // 👇 Sin GROUP BY sobre columnas de PRODUCTO.
+    //    Agregamos stock con un LEFT JOIN a un pre-aggregate de INVENTARIO.
     const sqlText = `
       SELECT
         p.id_producto      AS id,
@@ -252,24 +254,23 @@ exports.getAllProducts = async (req, res) => {
         p.descripcion,
         p.precio,
         p.imagen,
-        ISNULL(SUM(i.cantidad_disponible), 0) AS stock,
+        ISNULL(s.stock, 0) AS stock,
         p.activo,
         p.id_categoria,
         p.id_marca
       FROM PRODUCTO p
-      LEFT JOIN INVENTARIO i
-             ON i.id_producto = p.id_producto
+      LEFT JOIN (
+        SELECT id_producto, SUM(cantidad_disponible) AS stock
+        FROM INVENTARIO
+        GROUP BY id_producto
+      ) s ON s.id_producto = p.id_producto
       ${whereSql}
-      GROUP BY
-        p.id_producto, p.nombre_producto, p.descripcion, p.precio,
-        p.imagen, p.activo, p.id_categoria, p.id_marca
       ORDER BY p.id_producto DESC
       OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY;
     `;
 
     const result = await request.query(sqlText);
 
-    // Normaliza imagen
     const list = result.recordset.map(p => ({
       ...p,
       imagen: normalizeImage(p.imagen),
