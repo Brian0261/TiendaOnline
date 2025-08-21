@@ -1,8 +1,10 @@
 // backend/server.js
+const dotenv = require("dotenv");
+dotenv.config(); // ⬅️ Debe ir antes de requerir módulos que usan process.env
+
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
-const dotenv = require("dotenv");
 const path = require("path");
 const jwt = require("jsonwebtoken");
 const { addClient } = require("./utils/sse");
