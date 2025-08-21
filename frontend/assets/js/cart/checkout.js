@@ -21,6 +21,7 @@ let gmap = null,
   gmarker = null,
   gautocomplete = null,
   ggeocoder = null;
+let MAPS_LOADING_PROMISE = null;
 
 /* Config de reparto y sede (se obtiene del backend) */
 let DELIVERY = {
@@ -67,7 +68,9 @@ async function init() {
   try {
     const cfg = await getDeliveryConfig();
     if (cfg && cfg.store) DELIVERY = cfg;
-  } catch {}
+  } catch (e) {
+    console.warn("[Checkout] No se pudo obtener configuración de delivery:", e);
+  }
 
   setDeliveryRadiosFromState();
   renderPickupCard(); // pinta la tarjeta del almacén
@@ -134,7 +137,14 @@ function wireDeliveryToggles() {
     const showHome = deliveryType === "DOMICILIO";
     toggleDeliveryFields(showHome);
 
-    if (showHome) await initDeliveryMap();
+    if (showHome) {
+      try {
+        await initDeliveryMap();
+      } catch (e) {
+        console.error("[Maps] initDeliveryMap error:", e);
+        showToast("Mapa", "No se pudo inicializar el mapa.", "danger");
+      }
+    }
     recalcTotal();
   };
   radios.forEach(r => r.addEventListener("change", onChange));
@@ -161,42 +171,96 @@ function renderPickupCard() {
 
 /* ------------ Google Maps ------------ */
 async function loadGoogleMaps() {
+  // 0) Si ya está la librería de Places disponible, listo
   if (window.google?.maps?.places) return;
 
-  const exist = Array.from(document.scripts).find(s => s.src.includes("maps.googleapis.com/maps/api/js"));
-  if (exist)
-    return new Promise((res, rej) => {
-      exist.onload = res;
-      exist.onerror = rej;
+  // Evitar múltiples cargas concurrentes
+  if (MAPS_LOADING_PROMISE) return MAPS_LOADING_PROMISE;
+
+  MAPS_LOADING_PROMISE = (async () => {
+    // 1) Si hay un <script> ya en el DOM, esperar su load/error
+    const exist = Array.from(document.scripts).find(s => s.src.includes("maps.googleapis.com/maps/api/js"));
+    if (exist) {
+      await new Promise((res, rej) => {
+        exist.addEventListener(
+          "load",
+          () => {
+            if (!window.google?.maps) {
+              const err = new Error("google.maps no disponible tras load");
+              console.error("[Maps] ", err);
+              return rej(err);
+            }
+            res();
+          },
+          { once: true }
+        );
+        exist.addEventListener(
+          "error",
+          e => {
+            console.error("[Maps] Error cargando script existente:", e);
+            rej(e);
+          },
+          { once: true }
+        );
+      });
+      return;
+    }
+
+    // 2) Obtener la key desde la API (tu SDK ya resuelve FQDN correcto en prod)
+    let key = "";
+    try {
+      const data = await api.get("/config/maps-key"); // → { key: "..." }
+      key = data?.key || "";
+    } catch (e) {
+      console.error("[Maps] Error obteniendo key:", e);
+      key = "";
+    }
+    if (!key) {
+      console.error("[Maps] Key no configurada");
+      showToast("Mapa", "Key de Google Maps no configurada.", "danger");
+      throw new Error("Google Maps API key no configurada");
+    }
+
+    // 3) Insertar script (con verificación tras load)
+    await new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = "https://maps.googleapis.com/maps/api/js" + `?key=${encodeURIComponent(key)}` + "&libraries=places" + "&language=es" + "&region=PE";
+      s.async = true;
+      s.defer = true;
+      s.crossOrigin = "anonymous";
+      s.onload = () => {
+        if (!window.google?.maps) {
+          const err = new Error("google.maps no disponible");
+          console.error("[Maps] ", err);
+          showToast("Mapa", "Google Maps no está disponible.", "danger");
+          reject(err);
+          return;
+        }
+        resolve();
+      };
+      s.onerror = e => {
+        console.error("[Maps] Error cargando script:", e);
+        showToast("Mapa", "No se pudo cargar Google Maps (CSP/Key).", "danger");
+        reject(e);
+      };
+      document.head.appendChild(s);
     });
+  })();
 
-  // Intenta con el SDK (apunta a Azure FQDN /api y tiene fallback)
-  let key = "";
-  try {
-    const data = await api.get("/config/maps-key"); // → { key: "..." }
-    key = data?.key || "";
-  } catch (e) {
-    key = "";
-  }
-  if (!key) throw new Error("Google Maps API key no configurada");
-
-  await new Promise((resolve, reject) => {
-    const s = document.createElement("script");
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&libraries=places`;
-    s.async = true;
-    s.defer = true;
-    s.onload = resolve;
-    s.onerror = reject;
-    document.head.appendChild(s);
+  return MAPS_LOADING_PROMISE.finally(() => {
+    // Si falló, permitir reintento en siguiente llamada
+    if (!window.google?.maps) MAPS_LOADING_PROMISE = null;
   });
 }
 
 async function initDeliveryMap() {
   try {
     await loadGoogleMaps();
-  } catch {
+  } catch (e) {
+    console.error("[Maps] initDeliveryMap falló:", e);
     return;
   }
+
   const mapEl = document.getElementById("map");
   if (!mapEl || !inputDireccion) return;
 
@@ -211,6 +275,7 @@ async function initDeliveryMap() {
       fields: ["formatted_address", "geometry"],
       componentRestrictions: { country: ["pe"] },
     });
+
     gautocomplete.addListener("place_changed", () => {
       const place = gautocomplete.getPlace();
       if (!place?.geometry) return;
@@ -224,6 +289,8 @@ async function initDeliveryMap() {
       reverseGeocode(latLng.lat(), latLng.lng());
     });
   } else {
+    // Si ya existía, re-centra/refresca
+    gmap.setCenter(center);
     google.maps.event.trigger(gmap, "resize");
   }
 }
@@ -265,7 +332,10 @@ async function renderCart(withSync = false) {
     if (withSync && (!items || items.length === 0)) {
       const local = JSON.parse(localStorage.getItem("shoppingCart") || "[]");
       const toSync = local
-        .map(i => ({ id_producto: i.product?.id ?? i.id, cantidad: i.quantity ?? i.cantidad ?? 1 }))
+        .map(i => ({
+          id_producto: i.product?.id ?? i.id,
+          cantidad: i.quantity ?? i.cantidad ?? 1,
+        }))
         .filter(i => i.id_producto && i.cantidad > 0);
 
       for (const it of toSync) await addToCart(it);
@@ -365,7 +435,10 @@ document.getElementById("btnPagar")?.addEventListener("click", async e => {
 
     const receiptData =
       receiptType === "BOLETA"
-        ? { nombre: document.getElementById("nombre_boleta").value.trim(), dni: document.getElementById("dni").value.trim() }
+        ? {
+            nombre: document.getElementById("nombre_boleta").value.trim(),
+            dni: document.getElementById("dni").value.trim(),
+          }
         : {
             razon_social: document.getElementById("razon_social").value.trim(),
             ruc: document.getElementById("ruc").value.trim(),
