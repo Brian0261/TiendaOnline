@@ -7,7 +7,7 @@
 /auth/*          /views/auth/:splat             200
 
 # 2. API (siempre antes del catch-all)
-/api/*           https://api.staging.bodegaluchito.shop/:splat   200
+/api/*           https://api.staging.bodegaluchito.shop/api/:splat   200
 
 # 3. Fallback global (garantiza que / también funcione)
  /*               /views/index.html              200
