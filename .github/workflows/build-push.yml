@@ -1,4 +1,4 @@
-name: Build & Push API to ACR
+name: Build, Push & Deploy API to Azure
 
 on:
   workflow_dispatch:
@@ -13,7 +13,7 @@ env:
   IMAGE_TAG: stg
 
 jobs:
-  build-and-push:
+  build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -21,6 +21,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Verify controller (no p.stock)
+        run: |
+          if grep -n "p\.stock" backend/controllers/productController.js; then
+            echo "ERROR: p.stock found in controller"; exit 1;
+          else
+            echo "OK: no p.stock";
+          fi
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -36,6 +44,40 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./backend
+          file: ./backend/Dockerfile
           push: true
           tags: |
             ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure Container Apps
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            # Registrar/actualizar el registry en la Container App
+            az containerapp registry set \
+              -g ${{ secrets.RESOURCE_GROUP }} \
+              -n ${{ secrets.CONTAINER_APP }} \
+              --server ${{ secrets.ACR_LOGIN_SERVER }} \
+              --username ${{ secrets.ACR_USERNAME }} \
+              --password ${{ secrets.ACR_PASSWORD }}
+
+            # Usar modo "single" para que el tráfico vaya siempre a la revisión más reciente
+            az containerapp revision set-mode \
+              -g ${{ secrets.RESOURCE_GROUP }} \
+              -n ${{ secrets.CONTAINER_APP }} \
+              --mode single || true
+
+            # Forzar nueva revisión con la imagen recién subida (mismo tag 'stg')
+            az containerapp update \
+              -g ${{ secrets.RESOURCE_GROUP }} \
+              -n ${{ secrets.CONTAINER_APP }} \
+              --image ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
+      - name: Smoke test (products)
+        run: |
+          curl -sS "https://bodega-api-stg.bluemoss-a77fa1fc.brazilsouth.azurecontainerapps.io/api/products?limit=3" || true
