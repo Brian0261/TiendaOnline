@@ -3,7 +3,7 @@
   <div class="modal-dialog modal-dialog-scrollable mt-4">
     <!-- arriba: mt-4 y SIN modal-dialog-centered -->
     <div class="modal-content">
-      <form id="login-form" autocomplete="off">
+      <form id="login-form" autocomplete="on">
         <!-- sin action ni method -->
         <div class="modal-header">
           <h5 class="modal-title" id="loginModalLabel">Iniciar sesión</h5>
@@ -15,7 +15,17 @@
 
           <div class="mb-3">
             <label for="login-email" class="form-label">Correo electrónico</label>
-            <input type="email" class="form-control" id="login-email" name="email" placeholder="tu@correo.com" required />
+            <input
+              type="email"
+              class="form-control"
+              id="login-email"
+              name="email"
+              placeholder="tu@correo.com"
+              autocomplete="username email"
+              list="login-email-history"
+              required
+            />
+            <datalist id="login-email-history"></datalist>
           </div>
 
           <div class="mb-2">

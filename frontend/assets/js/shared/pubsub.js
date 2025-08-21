@@ -5,3 +5,9 @@ export const triggerCatalogRefresh = () => ch.postMessage("catalog-refresh");
 export const onCatalogRefresh      = (cb) => ch.addEventListener("message", e => {
   if (e.data === "catalog-refresh") cb();
 });
+
+// 🔔 Login cross-tab
+export const triggerAuthLogin = (user) => ch.postMessage({ type: "auth-login", user });
+export const onAuthLogin      = (cb) => ch.addEventListener("message", e => {
+  if (e.data && e.data.type === "auth-login") cb(e.data.user);
+});

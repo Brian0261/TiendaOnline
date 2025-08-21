@@ -1,8 +1,11 @@
 // frontend/assets/js/auth/login.js
-// Modal de login robusto: detecta inputs por varios selectores
-// y usa window.API.post() asegurando compatibilidad con backend
-// (envía tanto `contrasena` como `password`). Además guarda el
-// token usando la capa común (window.API.token.set).
+// Modal de login robusto:
+// - Detecta inputs por varios selectores.
+// - Llama a window.API.post("/auth/login", body) enviando { email, contrasena, password }.
+// - Guarda token y usuario en localStorage.
+// - Emite eventos "auth:login" y "auth:changed" para refrescar navbar sin F5.
+// - Persiste correos en localStorage (login_emails) para autocompletar (datalist).
+// - Redirige al dashboard según el rol (CLIENTE / ADMINISTRADOR / EMPLEADO).
 
 (function () {
   /* ============ Helpers UI ============ */
@@ -67,8 +70,33 @@
     return {
       email: (emailInput?.value || "").trim(),
       password: passInput?.value || "",
+      emailInput,
+      passInput,
     };
   }
+
+  /* ============ Historial de correos (para <datalist>) ============ */
+  const EMAIL_KEY = "login_emails";
+  function persistEmail(email) {
+    try {
+      if (!email) return;
+      const list = JSON.parse(localStorage.getItem(EMAIL_KEY) || "[]");
+      const next = [email, ...list.filter(e => e !== email)].slice(0, 8);
+      localStorage.setItem(EMAIL_KEY, JSON.stringify(next));
+    } catch {}
+  }
+
+  function repopulateDatalist() {
+    try {
+      const dl = document.getElementById("login-email-history");
+      if (!dl) return; // si tu modal no usa datalist, no pasa nada
+      const emails = JSON.parse(localStorage.getItem(EMAIL_KEY) || "[]");
+      dl.innerHTML = emails.map(e => `<option value="${e}"></option>`).join("");
+    } catch {}
+  }
+
+  // Prepara BroadcastChannel (si existe) para avisar a otras pestañas
+  const bc = "BroadcastChannel" in window ? new BroadcastChannel("bodega") : null;
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -79,9 +107,8 @@
 
     const btn = $("#login-submit", form);
     const spin = $("#login-spinner", form); // opcional si existe
-    const msg = $("#login-error", form);
 
-    const { email, password } = getCredentials();
+    const { email, password, passInput } = getCredentials();
 
     if (!email || !password) {
       console.debug("[login] Campos detectados:", { email, passwordLen: password?.length });
@@ -99,26 +126,34 @@
 
       // Enviamos ambos nombres de campo por compatibilidad backend
       const body = { email, contrasena: password, password };
-
       const data = await window.API.post("/auth/login", body);
 
       if (!data?.token) {
         throw new Error("Respuesta inválida del servidor.");
       }
 
-      // Guarda token usando la capa común para que el resto del app lo lea
+      // Guarda token usando la capa común (si existe) o fallback
       if (window.API?.token?.set) {
         window.API.token.set(data.token);
       } else {
-        localStorage.setItem("token", data.token); // fallback
+        localStorage.setItem("token", data.token);
       }
 
-      // Guarda el usuario (opcional; algunas pantallas lo usan)
-      localStorage.setItem("auth_user", JSON.stringify(data.user || {}));
-      localStorage.setItem("user", JSON.stringify(data.user || {}));
+      // Guarda el usuario (muchas pantallas lo usan)
+      const user = data.user || {};
+      localStorage.setItem("auth_user", JSON.stringify(user));
+      localStorage.setItem("user", JSON.stringify(user)); // compat
 
-      // Notifica cambio de auth
-      window.dispatchEvent(new CustomEvent("auth:changed", { detail: { loggedIn: true, user: data.user } }));
+      // Persistir correo para autocompletar en próximas aperturas
+      persistEmail(email);
+
+      // Notifica a la app (misma pestaña)
+      window.dispatchEvent(new CustomEvent("auth:login", { detail: user }));
+      // Compatibilidad con listeners antiguos:
+      window.dispatchEvent(new CustomEvent("auth:changed", { detail: { loggedIn: true, user } }));
+
+      // Notifica a otras pestañas (si hubiese)
+      if (bc) bc.postMessage({ type: "auth-login", user });
 
       // Cierra modal si existe (Bootstrap)
       const modalEl = document.getElementById("loginModal");
@@ -127,8 +162,30 @@
         inst.hide();
       }
 
-      // (Opcional) Redirigir según rol aquí si quieres
-      // if (data.user?.rol === "ADMINISTRADOR") location.href = "/views/dashboard/admin.html";
+      // Limpia el password del input por seguridad
+      if (passInput) passInput.value = "";
+
+      // ───────────────────────────────
+      // Redirigir al dashboard por rol
+      // ───────────────────────────────
+      try {
+        // Normaliza el rol
+        const role = String(user?.rol || "").toUpperCase();
+        // Import absoluto para que funcione en local y producción
+        const { redirigirDashboard } = await import("/assets/js/main.js");
+        redirigirDashboard(role);
+        return; // detenemos el flujo aquí tras redirigir
+      } catch (e) {
+        // Fallback ultra simple (por si import fallara)
+        const role = String(user?.rol || "").toUpperCase();
+        const target =
+          role === "ADMINISTRADOR" ? "/dashboard/admin.html" : role === "EMPLEADO" ? "/dashboard/employee.html" : "/dashboard/customer.html";
+        window.location.href = target;
+        return;
+      }
+
+      // (Si no redirigimos arriba, podríamos limpiar ?login=true,
+      // pero en la práctica ya salimos por return)
     } catch (err) {
       // Errores comunes
       if (err?.status === 401) return showError("Credenciales inválidas.");
@@ -139,6 +196,8 @@
     } finally {
       show(spin, false);
       btn && (btn.disabled = false);
+      // Repoblar datalist por si el modal sigue abierto
+      repopulateDatalist();
     }
   }
 
@@ -154,5 +213,12 @@
     if (!btn) return;
     const form = document.getElementById("login-form");
     if (form) form.requestSubmit ? form.requestSubmit() : form.submit();
+  });
+
+  // Cuando se muestra el modal, repoblar datalist de correos
+  document.addEventListener("shown.bs.modal", ev => {
+    if (ev?.target?.id === "loginModal") {
+      repopulateDatalist();
+    }
   });
 })();
