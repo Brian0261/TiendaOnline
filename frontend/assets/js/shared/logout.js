@@ -55,6 +55,7 @@ export default function bindLogout(...btnSelectors) {
     if (e.target && e.target.id === "confirmLogoutBtn") {
       try {
         localStorage.removeItem("token");
+        localStorage.removeItem("auth_user");
         localStorage.removeItem("user");
       } finally {
         if (bsModal) bsModal.hide();

@@ -115,6 +115,7 @@
 
       // Guarda el usuario (opcional; algunas pantallas lo usan)
       localStorage.setItem("auth_user", JSON.stringify(data.user || {}));
+      localStorage.setItem("user", JSON.stringify(data.user || {}));
 
       // Notifica cambio de auth
       window.dispatchEvent(new CustomEvent("auth:changed", { detail: { loggedIn: true, user: data.user } }));

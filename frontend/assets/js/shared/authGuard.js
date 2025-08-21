@@ -1,11 +1,14 @@
 // frontend/assets/js/shared/authGuard.js
-export function requireRole(expectedRole) {
-  const userRaw = localStorage.getItem("user");
-  const user = userRaw ? JSON.parse(userRaw) : null;
+ export function requireRole(expectedRole) {
+   const userRaw =
+     localStorage.getItem("auth_user") || localStorage.getItem("user");
+   let user = null;
+   try { user = userRaw ? JSON.parse(userRaw) : null; } catch {}
 
-  // Si no hay usuario o el rol no coincide, redirige
-  if (!user || user.rol?.toUpperCase() !== expectedRole.toUpperCase()) {
-    // ⚠️ Usa siempre la ruta relativa adecuada a tu estructura
-    window.location.href = "/index.html?login=true";
-  }
-}
+   const ok =
+     user && user.rol && user.rol.toUpperCase() === expectedRole.toUpperCase();
+   if (!ok) {
+     // Home funciona en local (Express) y en Pages (/_redirects)
+     window.location.href = "/?login=true";
+   }
+ }
