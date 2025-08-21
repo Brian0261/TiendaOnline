@@ -170,8 +170,14 @@ async function loadGoogleMaps() {
       exist.onerror = rej;
     });
 
-  const resp = await fetch("/api/config/maps-key").catch(() => null);
-  const { key } = (await resp?.json().catch(() => ({}))) || {};
+  // Intenta con el SDK (apunta a Azure FQDN /api y tiene fallback)
+  let key = "";
+  try {
+    const data = await api.get("/config/maps-key"); // → { key: "..." }
+    key = data?.key || "";
+  } catch (e) {
+    key = "";
+  }
   if (!key) throw new Error("Google Maps API key no configurada");
 
   await new Promise((resolve, reject) => {

@@ -111,6 +111,7 @@ app.use("/api/inventory", inventoryRoutes);
 app.use("/api/dispatch", dispatchRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/config", configRoutes);
+app.use("/config", configRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/diag", diagnosticRoutes);
 
