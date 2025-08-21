@@ -226,55 +226,50 @@ exports.getAllProducts = async (req, res) => {
     const request = pool.request();
     request.timeout = SQL_TIMEOUT;
 
-    // WHERE dinámico sobre PRODUCTO (no afectamos el LEFT JOIN)
-    const whereParts = [];
-    if (status === "active") whereParts.push("p.activo = 1");
-    else if (status === "inactive") whereParts.push("p.activo = 0");
+    // WHERE solo sobre PRODUCTO (evitar afectar el LEFT JOIN)
+    const where = [];
+    if (status === "active") where.push("p.activo = 1");
+    else if (status === "inactive") where.push("p.activo = 0");
 
     if (category) {
-      whereParts.push("p.id_categoria = @cat");
+      where.push("p.id_categoria = @cat");
       request.input("cat", sql.Int, category);
     }
     if (search) {
-      whereParts.push("(p.nombre_producto LIKE @q OR p.descripcion LIKE @q)");
+      where.push("(p.nombre_producto LIKE @q OR p.descripcion LIKE @q)");
       request.input("q", sql.VarChar, `%${search}%`);
     }
-    const whereSql = whereParts.length ? `WHERE ${whereParts.join(" AND ")}` : "";
+    const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
     request.input("limit", sql.Int, limit);
     request.input("offset", sql.Int, offset);
 
-    // Calculamos stock desde INVENTARIO (suma de cantidad_disponible), agrupando
+    // 🔹 Stock desde INVENTARIO (no hay columna p.stock)
     const sqlText = `
-      WITH P AS (
-        SELECT
-          p.id_producto     AS id,
-          p.nombre_producto AS nombre,
-          p.descripcion,
-          p.precio,
-          p.imagen,
-          ISNULL(SUM(i.cantidad_disponible), 0) AS stock,
-          p.activo,
-          p.id_categoria,
-          p.id_marca
-        FROM PRODUCTO p
-        LEFT JOIN INVENTARIO i
-               ON i.id_producto = p.id_producto
-              AND i.activo = 1
-        ${whereSql}
-        GROUP BY
-          p.id_producto, p.nombre_producto, p.descripcion, p.precio,
-          p.imagen, p.activo, p.id_categoria, p.id_marca
-      )
-      SELECT *
-      FROM P
-      ORDER BY id DESC
+      SELECT
+        p.id_producto      AS id,
+        p.nombre_producto  AS nombre,
+        p.descripcion,
+        p.precio,
+        p.imagen,
+        ISNULL(SUM(i.cantidad_disponible), 0) AS stock,
+        p.activo,
+        p.id_categoria,
+        p.id_marca
+      FROM PRODUCTO p
+      LEFT JOIN INVENTARIO i
+             ON i.id_producto = p.id_producto
+      ${whereSql}
+      GROUP BY
+        p.id_producto, p.nombre_producto, p.descripcion, p.precio,
+        p.imagen, p.activo, p.id_categoria, p.id_marca
+      ORDER BY p.id_producto DESC
       OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY;
     `;
 
     const result = await request.query(sqlText);
 
-    // Normaliza rutas de imagen
+    // Normaliza imagen
     const list = result.recordset.map(p => ({
       ...p,
       imagen: normalizeImage(p.imagen),
@@ -300,18 +295,18 @@ exports.getProductById = async (req, res) => {
     request.timeout = SQL_TIMEOUT;
     request.input("id", sql.Int, id);
 
-    // Evitamos GROUP BY usando un subquery para el stock
+    // Subconsulta para stock (evitamos GROUP BY grande)
     const result = await request.query(`
       SELECT
-        p.id_producto     AS id,
-        p.nombre_producto AS nombre,
+        p.id_producto      AS id,
+        p.nombre_producto  AS nombre,
         p.descripcion,
         p.precio,
         p.imagen,
         (
           SELECT ISNULL(SUM(i.cantidad_disponible), 0)
           FROM INVENTARIO i
-          WHERE i.id_producto = p.id_producto AND i.activo = 1
+          WHERE i.id_producto = p.id_producto
         ) AS stock,
         p.activo,
         p.id_categoria,
