@@ -1,13 +1,13 @@
 /*
-  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; 
-  img-src 'self' data: blob: https://maps.gstatic.com https://maps.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://via.placeholder.com https://pnghq.com; 
-  font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://ka-f.fontawesome.com; 
-  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://ka-f.fontawesome.com; 
-  style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://ka-f.fontawesome.com; 
-  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://maps.googleapis.com https://maps.gstatic.com https://kit.fontawesome.com https://sandbox-checkout.izipay.pe https://securecheckout.izipay.pe; 
-  script-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://maps.googleapis.com https://maps.gstatic.com https://kit.fontawesome.com https://sandbox-checkout.izipay.pe https://securecheckout.izipay.pe; 
-  connect-src 'self' https://bodega-api-stg.bluemoss-a77fa1fc.brazilsouth.azurecontainerapps.io https://api.staging.bodegaluchito.shop https://*.brazilsouth.azurecontainerapps.io https://maps.googleapis.com https://maps.gstatic.com; 
-  frame-src 'self' https://www.google.com https://sandbox-checkout.izipay.pe https://securecheckout.izipay.pe; 
+  Content-Security-Policy: default-src 'self' https: data: blob:; base-uri 'self'; object-src 'none';
+  img-src 'self' https: data: blob:;
+  font-src 'self' https: data:;
+  style-src 'self' 'unsafe-inline' https:;
+  style-src-elem 'self' 'unsafe-inline' https:;
+  script-src 'self' 'unsafe-inline' 'unsafe-eval' https:;
+  script-src-elem 'self' 'unsafe-inline' https:;
+  connect-src 'self' https: wss:;
+  frame-src 'self' https://www.google.com https://sandbox-checkout.izipay.pe https://securecheckout.izipay.pe;
   frame-ancestors 'none';
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
