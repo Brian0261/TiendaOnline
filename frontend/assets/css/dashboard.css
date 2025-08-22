@@ -1,53 +1,111 @@
-/* ======  PALETA (coincide con otras vistas) ====== */
+/* ======  PALETA ====== */
 :root {
-  --primary-color: #dc3545; /* rojo principal */
-  --secondary-color: #343a40; /* gris oscuro   */
-  --light-color: #f8f9fa; /* gris claro    */
-  --dark-color: #212529; /* negro         */
-  --accent-color: #ffc107; /* amarillo      */
+  --primary-color: #dc3545;
+  --secondary-color: #343a40;
+  --light-color: #f8f9fa;
+  --dark-color: #212529;
+  --accent-color: #ffc107;
 }
 
 /* ======  BASE ====== */
+html,
 body {
+  height: 100%;
+}
+body {
+  margin: 0;
   background-color: var(--light-color);
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
-main {
-  min-width: 0;
-  padding: 24px 32px 12px 32px !important; /* mÃ¡s compacto */
-  background: #f8f9fa;
-  height: 100vh;
-  overflow-y: auto;
+/* El body en admin.html tiene .d-flex: estíralo a toda la altura */
+body.d-flex {
   min-height: 100vh;
+  align-items: stretch;
 }
 
-/* ======  SIDEBAR ====== */
+/* ====== SIDEBAR (fijo) ====== */
 #sidebar {
-  width: 240px;
+  flex: 0 0 240px; /* ancho fijo coherente con tu diseño */
   min-height: 100vh;
+  height: 100vh; /* ocupa todo el alto visible */
+  position: sticky;
+  top: 0;
+  overflow: auto; /* si crece, hace scroll dentro */
   background: linear-gradient(160deg, var(--secondary-color), #495057);
   color: #fff;
+}
+#sidebar .menu-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  opacity: 0.55;
+  letter-spacing: 1px;
+  margin: 0.75rem 0 0.35rem;
 }
 #sidebar .nav-link {
   width: 100%;
   text-align: left;
-  color: rgba(255, 255, 255, 0.85);
   border-radius: 0.5rem;
+  color: rgba(255, 255, 255, 0.85);
   margin-bottom: 0.25rem;
   font-size: 0.95rem;
+}
+#sidebar .nav-link i {
+  width: 18px;
+  text-align: center;
+  margin-right: 0.5rem;
 }
 #sidebar .nav-link:hover,
 #sidebar .nav-link.active {
   background: rgba(255, 255, 255, 0.18);
   color: #fff;
 }
-#sidebar .btn.bg-danger {
-  border: none;
+#sidebar .logout-btn {
+  background: #dc3545;
+  border: 1px solid #dc3545;
+  color: #fff;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.7rem;
+  min-height: 34px;
+  font-size: 0.9rem;
   width: 100%;
+  transition: background-color 0.2s, border-color 0.2s, filter 0.2s;
+}
+#sidebar .logout-btn:hover,
+#sidebar .logout-btn:focus {
+  background: #bb2d3b;
+  border-color: #bb2d3b;
+  color: #fff;
+  filter: brightness(1.02);
 }
 
-/* ======  CARDS / TABLAS ====== */
+/* ====== PANEL DERECHO (contenido) ====== */
+/* IMPORTANTE: aquí vive el scroll principal para no “comerse” las secciones */
+main {
+  flex: 1 1 auto; /* ocupa todo lo restante */
+  min-height: 100vh;
+  height: auto;
+  padding: 24px 32px 12px 32px !important;
+  background: #f8f9fa;
+  overflow: auto; /* <<< scroll del contenido */
+}
+
+/* Cada sección simplemente bloque; no la hagamos flex para evitar colapsos */
+main > section {
+  display: block;
+}
+
+/* Si usas contenedores Bootstrap, no hace falta overflow interno;
+   pero dejamos una clase opcional si quisieras envolver contenido
+   que sí requiera scroll independiente (tablas largas, etc.)      */
+.content-wrap {
+  overflow: auto;
+  min-height: 0;
+}
+
+/* ====== CARDS / TABLAS ====== */
 .card {
   border: none;
   border-radius: 10px;
@@ -57,7 +115,6 @@ main {
 .card:hover {
   transform: scale(1.02);
 }
-
 .table thead {
   background-color: var(--secondary-color);
   color: #fff;
@@ -66,77 +123,59 @@ main {
 .table th {
   vertical-align: middle;
 }
-
-/* ===  â¬‡ï¸ NUEVO: ancho fijo y sin â€œsaltoâ€ entre filtros  === */
 #productsTable {
   width: 100%;
-  table-layout: fixed; /* â±â± mantiene el ancho de cada columna */
+  table-layout: fixed;
 }
-
 #productsTable thead th:nth-child(1),
 #productsTable tbody td:nth-child(1) {
-  /* Imagen */
   width: 90px;
   min-width: 90px;
 }
 #productsTable thead th:nth-child(2),
 #productsTable tbody td:nth-child(2) {
-  /* Nombre */
   width: 180px;
   min-width: 180px;
 }
 #productsTable thead th:nth-child(3),
 #productsTable tbody td:nth-child(3) {
-  /* DescripciÃ³n */
   width: 260px;
   min-width: 260px;
 }
 #productsTable thead th:nth-child(4),
 #productsTable tbody td:nth-child(4) {
-  /* Precio */
   width: 110px;
   min-width: 110px;
 }
 #productsTable thead th:nth-child(5),
 #productsTable tbody td:nth-child(5) {
-  /* Stock */
   width: 90px;
   min-width: 90px;
 }
 #productsTable thead th:nth-child(6),
 #productsTable tbody td:nth-child(6) {
-  /* CategorÃ­a */
   width: 150px;
   min-width: 150px;
 }
 #productsTable thead th:nth-child(7),
 #productsTable tbody td:nth-child(7) {
-  /* Marca */
   width: 150px;
   min-width: 150px;
 }
 #productsTable thead th:nth-child(8),
 #productsTable tbody td:nth-child(8) {
-  /* Acciones */
   width: 110px;
   min-width: 110px;
   text-align: center;
 }
-
-/* Permite que el texto se corte con â€œâ€¦â€ si no cabe */
 #productsTable td {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
-/* Quitar el sombreado que Bootstrap aplica al tener .table-secondary
-   cuando vuelvas al filtro â€œTodosâ€ (las filas ya no llevan esa clase)   */
 #productsTable tr.table-secondary {
   background-color: var(--light-color) !important;
 }
-
-/* ======  BOTONES DE ACCIÃ“N EN TABLAS ====== */
 .table .btn-action {
   width: 32px;
   height: 32px;
@@ -152,51 +191,7 @@ main {
   color: #dc3545;
 }
 
-/* =================== AJUSTES VISUALES PARA REPORTE DE VENTAS =================== */
-#section-reports {
-  padding-bottom: 0;
-  margin-bottom: 0;
-}
-
-#reporteKPIs .card {
-  min-height: 100px;
-  padding: 12px 0;
-}
-#reporteKPIs .card-body {
-  padding: 16px 10px 10px 10px;
-}
-
-#reporteKPIs .h4,
-#reporteKPIs .h5,
-#reporteKPIs .h6 {
-  font-size: 1.2rem;
-}
-#reporteKPIs .card-title {
-  font-size: 1rem;
-}
-#reporteKPIs i {
-  font-size: 2.2rem;
-}
-
-#reporteGraficosYTablas {
-  margin-top: 0;
-}
-#reporteGraficosYTablas .card {
-  min-height: 320px;
-  padding: 10px 0;
-}
-#reporteGraficosYTablas .card-title {
-  font-size: 1rem;
-  margin-bottom: 6px;
-}
-
-#chartTopProductos,
-#chartMetodosPago {
-  max-height: 170px !important;
-  height: 170px !important;
-}
-
-/* ======  HISTORIAL DE PEDIDOS ====== */
+/* ====== HISTORIAL DE PEDIDOS ====== */
 #ordersTable {
   font-size: 0.95rem;
 }
@@ -209,7 +204,108 @@ main {
   margin-left: 4px;
 }
 
-/* ======  MEDIA QUERY ====== */
+/* ====== KPI & Reportes compactos ====== */
+#section-reports {
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+#reporteKPIs .card {
+  min-height: 100px;
+  padding: 12px 0;
+}
+#reporteKPIs .card-body {
+  padding: 16px 10px 10px 10px;
+}
+#reporteKPIs .h4,
+#reporteKPIs .h5,
+#reporteKPIs .h6 {
+  font-size: 1.2rem;
+}
+#reporteKPIs .card-title {
+  font-size: 1rem;
+}
+#reporteKPIs i {
+  font-size: 2.2rem;
+}
+#reporteGraficosYTablas {
+  margin-top: 0;
+}
+#reporteGraficosYTablas .card {
+  min-height: 320px;
+  padding: 10px 0;
+}
+#reporteGraficosYTablas .card-title {
+  font-size: 1rem;
+  margin-bottom: 6px;
+}
+#chartTopProductos,
+#chartMetodosPago {
+  max-height: 170px !important;
+  height: 170px !important;
+}
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  align-items: stretch;
+}
+.kpi-card.compact {
+  padding: 0.65rem 0.8rem;
+  border-radius: 0.75rem;
+  background: #fff;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.kpi-card.compact:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.06);
+}
+.kpi-card .kpi-label {
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: #64748b;
+  text-transform: uppercase;
+  margin-bottom: 0.15rem;
+}
+.kpi-card .kpi-value {
+  font-weight: 500;
+  font-size: 1.2rem;
+  line-height: 1.05;
+  letter-spacing: 0.02em;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums lining-nums;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.kpi-card .kpi-delta {
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-top: 0.25rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: #f1f3f5;
+}
+.kpi-card.compact .kpi-icon {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  font-size: 1.15rem;
+  opacity: 0.25;
+}
+@media (max-width: 576px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 992px) {
+  .kpi-card .kpi-value {
+    font-size: 1.3rem;
+  }
+}
+
+/* ====== RESPONSIVE ====== */
 @media (max-width: 1100px) {
   main {
     padding: 18px 2vw 8px 2vw !important;
@@ -239,148 +335,147 @@ main {
 }
 @media (max-width: 768px) {
   #sidebar {
-    width: 200px;
+    flex: 0 0 200px;
   }
   #sidebar .nav-link {
     font-size: 0.9rem;
   }
 }
 
-/* ===== KPIs compactos y grilla auto-fit ===== */
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 0.75rem;
+/* ====== ADMIN LAYOUT – Overrides finales ====== */
+
+/* base */
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+/* Body del admin usa .d-flex (fila: sidebar + contenido) */
+body.d-flex {
+  min-height: 100vh;
   align-items: stretch;
 }
 
-.kpi-card.compact {
-  padding: 0.65rem 0.8rem;
-  border-radius: 0.75rem;
+/* Sidebar fijo y desplazable si crece */
+#sidebar {
+  flex: 0 0 240px; /* ancho fijo */
+  position: sticky;
+  top: 0; /* el admin no tiene navbar fija */
+  height: 100vh; /* ocupa todo el alto visible */
+  overflow: auto; /* scroll sólo en el sidebar si hace falta */
+}
+
+/* PANEL DERECHO (contenido). 
+   Importante: aquí vive el scroll principal del dashboard. */
+main {
+  flex: 1 1 auto; /* ocupa el espacio restante */
+  height: auto; /* NO forzar 100vh para evitar “bloque gris” */
+  min-height: 100vh;
+  overflow: auto; /* el scroll es del panel derecho */
+  padding: 24px 32px 12px 32px !important;
+  background: #f8f9fa;
+}
+
+/* Cada sección del admin es un bloque normal (sin flex padre) */
+main > section {
+  display: block;
+}
+
+/* Si envuelves contenido en .content-wrap, también podrá scrollear dentro si es muy largo */
+.content-wrap {
+  overflow: auto;
+  min-height: 0;
+}
+
+/* Opcional: encabezados pegajosos dentro de cada sección */
+.section-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   background: #fff;
-  border: 1px solid #e9ecef;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-.kpi-card.compact:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid #eee;
+  padding: 12px 0;
 }
 
-/* Label unificada (vale para compact y no-compact) */
-.kpi-card .kpi-label {
-  font-size: 0.66rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  color: #64748b; /* gris medio */
-  text-transform: uppercase;
-  margin-bottom: 0.15rem;
-}
+/* ================= ADMIN – FIX LAYOUT (override final) ================= */
 
-/* Valor unificado (fino y profesional) */
-.kpi-card .kpi-value {
-  font-weight: 500;
-  font-size: 1.2rem;
-  line-height: 1.05;
-  letter-spacing: 0.02em;
-  color: #0f172a; /* gris-oscuro elegante */
-  font-variant-numeric: tabular-nums lining-nums;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* Delta (pill) */
-.kpi-card .kpi-delta {
-  font-size: 0.7rem;
-  font-weight: 600;
-  margin-top: 0.25rem;
-  padding: 0.1rem 0.4rem;
-  border-radius: 999px;
-  background: #f1f3f5;
-}
-
-/* Icono discreto */
-.kpi-card.compact .kpi-icon {
-  position: absolute;
-  right: 10px;
-  top: 10px;
-  font-size: 1.15rem;
-  opacity: 0.25;
-}
-
-/* Responsive: grid a 2 col en mobile */
-@media (max-width: 576px) {
-  .kpi-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-/* Desktop: un pelÃ­n mÃ¡s grande */
-@media (min-width: 992px) {
-  .kpi-card .kpi-value {
-    font-size: 1.3rem;
-  }
-}
-
-/* ==== Sidebar FIXED (Admin + Empleado) ==== */
-body.d-flex {
-  /* asegura altura de la vista para el layout horizontal */
+/* Fuerza layout horizontal: sidebar a la izquierda, contenido a la derecha */
+html, body { height: 100%; }
+body.d-flex{
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch;
   min-height: 100vh;
 }
 
-#sidebar {
-  position: sticky; /* se pega al borde superior del viewport */
-  top: 0; /* como el admin no tiene navbar fija, va 0 */
-  height: 100vh; /* ocupa todo el alto visible */
-  overflow-y: auto; /* si crece, scroll sÃ³lo dentro del sidebar */
-  align-self: flex-start; /* evita estiramiento vertical por flex */
+/* Sidebar fijo y desplazable si crece */
+#sidebar{
+  position: sticky;
+  top: 0;
+  flex: 0 0 240px !important;
+  width: 240px !important;
+  max-width: 240px !important;
+  height: 100vh;
+  overflow: auto;
 }
 
-/* TÃ­tulo de secciÃ³n en el sidebar (igual que empleado) */
-#sidebar .menu-title {
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  opacity: 0.55;
-  letter-spacing: 1px;
-  margin: 0.75rem 0 0.35rem;
+/* Panel derecho ocupa toda la altura, sin scroll de página */
+main{
+  height: 100vh;
+  min-width: 0;                 /* evita desbordes de tablas anchas */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;             /* el scroll vive en hijos internos */
+  padding: 16px 24px !important;/* compáctalo y quita “franja” alta */
 }
 
-/* AlineaciÃ³n consistente de iconos en los items del menÃº */
-#sidebar .nav-link i {
-  width: 18px;
-  text-align: center;
-  margin-right: 0.5rem;
+/* Cada sección se comporta como contenedor de altura completa */
+main > section{
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;                /* clave para permitir overflow del hijo */
 }
 
-/* El scroll principal vive en el panel derecho */
-main {
-  height: 100vh; /* ya tienes min-height y overflow, esto lo unifica */
-  overflow-y: auto;
+/* Área que realmente scrollea dentro de cada sección */
+.content-wrap{
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;               /* <— aquí vive el scroll del contenido */
 }
 
-/* ===== Logout (Admin) â€“ igual al "Salir" del empleado, pero rojo sÃ³lido y altura fija ===== */
-#sidebar .logout-btn {
-  background: #dc3545;
-  border: 1px solid #dc3545;
-  color: #fff;
-  font-weight: 600;
-  border-radius: 0.5rem;
-
-  /* â†“ Ajusta aquÃ­ para bajar la altura */
-  padding: 0.4rem 0.7rem; /* antes .60rem .80rem */
-  min-height: 34px; /* antes 40px (o elimÃ­nalo) */
-  font-size: 0.9rem; /* opcional: reduce un poco el texto */
-
-  width: 100%;
-  transition: background-color 0.2s, border-color 0.2s, filter 0.2s;
+/* Encabezados pegajosos opcionales dentro de una sección */
+.section-header{
+  flex: 0 0 auto;
+  position: sticky;
+  top: 0;
+  background: #f8f9fa;
+  z-index: 2;
+  border-bottom: 1px solid #eee;
+  padding: 12px 0;
 }
 
-#sidebar .logout-btn:hover,
-#sidebar .logout-btn:focus {
-  background: #bb2d3b; /* tono mÃ¡s oscuro al hover */
-  border-color: #bb2d3b;
-  color: #fff;
-  filter: brightness(1.02);
+/* Productos: hace que la pestaña activa y su tabla llenen la altura */
+#section-products .tab-content{
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+#section-products .tab-pane.active{
+  display: flex !important;
+  flex-direction: column;
+  min-height: 0;
+}
+#section-products .table-responsive{
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;               /* scroll interno de la tabla */
 }
 
+/* Historial de pedidos: tabla que aprovecha toda la altura */
+#section-orders .table-responsive{
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
