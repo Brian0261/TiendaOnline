@@ -35,7 +35,7 @@ const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch
 /* ────────────────────────── Multer (subidas) ───────────────────────── */
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
-    const dir = path.join(__dirname, "..", "..", "frontend", "assets", "images", "products");
+    const dir = path.join(__dirname, "..", "..", "frontend", "assets", "images");
     fs.mkdirSync(dir, { recursive: true });
     cb(null, dir);
   },

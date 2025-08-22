@@ -170,6 +170,12 @@ app.get("/api/orders/stream", (req, res) => {
   }
 });
 
+/* ✅ NUEVO: resolver /about en local */
+app.get(["/about", "/about/"], (_req, res, next) => {
+  const file = path.join(VIEWS_DIR, "about.html");
+  res.sendFile(file, err => (err ? next() : null));
+});
+
 /* ────────────────────────────
    404
 ────────────────────────────── */
