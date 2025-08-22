@@ -45,21 +45,141 @@
     <!--  CONTENIDO  -->
     <main class="flex-grow-1 p-4">
       <!-- DASHBOARD -->
+      <!-- DASHBOARD (nuevo diseño) -->
       <section id="section-dashboard">
-        <h4 class="mb-3">Bienvenido, Administrador</h4>
+        <div class="dash-header d-flex align-items-start align-items-md-center flex-column flex-md-row gap-2">
+          <div>
+            <h4 class="mb-1">Dashboard — Resumen anual</h4>
+            <div class="text-muted small">Vistas listas para datos del año en curso y últimos 12 meses.</div>
+          </div>
+          <div class="ms-md-auto">
+            <span class="pill-year" id="dashYearPill">
+              <i class="bi bi-calendar3 me-1"></i>
+              Año actual · <span id="dashYear"></span>
+            </span>
+          </div>
+        </div>
+
+        <!-- KPIs compactos -->
+        <div class="kpi-grid my-3">
+          <div class="kpi-card compact position-relative">
+            <i class="bi bi-currency-dollar kpi-icon"></i>
+            <div class="kpi-label">Ventas año (S/)</div>
+            <div class="kpi-value" id="kpiYearSales">—</div>
+            <div class="kpi-delta" id="kpiYearSalesDelta">vs. año pasado: —</div>
+          </div>
+          <div class="kpi-card compact position-relative">
+            <i class="bi bi-receipt kpi-icon"></i>
+            <div class="kpi-label">Pedidos año</div>
+            <div class="kpi-value" id="kpiYearOrders">—</div>
+            <div class="kpi-delta" id="kpiYearOrdersDelta">—</div>
+          </div>
+          <div class="kpi-card compact position-relative">
+            <i class="bi bi-graph-up-arrow kpi-icon"></i>
+            <div class="kpi-label">Ticket promedio</div>
+            <div class="kpi-value" id="kpiAvgTicket">—</div>
+            <div class="kpi-delta" id="kpiAvgTicketDelta">—</div>
+          </div>
+          <div class="kpi-card compact position-relative">
+            <i class="bi bi-box-seam kpi-icon"></i>
+            <div class="kpi-label">Unidades vendidas</div>
+            <div class="kpi-value" id="kpiUnits">—</div>
+            <div class="kpi-delta" id="kpiUnitsDelta">—</div>
+          </div>
+          <div class="kpi-card compact position-relative">
+            <i class="bi bi-people kpi-icon"></i>
+            <div class="kpi-label">Clientes únicos</div>
+            <div class="kpi-value" id="kpiCustomers">—</div>
+            <div class="kpi-delta" id="kpiCustomersDelta">—</div>
+          </div>
+          <div class="kpi-card compact position-relative">
+            <i class="bi bi-check2-circle kpi-icon"></i>
+            <div class="kpi-label">% entregados</div>
+            <div class="kpi-value" id="kpiDeliveredRate">—</div>
+            <div class="kpi-delta" id="kpiDeliveredDelta">—</div>
+          </div>
+        </div>
+
+        <!-- FILA 1 -->
         <div class="row g-4">
-          <div class="col-md-4">
-            <div class="card shadow-sm">
+          <!-- Ventas por mes (12m) -->
+          <div class="col-lg-8">
+            <div class="card shadow-sm h-100">
               <div class="card-body">
-                <h5 class="card-title">Ingresos de hoy</h5>
-                <h2 class="fw-bold mb-0 text-primary" id="todayIncome">S/ 0.00</h2>
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <h6 class="card-title m-0"><i class="bi bi-graph-up me-2"></i>Ventas por mes (últimos 12 meses)</h6>
+                  <span class="badge bg-light text-dark">UI</span>
+                </div>
+                <canvas id="chartVentas12m" height="170"></canvas>
+                <div class="chart-empty small text-muted">Sin datos conectados</div>
               </div>
             </div>
           </div>
-          <div class="col-md-8">
-            <div class="card shadow-sm">
+
+          <!-- Top categorías (año) -->
+          <div class="col-lg-4">
+            <div class="card shadow-sm h-100">
               <div class="card-body">
-                <canvas id="salesChart" height="110"></canvas>
+                <h6 class="card-title"><i class="bi bi-tags me-2"></i>Top categorías del año</h6>
+                <table class="table table-sm table-hover table-dashboard-sm mb-0">
+                  <thead>
+                    <tr>
+                      <th>Categoria</th>
+                      <th class="text-end">Ventas (S/)</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tableTopCategorias">
+                    <tr>
+                      <td class="text-muted">—</td>
+                      <td class="text-end text-muted">—</td>
+                    </tr>
+                    <tr>
+                      <td class="text-muted">—</td>
+                      <td class="text-end text-muted">—</td>
+                    </tr>
+                    <tr>
+                      <td class="text-muted">—</td>
+                      <td class="text-end text-muted">—</td>
+                    </tr>
+                    <tr>
+                      <td class="text-muted">—</td>
+                      <td class="text-end text-muted">—</td>
+                    </tr>
+                    <tr>
+                      <td class="text-muted">—</td>
+                      <td class="text-end text-muted">—</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FILA 2 -->
+        <div class="row g-4 mt-1">
+          <!-- Pedidos por mes (12m) -->
+          <div class="col-lg-8">
+            <div class="card shadow-sm h-100">
+              <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <h6 class="card-title m-0"><i class="bi bi-bar-chart-line me-2"></i>Pedidos por mes (últimos 12 meses)</h6>
+                  <span class="badge bg-light text-dark">UI</span>
+                </div>
+                <canvas id="chartPedidos12m" height="170"></canvas>
+                <div class="chart-empty small text-muted">Sin datos conectados</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Actividad reciente (placeholder) -->
+          <div class="col-lg-4">
+            <div class="card shadow-sm h-100">
+              <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-activity me-2"></i>Actividad reciente</h6>
+                <ul class="list-unstyled small mb-0" id="listActividad">
+                  <li class="text-muted">— Sin datos conectados —</li>
+                </ul>
               </div>
             </div>
           </div>

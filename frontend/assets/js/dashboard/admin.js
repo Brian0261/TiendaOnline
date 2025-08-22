@@ -128,6 +128,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // =============== CRUD CATEGORÍAS – Eventos ===============
   bindCategoryUI();
+
+  // ====== NUEVO: DASHBOARD (YTD + 12m) ======
+  setupAdminDashboard();
 });
 
 /* ==================  Helpers productos  ================== */
@@ -561,6 +564,125 @@ function renderCharts(data) {
   tablaPago += "</tbody></table>";
   const elTablaPago = document.getElementById("tablaMetodosPago");
   if (elTablaPago) elTablaPago.innerHTML = tablaPago;
+}
+
+// === Helper para escribir texto/valor en elementos por id ===
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const v = value === null || value === undefined ? "" : String(value);
+  // Si fuera input/select/textarea, usa value; si no, textContent
+  if (el.tagName === "INPUT" || el.tagName === "SELECT" || el.tagName === "TEXTAREA") {
+    el.value = v;
+  } else {
+    el.textContent = v;
+  }
+}
+
+/***************************************************************
+ *  DASHBOARD – RESUMEN ANUAL (YTD + 12m)
+ ***************************************************************/
+import { getDashboardOverview } from "../shared/api.js"; // Asegúrate que quede importado arriba
+
+let chartVentas12m, chartPedidos12m;
+
+function setupAdminDashboard() {
+  // Si el dashboard no está en esta página, salir silenciosamente
+  const kpiYearSales = document.getElementById("kpiYearSales");
+  const yearPill = document.getElementById("dashYear");
+  if (!kpiYearSales && !yearPill) return;
+
+  const year = new Date().getFullYear();
+  if (yearPill) yearPill.textContent = String(year);
+
+  loadDashboard(year);
+}
+
+async function loadDashboard(year) {
+  try {
+    const data = await getDashboardOverview({ year });
+
+    // KPIs
+    setText("kpiYearSales", fmtMoney(data?.kpis?.salesYear || 0));
+    setText("kpiYearOrders", data?.kpis?.ordersYear ?? 0);
+    setText("kpiAvgTicket", fmtMoney(data?.kpis?.avgTicket || 0));
+    setText("kpiUnits", data?.kpis?.units ?? 0);
+    setText("kpiCustomers", data?.kpis?.customers ?? 0);
+    setText("kpiDeliveredRate", (data?.kpis?.deliveredRate ?? 0) + "%");
+
+    // Gráficos (últimos 12 meses)
+    const labels = (data?.monthly?.sales || []).map(x => monthLabel(x.y, x.m));
+    const salesData = (data?.monthly?.sales || []).map(x => x.total);
+    const ordersData = (data?.monthly?.orders || []).map(x => x.count);
+
+    drawVentas12m(labels, salesData);
+    drawPedidos12m(labels, ordersData);
+
+    // Top categorías
+    const tb = document.getElementById("tableTopCategorias");
+    if (tb) {
+      tb.innerHTML =
+        (data?.topCategories || [])
+          .map(c => `<tr><td>${escapeHtml(c.name)}</td><td class="text-end">S/ ${Number(c.total).toFixed(2)}</td></tr>`)
+          .join("") || `<tr><td class="text-muted">—</td><td class="text-end text-muted">—</td></tr>`;
+    }
+
+    // Actividad reciente
+    const ul = document.getElementById("listActividad");
+    if (ul) {
+      ul.innerHTML =
+        (data?.recent || [])
+          .map(
+            r =>
+              `<li class="mb-2"><b>#${r.id}</b> · ${fmtDate(r.fecha)} · ${escapeHtml(
+                r.cliente || ""
+              )} · <span class="badge bg-light text-dark">${escapeHtml(r.estado)}</span> · S/ ${Number(r.total).toFixed(2)}</li>`
+          )
+          .join("") || `<li class="text-muted">— Sin datos —</li>`;
+    }
+  } catch (err) {
+    console.error("Dashboard error:", err);
+  }
+}
+
+// Helpers UI
+const MONTHS_ES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+const pad2 = n => String(n).padStart(2, "0");
+const monthLabel = (y, m) => `${MONTHS_ES[m - 1]} ${String(y).slice(-2)}`;
+const fmtMoney = v => "S/ " + Number(v || 0).toFixed(2);
+const fmtDate = s => {
+  try {
+    const d = new Date(s);
+    return `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()}`;
+  } catch {
+    return s;
+  }
+};
+const escapeHtml = str => String(str).replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+
+// Charts
+function drawVentas12m(labels, values) {
+  const c = document.getElementById("chartVentas12m");
+  if (!c) return;
+  const ctx = c.getContext("2d");
+  if (chartVentas12m?.destroy) chartVentas12m.destroy();
+  chartVentas12m = new Chart(ctx, {
+    type: "bar",
+    data: { labels, datasets: [{ label: "Ventas (S/)", data: values, backgroundColor: "rgba(13,110,253,0.7)" }] },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } },
+  });
+}
+
+function drawPedidos12m(labels, values) {
+  const c = document.getElementById("chartPedidos12m");
+  if (!c) return;
+  const ctx = c.getContext("2d");
+  if (chartPedidos12m?.destroy) chartPedidos12m.destroy();
+  chartPedidos12m = new Chart(ctx, {
+    type: "line",
+    data: { labels, datasets: [{ label: "Pedidos", data: values, tension: 0.35, borderWidth: 2, fill: false }] },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } },
+  });
 }
 
 /**************************************************************

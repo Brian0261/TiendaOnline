@@ -303,6 +303,12 @@ export const getSalesReport = (params = {}) => {
   return api.get(`/reports/sales${qs ? `?${qs}` : ""}`, true);
 };
 
+/* ========== Dashboard (ADMIN) ========== */
+export const getDashboardOverview = (params = {}) => {
+  const qs = new URLSearchParams(params).toString();
+  return api.get(`/reports/dashboard${qs ? `?${qs}` : ""}`, true);
+};
+
 /* ========== Historial de pedidos (ADMIN) ========== */
 export const getOrders = (params = {}) => {
   const qs = new URLSearchParams(params).toString();

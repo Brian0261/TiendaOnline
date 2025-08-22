@@ -401,8 +401,11 @@ main > section {
 /* ================= ADMIN – FIX LAYOUT (override final) ================= */
 
 /* Fuerza layout horizontal: sidebar a la izquierda, contenido a la derecha */
-html, body { height: 100%; }
-body.d-flex{
+html,
+body {
+  height: 100%;
+}
+body.d-flex {
   display: flex !important;
   flex-direction: row !important;
   align-items: stretch;
@@ -410,7 +413,7 @@ body.d-flex{
 }
 
 /* Sidebar fijo y desplazable si crece */
-#sidebar{
+#sidebar {
   position: sticky;
   top: 0;
   flex: 0 0 240px !important;
@@ -421,32 +424,32 @@ body.d-flex{
 }
 
 /* Panel derecho ocupa toda la altura, sin scroll de página */
-main{
+main {
   height: 100vh;
-  min-width: 0;                 /* evita desbordes de tablas anchas */
+  min-width: 0; /* evita desbordes de tablas anchas */
   display: flex;
   flex-direction: column;
-  overflow: hidden;             /* el scroll vive en hijos internos */
-  padding: 16px 24px !important;/* compáctalo y quita “franja” alta */
+  overflow: hidden; /* el scroll vive en hijos internos */
+  padding: 16px 24px !important; /* compáctalo y quita “franja” alta */
 }
 
 /* Cada sección se comporta como contenedor de altura completa */
-main > section{
+main > section {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  min-height: 0;                /* clave para permitir overflow del hijo */
+  min-height: 0; /* clave para permitir overflow del hijo */
 }
 
 /* Área que realmente scrollea dentro de cada sección */
-.content-wrap{
+.content-wrap {
   flex: 1 1 auto;
   min-height: 0;
-  overflow: auto;               /* <— aquí vive el scroll del contenido */
+  overflow: auto; /* <— aquí vive el scroll del contenido */
 }
 
 /* Encabezados pegajosos opcionales dentro de una sección */
-.section-header{
+.section-header {
   flex: 0 0 auto;
   position: sticky;
   top: 0;
@@ -457,25 +460,67 @@ main > section{
 }
 
 /* Productos: hace que la pestaña activa y su tabla llenen la altura */
-#section-products .tab-content{
+#section-products .tab-content {
   display: flex;
   flex-direction: column;
   min-height: 0;
 }
-#section-products .tab-pane.active{
+#section-products .tab-pane.active {
   display: flex !important;
   flex-direction: column;
   min-height: 0;
 }
-#section-products .table-responsive{
+#section-products .table-responsive {
   flex: 1 1 auto;
   min-height: 0;
-  overflow: auto;               /* scroll interno de la tabla */
+  overflow: auto; /* scroll interno de la tabla */
 }
 
 /* Historial de pedidos: tabla que aprovecha toda la altura */
-#section-orders .table-responsive{
+#section-orders .table-responsive {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
+}
+
+/* ===== Dashboard (vistas anuales) ===== */
+.dash-header {
+  margin-bottom: 0.25rem;
+}
+.pill-year {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: #f1f3f5;
+  border: 1px solid #e9ecef;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #0f172a;
+}
+
+/* Tablas mini para cards laterales */
+.table-dashboard-sm thead th {
+  font-size: 0.8rem;
+  color: #475569;
+  background: #f8f9fa;
+}
+.table-dashboard-sm td,
+.table-dashboard-sm th {
+  padding: 0.35rem 0.5rem;
+  vertical-align: middle;
+  font-size: 0.92rem;
+}
+
+/* Mensaje de canvas sin datos (solo UI) */
+.chart-empty {
+  margin-top: 0.35rem;
+  font-style: italic;
+}
+
+/* Mejora visual de títulos en cards del dashboard */
+#section-dashboard .card-title {
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
 }

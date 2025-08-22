@@ -1,20 +1,22 @@
 // backend/routes/reportRoutes.js
-// Rutas REST para reportes de ventas (dashboard, exportar Excel/PDF)
-
 const express = require("express");
 const router = express.Router();
-const { getSalesReport, exportSalesReportExcel, exportSalesReportPDF } = require("../controllers/reportController");
-
-// Solo usuarios administradores pueden ver y exportar reportes
+const {
+  getSalesReport,
+  exportSalesReportExcel,
+  exportSalesReportPDF,
+  getDashboardOverview, // 👈 nuevo
+} = require("../controllers/reportController");
 const { authenticateToken, authorizeRoles } = require("../middlewares/authMiddleware");
 
-// Dashboard de ventas (JSON)
+// Dashboard anual
+router.get("/dashboard", authenticateToken, authorizeRoles("ADMINISTRADOR"), getDashboardOverview);
+
+// Reporte por rango
 router.get("/sales", authenticateToken, authorizeRoles("ADMINISTRADOR"), getSalesReport);
 
-// Exportar a Excel
+// Exportaciones
 router.get("/sales/export/excel", authenticateToken, authorizeRoles("ADMINISTRADOR"), exportSalesReportExcel);
-
-// Exportar a PDF
-router.get("/sales/export/pdf", authenticateToken, authorizeRoles("ADMINISTRADOR"), exportSalesReportPDF);
+router.get("/sales/export/pdf",   authenticateToken, authorizeRoles("ADMINISTRADOR"), exportSalesReportPDF);
 
 module.exports = router;
