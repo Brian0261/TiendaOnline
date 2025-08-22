@@ -330,6 +330,31 @@ function setupReportEvents() {
 
   let ultimoReporte = null;
 
+  // --- NUEVO: mostrar/ocultar rango personalizado ---
+  const hoyStr = () => new Date().toISOString().slice(0, 10);
+  function toggleCustomRange() {
+    const isCustom = rango.value === "personalizado";
+    [fechaInicio, fechaFin].forEach(el => el.classList.toggle("d-none", !isCustom));
+
+    // límites y valores por defecto
+    fechaInicio.max = hoyStr();
+    fechaFin.max = hoyStr();
+
+    if (isCustom && (!fechaInicio.value || !fechaFin.value)) {
+      const end = new Date();
+      const start = new Date();
+      start.setDate(end.getDate() - 7); // últimos 7 días por defecto
+      fechaInicio.value = start.toISOString().slice(0, 10);
+      fechaFin.value = end.toISOString().slice(0, 10);
+    }
+    if (!isCustom) {
+      fechaInicio.value = "";
+      fechaFin.value = "";
+    }
+  }
+  rango.addEventListener("change", toggleCustomRange);
+  toggleCustomRange(); // estado inicial correcto
+
   btnGenerar.addEventListener("click", async () => {
     let f1, f2;
     const hoy = new Date();

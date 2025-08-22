@@ -294,7 +294,7 @@ export const getDeliveryConfig = () => api.get("/config/delivery");
 
 /* ========== Reporte de ventas (ADMIN) ========== */
 export const getSalesReport = (params = {}) => {
-  const mapped = { ...params };
+  const mapped = { ...params }; // << antes tenía { .params }
   if (params.startDate) mapped.fechaInicio = params.startDate;
   if (params.endDate) mapped.fechaFin = params.endDate;
   delete mapped.startDate;
