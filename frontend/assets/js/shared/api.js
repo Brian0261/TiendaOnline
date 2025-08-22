@@ -227,8 +227,16 @@ const normalizeProduct = (p = {}) => {
     description: p.description ?? p.descripcion ?? "",
     price: Number(p.price ?? p.precio ?? 0),
     image: fixImagePath(rawImg),
+
+    // ids existentes
     categoryId: p.categoryId ?? p.id_categoria ?? null,
     brandId: p.brandId ?? p.id_marca ?? null,
+
+    // 👇 nuevos (para la tabla)
+    stock: Number(p.stock ?? p.cantidad ?? p.cantidad_disponible ?? 0),
+    categoryName: p.categoryName ?? p.categoria ?? p.nombre_categoria ?? "",
+    brandName: p.brandName ?? p.marca ?? p.nombre_marca ?? "",
+
     active: p.active ?? p.activo ?? 1,
   };
 };

@@ -257,13 +257,17 @@ exports.getAllProducts = async (req, res) => {
         ISNULL(s.stock, 0) AS stock,
         p.activo,
         p.id_categoria,
-        p.id_marca
+        c.nombre_categoria AS categoryName,
+        p.id_marca,
+        m.nombre_marca     AS brandName
       FROM PRODUCTO p
       LEFT JOIN (
         SELECT id_producto, SUM(cantidad_disponible) AS stock
         FROM INVENTARIO
         GROUP BY id_producto
       ) s ON s.id_producto = p.id_producto
+      LEFT JOIN CATEGORIA c ON c.id_categoria = p.id_categoria
+      LEFT JOIN MARCA     m ON m.id_marca     = p.id_marca
       ${whereSql}
       ORDER BY p.id_producto DESC
       OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY;
@@ -306,13 +310,16 @@ exports.getProductById = async (req, res) => {
         p.imagen,
         (
           SELECT ISNULL(SUM(i.cantidad_disponible), 0)
-          FROM INVENTARIO i
-          WHERE i.id_producto = p.id_producto
+          FROM INVENTARIO i WHERE i.id_producto = p.id_producto
         ) AS stock,
         p.activo,
         p.id_categoria,
-        p.id_marca
+        c.nombre_categoria AS categoryName,
+        p.id_marca,
+        m.nombre_marca     AS brandName
       FROM PRODUCTO p
+      LEFT JOIN CATEGORIA c ON c.id_categoria = p.id_categoria
+      LEFT JOIN MARCA     m ON m.id_marca     = p.id_marca
       WHERE p.id_producto = @id AND p.activo = 1;
     `);
 
