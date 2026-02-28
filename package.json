@@ -4,6 +4,8 @@
   "version": "1.0.0",
   "description": "Monorepo TiendaOnline (API + frontend).",
   "scripts": {
+    "build": "cd apps/api && npm run build",
+    "start": "cd apps/api && npm start",
     "docker:up": "docker compose up -d --build",
     "docker:down": "docker compose down",
     "docker:ps": "docker compose ps",
