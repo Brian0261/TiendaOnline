@@ -1,0 +1,8 @@
+﻿/* assets/css/product.css */
+#product-detail img {
+  object-fit: contain;
+  background: transparent;
+}
+#product-detail #p-desc {
+  white-space: pre-line;
+}

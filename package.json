@@ -1,0 +1,16 @@
+{
+  "name": "tiendaonline-monorepo",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Monorepo TiendaOnline (API + frontend).",
+  "scripts": {
+    "docker:up": "docker compose up -d --build",
+    "docker:down": "docker compose down",
+    "docker:ps": "docker compose ps",
+    "api:install": "cd apps/api && npm install",
+    "api:dev": "cd apps/api && npm run dev",
+    "api:start": "cd apps/api && npm start",
+    "api:test": "cd apps/api && npm test",
+    "api:test:bdd": "cd apps/api && npm run test:bdd"
+  }
+}

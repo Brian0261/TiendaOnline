@@ -9,7 +9,7 @@ on:
       - ".github/workflows/build-push.yml"
 
 env:
-  IMAGE_NAME: bodega-api
+  IMAGE_NAME: tienda-api
   IMAGE_TAG: stg
 
 jobs:

@@ -1,0 +1,161 @@
+/* Tema de botones (alineado a la paleta existente del proyecto).
+   Se importa DESPUÉS de Bootstrap para que los overrides apliquen. */
+
+:root {
+  /* Variables internas (con fallback) para no depender del orden de carga. */
+  --mmx-primary: var(--primary-color, #dc3545);
+  --mmx-primary-hover: var(--primary-color-hover, #bb2d3b);
+  --mmx-primary-border-hover: var(--primary-color-border-hover, #bb2d3b);
+
+  --mmx-danger: var(--danger-color, #b02a37);
+  --mmx-danger-hover: var(--danger-color-hover, #842029);
+  --mmx-danger-border-hover: var(--danger-color-border-hover, #842029);
+
+  --mmx-secondary: var(--secondary-color, #343a40);
+  --mmx-secondary-hover: var(--secondary-color-hover, #23272b);
+
+  /* Éxito (p.ej. Pagar): mantenemos verde Bootstrap, pero con reglas consistentes */
+  --mmx-success: var(--bs-success, #198754);
+
+  /* Acento/Warning: alineado al amarillo del proyecto */
+  --mmx-warning: var(--accent-color, var(--bs-warning, #ffc107));
+  --mmx-on-warning: var(--dark-color, #212529);
+}
+
+/* Primario (brand) */
+.btn.btn-primary,
+.btn.btn-primary-custom {
+  background-color: var(--mmx-primary) !important;
+  border-color: var(--mmx-primary) !important;
+  color: #fff !important;
+}
+
+.btn.btn-primary:hover,
+.btn.btn-primary:focus,
+.btn.btn-primary-custom:hover,
+.btn.btn-primary-custom:focus {
+  background-color: var(--mmx-primary-hover) !important;
+  border-color: var(--mmx-primary-border-hover) !important;
+  color: #fff !important;
+}
+
+/* Outline primario */
+.btn.btn-outline-primary {
+  color: var(--mmx-primary) !important;
+  border-color: var(--mmx-primary) !important;
+}
+
+.btn.btn-outline-primary:hover,
+.btn.btn-outline-primary:focus {
+  background-color: var(--mmx-primary) !important;
+  border-color: var(--mmx-primary) !important;
+  color: #fff !important;
+}
+
+/* Secundario (gris oscuro del proyecto) */
+.btn.btn-secondary {
+  background-color: var(--mmx-secondary) !important;
+  border-color: var(--mmx-secondary) !important;
+  color: #fff !important;
+}
+
+.btn.btn-secondary:hover,
+.btn.btn-secondary:focus {
+  background-color: var(--mmx-secondary-hover) !important;
+  border-color: var(--mmx-secondary-hover) !important;
+  color: #fff !important;
+}
+
+.btn.btn-outline-secondary {
+  color: var(--mmx-secondary) !important;
+  border-color: var(--mmx-secondary) !important;
+}
+
+.btn.btn-outline-secondary:hover,
+.btn.btn-outline-secondary:focus {
+  background-color: var(--mmx-secondary) !important;
+  border-color: var(--mmx-secondary) !important;
+  color: #fff !important;
+}
+
+/* Peligro: lo alineamos al primario (tu paleta ya usa rojo como acento principal). */
+.btn.btn-danger {
+  background-color: var(--mmx-danger) !important;
+  border-color: var(--mmx-danger) !important;
+  color: #fff !important;
+}
+
+.btn.btn-danger:hover,
+.btn.btn-danger:focus {
+  background-color: var(--mmx-danger-hover) !important;
+  border-color: var(--mmx-danger-border-hover) !important;
+  color: #fff !important;
+}
+
+.btn.btn-outline-danger {
+  color: var(--mmx-danger) !important;
+  border-color: var(--mmx-danger) !important;
+}
+
+.btn.btn-outline-danger:hover,
+.btn.btn-outline-danger:focus {
+  background-color: var(--mmx-danger) !important;
+  border-color: var(--mmx-danger) !important;
+  color: #fff !important;
+}
+
+/* Éxito (p.ej. Pagar) */
+.btn.btn-success {
+  background-color: var(--mmx-success) !important;
+  border-color: var(--mmx-success) !important;
+  color: #fff !important;
+}
+
+.btn.btn-success:hover,
+.btn.btn-success:focus {
+  background-color: var(--mmx-success) !important;
+  border-color: var(--mmx-success) !important;
+  color: #fff !important;
+  filter: brightness(0.95);
+}
+
+.btn.btn-outline-success {
+  color: var(--mmx-success) !important;
+  border-color: var(--mmx-success) !important;
+}
+
+.btn.btn-outline-success:hover,
+.btn.btn-outline-success:focus {
+  background-color: var(--mmx-success) !important;
+  border-color: var(--mmx-success) !important;
+  color: #fff !important;
+  filter: brightness(0.95);
+}
+
+/* Warning / Acento */
+.btn.btn-warning {
+  background-color: var(--mmx-warning) !important;
+  border-color: var(--mmx-warning) !important;
+  color: var(--mmx-on-warning) !important;
+}
+
+.btn.btn-warning:hover,
+.btn.btn-warning:focus {
+  background-color: var(--mmx-warning) !important;
+  border-color: var(--mmx-warning) !important;
+  color: var(--mmx-on-warning) !important;
+  filter: brightness(0.95);
+}
+
+.btn.btn-outline-warning {
+  color: var(--mmx-on-warning) !important;
+  border-color: var(--mmx-warning) !important;
+}
+
+.btn.btn-outline-warning:hover,
+.btn.btn-outline-warning:focus {
+  background-color: var(--mmx-warning) !important;
+  border-color: var(--mmx-warning) !important;
+  color: var(--mmx-on-warning) !important;
+  filter: brightness(0.95);
+}

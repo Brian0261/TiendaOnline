@@ -1,0 +1,559 @@
+/* ======  PALETA ====== */
+:root {
+  --primary-color: #dc3545;
+  --primary-color-hover: #bb2d3b;
+  --primary-color-border-hover: #bb2d3b;
+  --primary-rgb: 220, 53, 69;
+
+  /* Acciones destructivas (separadas del primario de marca) */
+  --danger-color: #b02a37;
+  --danger-color-hover: #842029;
+  --danger-color-border-hover: #842029;
+
+  --secondary-color: #343a40;
+  --secondary-color-hover: #23272b;
+  --secondary-rgb: 52, 58, 64;
+
+  --light-color: #f8f9fa;
+  --dark-color: #212529;
+  --accent-color: #ffc107;
+}
+
+/* ======  BASE ====== */
+html,
+body {
+  height: 100%;
+}
+body {
+  margin: 0;
+  background-color: var(--light-color);
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* El body en admin.html tiene .d-flex: estíralo a toda la altura */
+body.d-flex {
+  min-height: 100vh;
+  align-items: stretch;
+}
+
+/* ====== SIDEBAR (fijo) ====== */
+#sidebar {
+  flex: 0 0 240px; /* ancho fijo coherente con tu diseño */
+  min-height: 100vh;
+  height: 100vh; /* ocupa todo el alto visible */
+  position: sticky;
+  top: 0;
+  overflow: auto; /* si crece, hace scroll dentro */
+  background: linear-gradient(160deg, var(--secondary-color), #495057);
+  color: #fff;
+}
+#sidebar .menu-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  opacity: 0.55;
+  letter-spacing: 1px;
+  margin: 0.75rem 0 0.35rem;
+}
+#sidebar .nav-link {
+  width: 100%;
+  text-align: left;
+  border-radius: 0.5rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 0.25rem;
+  font-size: 0.95rem;
+}
+#sidebar .nav-link i {
+  width: 18px;
+  text-align: center;
+  margin-right: 0.5rem;
+}
+#sidebar .nav-link:hover,
+#sidebar .nav-link.active {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+#sidebar .logout-btn {
+  background: var(--primary-color);
+  border: 1px solid var(--primary-color);
+  color: #fff;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.7rem;
+  min-height: 34px;
+  font-size: 0.9rem;
+  width: 100%;
+  transition: background-color 0.2s, border-color 0.2s, filter 0.2s;
+}
+#sidebar .logout-btn:hover,
+#sidebar .logout-btn:focus {
+  background: var(--primary-color-hover);
+  border-color: var(--primary-color-border-hover);
+  color: #fff;
+  filter: brightness(1.02);
+}
+
+/* ====== PANEL DERECHO (contenido) ====== */
+/* IMPORTANTE: aquí vive el scroll principal para no “comerse” las secciones */
+body.d-flex main {
+  flex: 1 1 auto; /* ocupa todo lo restante */
+  min-height: 100vh;
+  height: auto;
+  padding: 24px 32px 12px 32px !important;
+  background: #f8f9fa;
+  overflow: auto; /* <<< scroll del contenido */
+}
+
+/* Cada sección simplemente bloque; no la hagamos flex para evitar colapsos */
+body.d-flex main > section {
+  display: block;
+}
+
+/* Si usas contenedores Bootstrap, no hace falta overflow interno;
+   pero dejamos una clase opcional si quisieras envolver contenido
+   que sí requiera scroll independiente (tablas largas, etc.)      */
+.content-wrap {
+  overflow: auto;
+  min-height: 0;
+}
+
+/* ====== CARDS / TABLAS ====== */
+.card {
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transition: none;
+}
+.card:hover {
+  transform: none;
+}
+.table thead {
+  background-color: var(--secondary-color);
+  color: #fff;
+}
+.table td,
+.table th {
+  vertical-align: middle;
+}
+#productsTable {
+  width: 100%;
+  table-layout: fixed;
+}
+#productsTable thead th:nth-child(1),
+#productsTable tbody td:nth-child(1) {
+  width: 90px;
+  min-width: 90px;
+}
+#productsTable thead th:nth-child(2),
+#productsTable tbody td:nth-child(2) {
+  width: 180px;
+  min-width: 180px;
+}
+#productsTable thead th:nth-child(3),
+#productsTable tbody td:nth-child(3) {
+  width: 260px;
+  min-width: 260px;
+}
+#productsTable thead th:nth-child(4),
+#productsTable tbody td:nth-child(4) {
+  width: 110px;
+  min-width: 110px;
+}
+#productsTable thead th:nth-child(5),
+#productsTable tbody td:nth-child(5) {
+  width: 90px;
+  min-width: 90px;
+}
+#productsTable thead th:nth-child(6),
+#productsTable tbody td:nth-child(6) {
+  width: 150px;
+  min-width: 150px;
+}
+#productsTable thead th:nth-child(7),
+#productsTable tbody td:nth-child(7) {
+  width: 150px;
+  min-width: 150px;
+}
+#productsTable thead th:nth-child(8),
+#productsTable tbody td:nth-child(8) {
+  width: 110px;
+  min-width: 110px;
+  text-align: center;
+}
+#productsTable td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#productsTable tr.table-secondary {
+  background-color: var(--light-color) !important;
+}
+.table .btn-action {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+.btn-edit {
+  color: #0d6efd;
+}
+.btn-delete {
+  color: #dc3545;
+}
+
+/* ====== HISTORIAL DE PEDIDOS ====== */
+#ordersTable {
+  font-size: 0.95rem;
+}
+#ordersTable td {
+  vertical-align: top;
+  word-break: break-word;
+}
+#ordersTable .badge {
+  font-size: 0.8em;
+  margin-left: 4px;
+}
+
+/* ====== KPI & Reportes compactos ====== */
+#section-reports {
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+#reporteKPIs .card {
+  min-height: 100px;
+  padding: 12px 0;
+}
+#reporteKPIs .card-body {
+  padding: 16px 10px 10px 10px;
+}
+#reporteKPIs .h4,
+#reporteKPIs .h5,
+#reporteKPIs .h6 {
+  font-size: 1.2rem;
+}
+#reporteKPIs .card-title {
+  font-size: 1rem;
+}
+#reporteKPIs i {
+  font-size: 2.2rem;
+}
+#reporteGraficosYTablas {
+  margin-top: 0;
+}
+#reporteGraficosYTablas .card {
+  min-height: 320px;
+  padding: 10px 0;
+}
+#reporteGraficosYTablas .card-title {
+  font-size: 1rem;
+  margin-bottom: 6px;
+}
+#chartTopProductos,
+#chartMetodosPago {
+  max-height: 170px !important;
+  height: 170px !important;
+}
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  align-items: stretch;
+}
+.kpi-card.compact {
+  padding: 0.65rem 0.8rem;
+  border-radius: 0.75rem;
+  background: #fff;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: none;
+}
+.kpi-card.compact:hover {
+  transform: none;
+}
+.kpi-card .kpi-label {
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: #64748b;
+  text-transform: uppercase;
+  margin-bottom: 0.15rem;
+}
+.kpi-card .kpi-value {
+  font-weight: 500;
+  font-size: 1.2rem;
+  line-height: 1.05;
+  letter-spacing: 0.02em;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums lining-nums;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.kpi-card .kpi-delta {
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-top: 0.25rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: #f1f3f5;
+}
+.kpi-card.compact .kpi-icon {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  font-size: 1.15rem;
+  opacity: 0.25;
+}
+@media (max-width: 576px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 992px) {
+  .kpi-card .kpi-value {
+    font-size: 1.3rem;
+  }
+}
+
+/* ====== RESPONSIVE ====== */
+@media (max-width: 1100px) {
+  body.d-flex main {
+    padding: 18px 2vw 8px 2vw !important;
+  }
+  #reporteGraficosYTablas .card {
+    min-height: 270px;
+  }
+  #chartTopProductos,
+  #chartMetodosPago {
+    max-height: 135px !important;
+    height: 135px !important;
+  }
+}
+@media (max-width: 800px) {
+  #reporteGraficosYTablas {
+    flex-direction: column;
+  }
+  #reporteGraficosYTablas .col-lg-6 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+  #chartTopProductos,
+  #chartMetodosPago {
+    max-height: 120px !important;
+    height: 120px !important;
+  }
+}
+@media (max-width: 768px) {
+  #sidebar {
+    flex: 0 0 200px;
+  }
+  #sidebar .nav-link {
+    font-size: 0.9rem;
+  }
+}
+
+/* ====== ADMIN LAYOUT – Overrides finales ====== */
+
+/* base */
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+/* Body del admin usa .d-flex (fila: sidebar + contenido) */
+body.d-flex {
+  min-height: 100vh;
+  align-items: stretch;
+}
+
+/* Sidebar fijo y desplazable si crece */
+#sidebar {
+  flex: 0 0 240px; /* ancho fijo */
+  position: sticky;
+  top: 0; /* el admin no tiene navbar fija */
+  height: 100vh; /* ocupa todo el alto visible */
+  overflow: auto; /* scroll sólo en el sidebar si hace falta */
+}
+
+/* PANEL DERECHO (contenido). 
+   Importante: aquí vive el scroll principal del dashboard. */
+body.d-flex main {
+  flex: 1 1 auto; /* ocupa el espacio restante */
+  height: auto; /* NO forzar 100vh para evitar “bloque gris” */
+  min-height: 100vh;
+  overflow: auto; /* el scroll es del panel derecho */
+  padding: 24px 32px 12px 32px !important;
+  background: #f8f9fa;
+}
+
+/* Cada sección del admin es un bloque normal (sin flex padre) */
+body.d-flex main > section {
+  display: block;
+}
+
+/* Si envuelves contenido en .content-wrap, también podrá scrollear dentro si es muy largo */
+.content-wrap {
+  overflow: auto;
+  min-height: 0;
+}
+
+/* Opcional: encabezados pegajosos dentro de cada sección */
+.section-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+  padding: 12px 0;
+}
+
+/* ================= ADMIN – FIX LAYOUT (override final) ================= */
+
+/* Fuerza layout horizontal: sidebar a la izquierda, contenido a la derecha */
+html,
+body {
+  height: 100%;
+}
+body.d-flex {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch;
+  min-height: 100vh;
+}
+
+/* Sidebar fijo y desplazable si crece */
+#sidebar {
+  position: sticky;
+  top: 0;
+  flex: 0 0 240px !important;
+  width: 240px !important;
+  max-width: 240px !important;
+  height: 100vh;
+  overflow: auto;
+}
+
+/* Panel derecho ocupa toda la altura, sin scroll de página */
+body.d-flex main {
+  height: 100vh;
+  min-width: 0; /* evita desbordes de tablas anchas */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* el scroll vive en hijos internos */
+  padding: 16px 24px !important; /* compáctalo y quita “franja” alta */
+}
+
+/* Cada sección se comporta como contenedor de altura completa */
+body.d-flex main > section {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* clave para permitir overflow del hijo */
+}
+
+/* Área que realmente scrollea dentro de cada sección */
+.content-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto; /* <— aquí vive el scroll del contenido */
+}
+
+/* Encabezados pegajosos opcionales dentro de una sección */
+.section-header {
+  flex: 0 0 auto;
+  position: sticky;
+  top: 0;
+  background: #f8f9fa;
+  z-index: 2;
+  border-bottom: 1px solid #eee;
+  padding: 12px 0;
+}
+
+/* Productos: hace que la pestaña activa y su tabla llenen la altura */
+#section-products .tab-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+#section-products .tab-pane.active {
+  display: flex !important;
+  flex-direction: column;
+  min-height: 0;
+}
+#section-products .table-responsive {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto; /* scroll interno de la tabla */
+}
+
+/* Historial de pedidos: tabla que aprovecha toda la altura */
+#section-orders .table-responsive {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* ===== Dashboard (vistas anuales) ===== */
+.dash-header {
+  margin-bottom: 0.25rem;
+}
+.pill-year {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: #f1f3f5;
+  border: 1px solid #e9ecef;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #0f172a;
+}
+
+/* Tablas mini para cards laterales */
+.table-dashboard-sm thead th {
+  font-size: 0.8rem;
+  color: #475569;
+  background: #f8f9fa;
+}
+.table-dashboard-sm td,
+.table-dashboard-sm th {
+  padding: 0.35rem 0.5rem;
+  vertical-align: middle;
+  font-size: 0.92rem;
+}
+
+/* Mensaje de canvas sin datos (solo UI) */
+.chart-empty {
+  margin-top: 0.35rem;
+  font-style: italic;
+}
+
+/* Mejora visual de títulos en cards del dashboard */
+#section-dashboard .card-title {
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+/* ===== React FIX: dashboard a pantalla completa =====
+   En React, el layout horizontal lo controla el contenedor `.d-flex` del dashboard.
+   No debemos convertir el <body> en flex-row, porque encajona `#root` y deja un gran espacio en blanco.
+*/
+body.d-flex {
+  display: block !important;
+}
+
+body.d-flex #root,
+body.d-flex #root > .d-flex {
+  width: 100%;
+}
+
+body.d-flex #root > .d-flex > main {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  min-height: 100vh;
+  overflow: auto;
+}

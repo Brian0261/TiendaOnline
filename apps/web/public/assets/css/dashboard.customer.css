@@ -1,0 +1,136 @@
+/* ===== Dashboard Cliente (solo apariencia) ===== */
+
+/* Contenedor y cabecera */
+.dashboard-container {
+  max-width: 1080px;
+}
+.dash-header h1 {
+  font-weight: 800;
+  letter-spacing: -0.2px;
+}
+.dash-subtitle {
+  color: #6c757d;
+  margin-top: -4px;
+}
+
+/* Tabs superiores */
+.nav-dashboard {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+  padding: 0.5rem 1rem;
+  gap: 1.25rem;
+  display: flex;
+  align-items: center;
+  border: 1px solid #edf1f4;
+}
+.nav-dashboard .nav-link {
+  color: #2b2f33;
+  font-weight: 600;
+  padding: 0.5rem 0.25rem;
+  border-bottom: 2.5px solid transparent;
+  transition: color 0.15s ease, border-bottom-color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.nav-dashboard .nav-link i {
+  color: #6c757d;
+}
+.nav-dashboard .nav-link:hover {
+  color: #0d6efd;
+  border-bottom-color: rgba(13, 110, 253, 0.25);
+}
+.nav-dashboard .nav-link.active {
+  color: #0d6efd;
+  border-bottom-color: #0d6efd;
+}
+.nav-dashboard .nav-link.text-danger:hover {
+  color: #dc3545 !important;
+  border-bottom-color: rgba(220, 53, 69, 0.25);
+}
+@media (max-width: 700px) {
+  .nav-dashboard {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+  }
+}
+
+/* Secciones en cards */
+.card-soft {
+  border: 1px solid #edf1f4;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(33, 37, 41, 0.04);
+}
+.card-soft .card-title {
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+/* Formulario de perfil */
+#profile-form .form-label {
+  font-weight: 600;
+  color: #495057;
+}
+#profile-form .form-control {
+  border-radius: 10px;
+}
+#profile-form .btn-primary {
+  padding: 0.55rem 1rem;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+/* Tabla de pedidos */
+.orders-table thead th {
+  color: #6c757d;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.4px;
+  border-bottom: 2px solid #e9ecef;
+}
+.orders-table tbody td {
+  vertical-align: middle;
+}
+.orders-table .products-col {
+  line-height: 1.25rem;
+  color: #495057;
+}
+
+/* Badges de estado (presentación) */
+.status-badge {
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+.status-success {
+  background: #d1e7dd;
+  color: #0f5132;
+}
+.status-warning {
+  background: #fff3cd;
+  color: #664d03;
+}
+.status-info {
+  background: #cff4fc;
+  color: #055160;
+}
+.status-primary {
+  background: #cfe2ff;
+  color: #084298;
+}
+.status-secondary {
+  background: #e2e3e5;
+  color: #41464b;
+}
+.status-danger {
+  background: #f8d7da;
+  color: #842029;
+}
+
+/* Helpers */
+.section-title {
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}

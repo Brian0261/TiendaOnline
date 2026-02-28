@@ -1,0 +1,27 @@
+import { useContext } from "react";
+import type { AuthUser } from "./types";
+import { AuthContext } from "./context";
+
+type AuthState = {
+  user: AuthUser | null;
+  token: string | null;
+  isAuthenticated: boolean;
+  login: (input: { email: string; password: string }) => Promise<AuthUser>;
+  register: (input: {
+    nombre: string;
+    apellido: string;
+    email: string;
+    password: string;
+    telefono?: string;
+    direccion_principal?: string;
+    website?: string;
+    form_started_at?: number;
+  }) => Promise<{ message?: string; requiresEmailVerification?: boolean }>;
+  logout: () => void;
+};
+
+export function useAuth(): AuthState {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth debe usarse dentro de <AuthProvider>");
+  return ctx;
+}

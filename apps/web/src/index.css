@@ -1,0 +1,3 @@
+/* Archivo del template de Vite.
+   Evitamos estilos globales (centrado, colores, etc.) porque el diseño viene de Bootstrap + CSS legacy.
+*/
