@@ -49,7 +49,10 @@ type GoogleMapsApi = {
       trigger: (instance: unknown, eventName: string) => void;
     };
     places: {
-      Autocomplete: new (input: HTMLInputElement, opts: unknown) => {
+      Autocomplete: new (
+        input: HTMLInputElement,
+        opts: unknown,
+      ) => {
         addListener: (eventName: string, handler: () => void) => void;
         getPlace: () => unknown;
       };
@@ -103,6 +106,24 @@ export function CheckoutPage() {
     autocomplete?: { addListener: (e: string, h: () => void) => void; getPlace: () => unknown };
   }>({});
   const mapsLoadingRef = useRef<Promise<void> | null>(null);
+
+  async function reverseGeocodeFromCoords(lat: number, lng: number): Promise<{ address: string | null; status: string }> {
+    const state = mapStateRef.current;
+    if (!state?.geocoder) return { address: null, status: "NO_GEOCODER" };
+
+    return new Promise(resolve => {
+      state.geocoder?.geocode({ location: { lat, lng } }, (results, status: string) => {
+        if (status === "OK" && Array.isArray(results) && results.length > 0) {
+          const first = results[0] as { formatted_address?: unknown };
+          if (typeof first.formatted_address === "string" && first.formatted_address.trim()) {
+            resolve({ address: first.formatted_address, status });
+            return;
+          }
+        }
+        resolve({ address: null, status });
+      });
+    });
+  }
 
   const { data: deliveryCfg } = useQuery({
     queryKey: ["config", "delivery"],
@@ -257,12 +278,26 @@ export function CheckoutPage() {
       state.marker.addListener("dragend", ev => {
         const drag = ev as { latLng?: { lat: () => number; lng: () => number } };
         if (!state.geocoder || !drag.latLng) return;
-        state.geocoder.geocode({ location: { lat: drag.latLng.lat(), lng: drag.latLng.lng() } }, (results, status: string) => {
-          if (status !== "OK") return;
-          if (!Array.isArray(results) || results.length === 0) return;
-          const first = results[0] as { formatted_address?: unknown };
-          if (typeof first.formatted_address === "string") setDireccion(first.formatted_address);
-        });
+
+        const lat = drag.latLng.lat();
+        const lng = drag.latLng.lng();
+
+        void (async () => {
+          const geocoded = await reverseGeocodeFromCoords(lat, lng);
+          if (geocoded.address) {
+            setDireccion(geocoded.address);
+            return;
+          }
+
+          setDireccion(`${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+
+          if (geocoded.status === "REQUEST_DENIED") {
+            setAlert({
+              variant: "warning",
+              text: "Google rechazó la geocodificación del pin. Habilita Geocoding API y valida restricciones HTTP referrer en Google Cloud.",
+            });
+          }
+        })();
       });
     } else {
       (state.map as { setCenter: (c: { lat: number; lng: number }) => void }).setCenter(center);
@@ -457,11 +492,20 @@ export function CheckoutPage() {
                                         const latLng = new g.maps.LatLng(latitude, longitude);
                                         (state.map as { setCenter: (l: unknown) => void }).setCenter(latLng);
                                         state.marker.setPosition(latLng);
+
+                                        void (async () => {
+                                          const geocoded = await reverseGeocodeFromCoords(latitude, longitude);
+                                          if (geocoded.address) {
+                                            setDireccion(geocoded.address);
+                                          } else {
+                                            setDireccion(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+                                          }
+                                        })();
                                       },
                                       () => {
                                         setAlert({ variant: "warning", text: "No se pudo obtener tu ubicación." });
                                       },
-                                      { enableHighAccuracy: true, timeout: 10000 }
+                                      { enableHighAccuracy: true, timeout: 10000 },
                                     );
                                   } catch {
                                     // ignore
