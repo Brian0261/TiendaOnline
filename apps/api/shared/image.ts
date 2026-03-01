@@ -1,19 +1,32 @@
-import path from "path";
+export const PLACEHOLDER_PRODUCT = "/assets/images/placeholder-product.png";
 
-type SharedImageModule = {
-  PLACEHOLDER_PRODUCT: string;
-  normalizeImageUrl: (raw: unknown) => string;
-};
+export function normalizeImageUrl(raw: unknown): string {
+  if (!raw) return PLACEHOLDER_PRODUCT;
+  if (typeof raw !== "string") return PLACEHOLDER_PRODUCT;
 
-function loadSharedImageModule(): SharedImageModule {
-  const sharedPath = path.join(process.cwd(), "..", "..", "packages", "shared", "src", "image.js");
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  return require(sharedPath) as SharedImageModule;
+  const trimmed = raw.trim();
+  if (!trimmed) return PLACEHOLDER_PRODUCT;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+
+  if (/^\/?api\/uploads\//i.test(trimmed)) {
+    return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+  }
+
+  if (/^\/?assets\/images\//i.test(trimmed)) {
+    return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+  }
+
+  let cleaned = trimmed
+    .replace(/^\/?views\/products\//, "")
+    .replace(/^\/?assets\//, "assets/")
+    .replace(/^\/+/, "");
+
+  if (/^assets\/images\//.test(cleaned)) {
+    return `/${cleaned}`;
+  }
+
+  cleaned = cleaned.replace(/^images\//, "").replace(/^products\//, "");
+  return `/api/uploads/images/${cleaned}`;
 }
-
-const mod = loadSharedImageModule();
-
-export const PLACEHOLDER_PRODUCT = mod.PLACEHOLDER_PRODUCT;
-export const normalizeImageUrl = mod.normalizeImageUrl;
 
 export {};
