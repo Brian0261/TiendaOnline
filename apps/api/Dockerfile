@@ -1,18 +1,17 @@
 # Imagen pequeña y moderna de Node
 FROM node:20-alpine
 
-# Carpeta de trabajo (monorepo)
-WORKDIR /repo/apps/api
+# Carpeta de trabajo del servicio API
+WORKDIR /app
 
 # Copiamos manifiestos primero para aprovechar la cache
-COPY apps/api/package*.json ./
+COPY package*.json ./
 
-# Instala dependencias
+# Instala dependencias (incluye dev para compilar TypeScript)
 RUN npm install
 
-# Copia el backend y el paquete compartido usado en runtime
-COPY apps/api/ /repo/apps/api/
-COPY packages/shared/ /repo/packages/shared/
+# Copia el código del backend
+COPY . .
 
 # Compila TypeScript
 RUN npm run build
