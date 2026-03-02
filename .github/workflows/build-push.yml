@@ -86,15 +86,3 @@ jobs:
       - name: Smoke test API Railway
         run: |
           curl -fsS "https://tiendaonline-production-5b3b.up.railway.app/health" > /dev/null
-
-  trigger-railway:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [build-api, build-web]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger Railway Deploy Hook
-        if: ${{ secrets.RAILWAY_DEPLOY_HOOK_URL != '' }}
-        env:
-          RAILWAY_DEPLOY_HOOK_URL: ${{ secrets.RAILWAY_DEPLOY_HOOK_URL }}
-        run: |
-          curl -fsS -X POST "$RAILWAY_DEPLOY_HOOK_URL"
