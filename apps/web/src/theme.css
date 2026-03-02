@@ -288,3 +288,48 @@
     margin-top: 1rem;
   }
 }
+
+.account-dropdown-menu {
+  min-width: 15rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0.65rem;
+  box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.16);
+  padding: 0.4rem;
+}
+
+.account-dropdown-item {
+  border-radius: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0.55rem 0.75rem;
+  font-weight: 500;
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.account-dropdown-item i {
+  width: 1rem;
+  text-align: center;
+}
+
+.account-dropdown-item:hover,
+.account-dropdown-item:focus,
+.account-dropdown-item:active {
+  background: color-mix(in srgb, var(--mmx-primary) 8%, #fff);
+  color: #212529;
+}
+
+.account-dropdown-divider {
+  margin: 0.3rem 0;
+  opacity: 0.45;
+}
+
+@media (max-width: 767.98px) {
+  .account-dropdown-menu {
+    min-width: 14rem;
+  }
+
+  .account-dropdown-item {
+    min-height: 2.9rem;
+  }
+}

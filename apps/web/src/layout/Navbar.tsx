@@ -314,23 +314,33 @@ export function Navbar() {
                     </div>
                   </div>
                 </button>
-                <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="guestMenu">
+                <ul className="dropdown-menu dropdown-menu-end account-dropdown-menu" aria-labelledby="guestMenu">
                   <li>
-                    <button className="dropdown-item d-flex align-items-center gap-2" type="button" onClick={() => setLoginOpen(true)}>
+                    <button
+                      className="dropdown-item account-dropdown-item d-flex align-items-center gap-2"
+                      type="button"
+                      onClick={() => setLoginOpen(true)}
+                    >
                       <i className="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
                       <span>Iniciar sesión</span>
                     </button>
                   </li>
                   <li>
-                    <NavLink className="dropdown-item d-flex align-items-center gap-2" to="/register">
+                    <NavLink className="dropdown-item account-dropdown-item d-flex align-items-center gap-2" to="/register">
                       <i className="fa-solid fa-user-plus" aria-hidden="true"></i>
                       <span>Regístrate</span>
                     </NavLink>
                   </li>
                   <li>
-                    <NavLink className="dropdown-item d-flex align-items-center gap-2" to="/backoffice/login">
+                    <hr className="dropdown-divider account-dropdown-divider" />
+                  </li>
+                  <li>
+                    <NavLink className="dropdown-item account-dropdown-item d-flex align-items-center gap-2" to="/backoffice/login">
                       <i className="fa-solid fa-shield-halved" aria-hidden="true"></i>
-                      <span>Portal interno</span>
+                      <span className="d-flex align-items-center gap-2">
+                        Portal interno
+                        <span className="badge text-bg-light border text-secondary fw-semibold">Staff</span>
+                      </span>
                     </NavLink>
                   </li>
                 </ul>
@@ -359,10 +369,10 @@ export function Navbar() {
                   </div>
                 </button>
 
-                <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                <ul className="dropdown-menu dropdown-menu-end account-dropdown-menu" aria-labelledby="userDropdown">
                   <li>
                     <button
-                      className="dropdown-item d-flex align-items-center gap-2"
+                      className="dropdown-item account-dropdown-item d-flex align-items-center gap-2"
                       type="button"
                       onClick={() => nav(dashboardPath(user?.rol?.toString()))}
                     >
@@ -371,7 +381,11 @@ export function Navbar() {
                     </button>
                   </li>
                   <li>
-                    <button className="dropdown-item text-danger d-flex align-items-center gap-2" type="button" onClick={onLogout}>
+                    <button
+                      className="dropdown-item account-dropdown-item text-danger d-flex align-items-center gap-2"
+                      type="button"
+                      onClick={onLogout}
+                    >
                       <i className="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
                       <span>Cerrar sesión</span>
                     </button>
