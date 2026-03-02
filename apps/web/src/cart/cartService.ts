@@ -3,6 +3,7 @@ import { normalizeImageUrl } from "../shared/image";
 
 const LS_KEY = "shoppingCart";
 const BASE_URL = import.meta.env.VITE_API_BASE || "/api";
+const AUTH_EXPIRED_EVENT = "auth:expired";
 
 export type CartProduct = {
   id: number;
@@ -52,6 +53,14 @@ function clearStaleAuthState(): void {
   localStorage.removeItem("token");
   localStorage.removeItem("auth_user");
   localStorage.removeItem("user");
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent(AUTH_EXPIRED_EVENT, {
+        detail: { message: "Tu sesión expiró. Continuaste en modo invitado. Inicia sesión nuevamente para sincronizar tu carrito." },
+      }),
+    );
+  }
 }
 
 function isUnauthorizedError(error: unknown): boolean {
