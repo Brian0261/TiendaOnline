@@ -34,6 +34,11 @@ type IzipayInitResponse =
   | { mode: "redirect"; redirectUrl: string; provider?: string; preferenceId?: string | null }
   | { mode: string };
 
+type HttpErrorLike = {
+  message?: string;
+  details?: unknown;
+};
+
 type GoogleMapsApi = {
   maps: {
     Map: new (el: HTMLElement, opts: { center: { lat: number; lng: number }; zoom: number }) => unknown;
@@ -73,6 +78,18 @@ declare global {
 }
 
 const DELIVERY_KEY = "checkout_delivery_type";
+
+function resolveErrorMessage(error: unknown, fallback: string): string {
+  if (!error || typeof error !== "object") return fallback;
+  const e = error as HttpErrorLike;
+  if (typeof e.message === "string" && e.message.trim()) return e.message;
+  if (e.details && typeof e.details === "object") {
+    const d = e.details as { message?: unknown; error?: unknown };
+    if (typeof d.message === "string" && d.message.trim()) return d.message;
+    if (typeof d.error === "string" && d.error.trim()) return d.error;
+  }
+  return fallback;
+}
 
 export function CheckoutPage() {
   const nav = useNavigate();
@@ -369,25 +386,21 @@ export function CheckoutPage() {
           window.location.href = redirectUrl;
           return;
         }
+        setAlert({ variant: "danger", text: "Mercado Pago no devolvió una URL válida para continuar el pago." });
         return;
       }
 
-      // Fallback (si el backend devuelve modo mock por configuración)
       if (init.mode === "mock") {
-        await api.post("/payment/izipay/mock-confirm", { orderId: order.orderId, receiptType, receiptData, paymentMethodId });
-        await clearCart();
-        await qc.invalidateQueries({ queryKey: ["cart", "items"] });
-        await qc.invalidateQueries({ queryKey: ["cart", "count"] });
-
-        setSuccessOrderId(String(order.orderId));
-        setStep(3);
-        setAlert({ variant: "success", text: `¡Pago exitoso! Pedido #${order.orderId} confirmado.` });
+        setAlert({
+          variant: "danger",
+          text: "El backend está en modo mock/sandbox. Configura Mercado Pago en modo producción para cobrar con tarjeta real.",
+        });
         return;
       }
 
       setAlert({ variant: "warning", text: "No se pudo iniciar el pago con Mercado Pago." });
-    } catch {
-      setAlert({ variant: "danger", text: "No se pudo procesar tu pago." });
+    } catch (error) {
+      setAlert({ variant: "danger", text: resolveErrorMessage(error, "No se pudo procesar tu pago.") });
     } finally {
       setIsPaying(false);
     }

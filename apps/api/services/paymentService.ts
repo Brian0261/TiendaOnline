@@ -4,7 +4,9 @@ const orderService = require("./orderService");
 const MP_PROVIDER = "mercadopago";
 
 function getWebBaseUrl() {
-  return (process.env.PUBLIC_BASE_URL || "http://localhost:8080").replace(/\/$/, "");
+  return String(process.env.WEB_BASE_URL || process.env.PUBLIC_WEB_BASE_URL || process.env.PUBLIC_BASE_URL || "http://localhost:8080")
+    .trim()
+    .replace(/\/$/, "");
 }
 
 function isTestAccessToken(token) {
@@ -15,12 +17,40 @@ function shouldUseSandbox() {
   const env = String(process.env.MP_ENV || "")
     .trim()
     .toLowerCase();
+  if (String(process.env.NODE_ENV || "").trim() === "production") return false;
   if (env === "sandbox" || env === "test") return true;
   if (env === "prod" || env === "production") return false;
   if (String(process.env.MP_USE_SANDBOX || "").trim() === "1") return true;
   // En dev, por defecto usamos sandbox para poder pagar con tarjetas/usuarios de prueba.
   if (String(process.env.NODE_ENV || "").trim() !== "production") return true;
   return isTestAccessToken(process.env.MP_ACCESS_TOKEN);
+}
+
+function assertRealGatewayConfig() {
+  const isProd = String(process.env.NODE_ENV || "").trim() === "production";
+  const accessToken = String(process.env.MP_ACCESS_TOKEN || "").trim();
+  if (!isProd) return;
+
+  if (!accessToken) {
+    const err: any = new Error("Configura MP_ACCESS_TOKEN productivo para habilitar pagos reales.");
+    err.status = 500;
+    throw err;
+  }
+
+  if (isTestAccessToken(accessToken)) {
+    const err: any = new Error("MP_ACCESS_TOKEN es de prueba. En producción debes usar credenciales reales de Mercado Pago.");
+    err.status = 500;
+    throw err;
+  }
+
+  const env = String(process.env.MP_ENV || "")
+    .trim()
+    .toLowerCase();
+  if (env === "sandbox" || env === "test" || String(process.env.MP_USE_SANDBOX || "").trim() === "1") {
+    const err: any = new Error("Sandbox está deshabilitado en producción. Ajusta MP_ENV=production y quita MP_USE_SANDBOX.");
+    err.status = 500;
+    throw err;
+  }
 }
 
 function pickInitPoint(pref) {
@@ -176,6 +206,8 @@ async function initIzipay({ orderId, method }) {
 }
 
 async function initMercadoPago({ orderId, receiptType, receiptData }) {
+  assertRealGatewayConfig();
+
   if (!orderId) {
     const err: any = new Error("orderId requerido");
     err.status = 400;
@@ -367,7 +399,7 @@ async function handleMercadoPagoWebhook({ query, body }) {
         paymentMethodId,
       },
       null,
-      { emitToUser: null }
+      { emitToUser: null },
     );
 
     await paymentRepository.markPaymentIntentConfirmed({
