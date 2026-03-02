@@ -814,11 +814,6 @@ export function CheckoutPage() {
               <div className="card shadow-sm">
                 <div className="card-body">
                   <h5 className="card-title">Pago</h5>
-                  <div className="d-flex flex-wrap gap-2 mb-2">
-                    <span className="badge bg-light text-secondary border">Tarjetas</span>
-                    <span className="badge bg-light text-secondary border">Yape</span>
-                    <span className="badge bg-light text-secondary border">Mercado Pago</span>
-                  </div>
                   <div className="text-muted mb-2">Serás redirigido a Mercado Pago para completar el pago de forma segura.</div>
                   <ul className="small text-muted ps-3 mb-3">
                     <li>No almacenamos datos de tarjetas en nuestra tienda.</li>
