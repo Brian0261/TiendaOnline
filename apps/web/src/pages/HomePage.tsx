@@ -49,9 +49,9 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="py-5 bg-light">
+      <section className="py-5 bg-light home-categories-section">
         <div className="container">
-          <div className="text-center mb-5">
+          <div className="text-center mb-5 home-section-header">
             <h2 className="fw-bold">Explora Nuestras Categorías</h2>
             <p className="text-muted">Encuentra lo que necesitas organizado por categorías</p>
           </div>
@@ -104,21 +104,21 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="py-5">
+      <section className="py-5 featured-products-section">
         <div className="container">
-          <div className="text-center mb-5">
+          <div className="text-center mb-5 home-section-header">
             <h2 className="fw-bold">Productos Destacados</h2>
             <p className="text-muted">Los productos más populares de nuestra bodega</p>
           </div>
           <div className="row g-4">
             {featured.map(p => (
-              <div className="col-12 col-sm-6 col-md-4 col-lg-3" key={p.id}>
-                <div className="product-card card h-100 border-0 shadow-sm d-flex flex-column">
-                  <Link to={`/products/${p.id}`} className="text-decoration-none text-dark">
-                    <div className="ratio ratio-1x1 bg-light">
+              <div className="col-6 col-md-4 col-lg-3" key={p.id}>
+                <div className="card h-100 featured-product-card border-0 shadow-sm d-flex flex-column">
+                  <Link to={`/products/${p.id}`} className="text-decoration-none text-dark featured-product-link d-block">
+                    <div className="featured-product-media bg-light">
                       <img
                         src={normalizeImageUrl(p.imagen)}
-                        className="product-img"
+                        className="featured-product-img"
                         alt={p.nombre}
                         loading="lazy"
                         onError={e => {
@@ -126,15 +126,16 @@ export function HomePage() {
                         }}
                       />
                     </div>
-                    <div className="card-body">
-                      <h6 className="mb-1 product-title">{p.nombre}</h6>
+                    <div className="card-body featured-product-body">
+                      <h6 className="mb-2 featured-product-title">{p.nombre}</h6>
+                      <p className="mb-0 text-muted featured-product-desc">{p.descripcion || "Producto destacado de alta rotación."}</p>
                     </div>
                   </Link>
 
-                  <div className="px-3 pb-3 mt-auto d-flex justify-content-between align-items-center">
-                    <div className="text-muted fw-semibold">S/ {Number(p.precio ?? 0).toFixed(2)}</div>
+                  <div className="featured-product-actions mt-auto">
+                    <div className="featured-product-price">S/ {Number(p.precio ?? 0).toFixed(2)}</div>
                     <button
-                      className="btn btn-sm btn-primary-custom"
+                      className="btn btn-sm btn-primary-custom featured-product-btn"
                       type="button"
                       onClick={async () => {
                         await addToCart({ id: p.id, nombre: p.nombre, precio: p.precio, imagen: p.imagen });
