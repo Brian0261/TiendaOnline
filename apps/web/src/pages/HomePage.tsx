@@ -1,7 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { normalizeImageUrl, PLACEHOLDER_PRODUCT } from "../shared/image";
 import { api } from "../api/http";
+import { addToCart, loadCart } from "../cart/cartService";
+import { AddToCartModal, type AddToCartModalProduct } from "../shared/AddToCartModal";
+import { useState } from "react";
 
 type Product = {
   id: number;
@@ -12,6 +16,11 @@ type Product = {
 };
 
 export function HomePage() {
+  const qc = useQueryClient();
+  const [addedOpen, setAddedOpen] = useState(false);
+  const [addedProduct, setAddedProduct] = useState<AddToCartModalProduct | null>(null);
+  const [addedQty, setAddedQty] = useState(1);
+
   const { data } = useQuery({
     queryKey: ["products", "featured"],
     queryFn: () => api.get<Product[]>("/products"),
@@ -104,7 +113,7 @@ export function HomePage() {
           <div className="row g-4">
             {featured.map(p => (
               <div className="col-12 col-sm-6 col-md-4 col-lg-3" key={p.id}>
-                <div className="product-card card h-100 border-0 shadow-sm">
+                <div className="product-card card h-100 border-0 shadow-sm d-flex flex-column">
                   <Link to={`/products/${p.id}`} className="text-decoration-none text-dark">
                     <div className="ratio ratio-1x1 bg-light">
                       <img
@@ -119,9 +128,35 @@ export function HomePage() {
                     </div>
                     <div className="card-body">
                       <h6 className="mb-1 product-title">{p.nombre}</h6>
-                      <div className="text-muted fw-semibold">S/ {Number(p.precio ?? 0).toFixed(2)}</div>
                     </div>
                   </Link>
+
+                  <div className="px-3 pb-3 mt-auto d-flex justify-content-between align-items-center">
+                    <div className="text-muted fw-semibold">S/ {Number(p.precio ?? 0).toFixed(2)}</div>
+                    <button
+                      className="btn btn-sm btn-primary-custom"
+                      type="button"
+                      onClick={async () => {
+                        await addToCart({ id: p.id, nombre: p.nombre, precio: p.precio, imagen: p.imagen });
+                        await qc.invalidateQueries({ queryKey: ["cart", "count"] });
+                        await qc.invalidateQueries({ queryKey: ["cart", "items"] });
+
+                        const items = await loadCart();
+                        const current = items.find(i => i.product.id === p.id);
+
+                        setAddedProduct({
+                          id: p.id,
+                          nombre: p.nombre,
+                          precio: Number(p.precio ?? 0),
+                          imagen: p.imagen,
+                        });
+                        setAddedQty(current?.quantity ?? 1);
+                        setAddedOpen(true);
+                      }}
+                    >
+                      <i className="fas fa-cart-plus" /> Agregar
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -187,6 +222,17 @@ export function HomePage() {
           </Link>
         </div>
       </section>
+
+      <AddToCartModal
+        open={addedOpen}
+        product={addedProduct}
+        initialQty={addedQty}
+        onClose={() => {
+          setAddedOpen(false);
+          setAddedProduct(null);
+          setAddedQty(1);
+        }}
+      />
     </div>
   );
 }
