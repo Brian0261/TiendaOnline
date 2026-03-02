@@ -6,7 +6,7 @@ type AuthState = {
   user: AuthUser | null;
   token: string | null;
   isAuthenticated: boolean;
-  login: (input: { email: string; password: string }) => Promise<AuthUser>;
+  login: (input: { email: string; password: string; channel?: "customer" | "staff" }) => Promise<AuthUser>;
   register: (input: {
     nombre: string;
     apellido: string;

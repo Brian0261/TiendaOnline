@@ -15,6 +15,57 @@ function getStatus(err) {
 
 const regexPassword = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
 
+function normalizeRole(raw) {
+  const role = String(raw || "")
+    .trim()
+    .toUpperCase();
+  if (role === "ADMIN") return "ADMINISTRADOR";
+  if (role === "EMPLOYEE") return "EMPLEADO";
+  if (role === "CUSTOMER") return "CLIENTE";
+  return role;
+}
+
+function loginWithAllowedRoles(allowedRoles = null) {
+  return async (req, res) => {
+    try {
+      const email = normStr(req.body.email || req.body.correo).toLowerCase();
+      const plainPwd = normStr(req.body.contrasena ?? req.body.password);
+
+      if (!email || !plainPwd) {
+        return res.status(400).json({ message: "Faltan email y/o contraseña." });
+      }
+
+      const result = await authService.login({ email, plainPwd });
+      const role = normalizeRole(result?.user?.rol);
+
+      if (Array.isArray(allowedRoles) && allowedRoles.length > 0 && !allowedRoles.includes(role)) {
+        onLoginFailure(req, email);
+        return res.status(403).json({
+          message:
+            role === "CLIENTE"
+              ? "Este acceso es solo para personal interno. Usa el portal de clientes."
+              : "Este acceso es solo para clientes. Usa el portal interno del personal.",
+        });
+      }
+
+      onLoginSuccess(req, email);
+
+      if (result?.refreshToken) {
+        res.cookie(authService.getRefreshCookieName(), result.refreshToken, authService.getRefreshCookieOptions());
+      }
+
+      const { refreshToken, ...safe } = result;
+      return res.status(200).json(safe);
+    } catch (err) {
+      if (getStatus(err) === 401) {
+        onLoginFailure(req, req.body?.email || req.body?.correo);
+      }
+      console.error("Error en login:", err);
+      return res.status(getStatus(err)).json({ message: err?.message || "Error interno del servidor." });
+    }
+  };
+}
+
 // ============== REGISTRO ==============
 const register = async (req, res) => {
   try {
@@ -76,36 +127,9 @@ const register = async (req, res) => {
 };
 
 // ============== LOGIN ==============
-const login = async (req, res) => {
-  try {
-    const email = normStr(req.body.email || req.body.correo).toLowerCase();
-    // acepta contrasena o password
-    const plainPwd = normStr(req.body.contrasena ?? req.body.password);
-
-    if (!email || !plainPwd) {
-      return res.status(400).json({ message: "Faltan email y/o contraseña." });
-    }
-
-    const result = await authService.login({ email, plainPwd });
-
-    // Éxito: resetea contador de brute-force.
-    onLoginSuccess(req, email);
-
-    if (result?.refreshToken) {
-      res.cookie(authService.getRefreshCookieName(), result.refreshToken, authService.getRefreshCookieOptions());
-    }
-
-    const { refreshToken, ...safe } = result;
-    return res.status(200).json(safe);
-  } catch (err) {
-    // Fallo de credenciales: registra intento para bloqueo temporal.
-    if (getStatus(err) === 401) {
-      onLoginFailure(req, req.body?.email || req.body?.correo);
-    }
-    console.error("Error en login:", err);
-    return res.status(getStatus(err)).json({ message: err?.message || "Error interno del servidor." });
-  }
-};
+const login = loginWithAllowedRoles(null);
+const loginCustomer = loginWithAllowedRoles(["CLIENTE"]);
+const loginStaff = loginWithAllowedRoles(["EMPLEADO", "ADMINISTRADOR"]);
 
 // ============== REFRESH TOKEN ==============
 const refresh = async (req, res) => {
@@ -232,6 +256,8 @@ const verifyEmail = async (req, res) => {
 module.exports = {
   register,
   login,
+  loginCustomer,
+  loginStaff,
   refresh,
   logout,
   getProfile,

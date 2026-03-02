@@ -15,6 +15,8 @@ router.post("/register", registerLimiter, authController.register);
 
 // Inicio de sesión
 router.post("/login", loginLimiter, checkLoginLock, authController.login);
+router.post("/login/customer", loginLimiter, checkLoginLock, authController.loginCustomer);
+router.post("/login/staff", loginLimiter, checkLoginLock, authController.loginStaff);
 
 // Refrescar access token usando refresh token (cookie httpOnly)
 router.post("/refresh", authController.refresh);

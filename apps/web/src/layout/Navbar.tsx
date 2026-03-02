@@ -327,6 +327,12 @@ export function Navbar() {
                       <span>Regístrate</span>
                     </NavLink>
                   </li>
+                  <li>
+                    <NavLink className="dropdown-item d-flex align-items-center gap-2" to="/backoffice/login">
+                      <i className="fa-solid fa-shield-halved" aria-hidden="true"></i>
+                      <span>Portal interno</span>
+                    </NavLink>
+                  </li>
                 </ul>
               </div>
             ) : (

@@ -9,6 +9,8 @@ export function AppLayout() {
   const { pathname } = useLocation();
   const p = pathname.toLowerCase();
   const isStaffDashboard = p.startsWith("/dashboard/admin") || p.startsWith("/dashboard/employee");
+  const isBackoffice = p.startsWith("/backoffice/");
+  const hidePublicLayout = isStaffDashboard || isBackoffice;
   const isHome = p === "/";
   const [authNotice, setAuthNotice] = useState<string>("");
 
@@ -25,9 +27,9 @@ export function AppLayout() {
 
   return (
     <>
-      {!isStaffDashboard ? <Navbar /> : null}
+      {!hidePublicLayout ? <Navbar /> : null}
 
-      {!isStaffDashboard && authNotice ? (
+      {!hidePublicLayout && authNotice ? (
         <div className="container mt-3">
           <div className="alert alert-warning alert-dismissible fade show mb-0" role="alert">
             {authNotice}
@@ -36,7 +38,7 @@ export function AppLayout() {
         </div>
       ) : null}
 
-      {isStaffDashboard ? (
+      {hidePublicLayout ? (
         <Outlet />
       ) : (
         <main className={isHome ? undefined : "container"} style={isHome ? undefined : { paddingTop: 24, paddingBottom: 24 }}>
@@ -44,7 +46,7 @@ export function AppLayout() {
         </main>
       )}
 
-      {!isStaffDashboard ? <Footer /> : null}
+      {!hidePublicLayout ? <Footer /> : null}
     </>
   );
 }

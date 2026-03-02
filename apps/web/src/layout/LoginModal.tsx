@@ -46,16 +46,24 @@ export function LoginModal({ open, onClose, onLoggedIn }: LoginModalProps) {
               </h4>
 
               <div className="text-muted mb-3" style={{ fontSize: "0.95rem" }}>
-                Ingresa tus datos para continuar.
+                Acceso para clientes de la tienda.
               </div>
 
               <LoginForm
+                loginChannel="customer"
                 submitClassName="btn btn-dark w-100 rounded-pill"
                 onSuccess={u => {
                   onClose();
                   onLoggedIn(u);
                 }}
               />
+
+              <div className="mt-2 small text-muted">
+                ¿Eres empleado o administrador?{" "}
+                <Link to="/backoffice/login" onClick={onClose}>
+                  Ingresa al portal interno
+                </Link>
+              </div>
 
               <div className="mt-3">
                 <Link className="d-inline-block" to="/forgot-password" onClick={onClose}>

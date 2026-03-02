@@ -15,6 +15,7 @@ type LoginResponse = {
 type LoginInput = {
   email: string;
   password: string;
+  channel?: "customer" | "staff";
 };
 
 type AuthState = {
@@ -95,7 +96,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(
     async (input: LoginInput) => {
-      const res = await api.post<LoginResponse>("/auth/login", {
+      const endpoint = input.channel === "staff" ? "/auth/login/staff" : "/auth/login/customer";
+      const res = await api.post<LoginResponse>(endpoint, {
         email: input.email,
         contrasena: input.password,
       });
@@ -118,7 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return res.user;
     },
-    [qc]
+    [qc],
   );
 
   const register = useCallback(async (input: RegisterInput) => {
@@ -151,7 +153,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       register,
       logout,
     }),
-    [login, logout, register, token, user]
+    [login, logout, register, token, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

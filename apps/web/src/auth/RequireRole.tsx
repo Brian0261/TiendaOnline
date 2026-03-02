@@ -19,9 +19,10 @@ function normalizeRole(rol: unknown): string {
 export function RequireRole({ role, children }: Props) {
   const { user, isAuthenticated } = useAuth();
   const userRole = normalizeRole(user?.rol);
+  const isInternalRole = role === "ADMINISTRADOR" || role === "EMPLEADO";
 
   if (!isAuthenticated || !user || userRole !== role) {
-    return <Navigate to="/?login=1" replace />;
+    return <Navigate to={isInternalRole ? "/backoffice/login" : "/?login=1"} replace />;
   }
 
   return <>{children}</>;

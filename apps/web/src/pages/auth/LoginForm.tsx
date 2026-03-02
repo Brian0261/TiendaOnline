@@ -51,6 +51,7 @@ type LoginFormProps = {
   onSuccess?: (user: { rol?: unknown }) => void;
   onCancel?: () => void;
   submitClassName?: string;
+  loginChannel?: "customer" | "staff";
 };
 
 function toMessage(err: unknown): string {
@@ -59,7 +60,7 @@ function toMessage(err: unknown): string {
   return "No se pudo iniciar sesión.";
 }
 
-export function LoginForm({ onSuccess, onCancel, submitClassName }: LoginFormProps) {
+export function LoginForm({ onSuccess, onCancel, submitClassName, loginChannel = "customer" }: LoginFormProps) {
   const { login } = useAuth();
 
   const [email, setEmail] = useState("");
@@ -157,7 +158,7 @@ export function LoginForm({ onSuccess, onCancel, submitClassName }: LoginFormPro
     try {
       const normalizedEmail = normalizeEmail(email);
       rememberEmail(normalizedEmail);
-      const u = await login({ email: normalizedEmail, password });
+      const u = await login({ email: normalizedEmail, password, channel: loginChannel });
       onSuccess?.(u as { rol?: unknown });
     } catch (err) {
       setError(toMessage(err));
