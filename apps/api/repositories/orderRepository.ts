@@ -477,10 +477,13 @@ async function getCartItemsForOrderDraft(userId) {
 async function getAvailableStockForProductTx(tx, productId) {
   const stockRes = await tx.query(
     `
-      SELECT COALESCE(SUM(i.cantidad_disponible), 0) AS stock_total
-      FROM inventario i
-      WHERE i.id_producto = $1
-      FOR UPDATE
+      SELECT COALESCE(SUM(s.cantidad_disponible), 0) AS stock_total
+      FROM (
+        SELECT i.cantidad_disponible
+        FROM inventario i
+        WHERE i.id_producto = $1
+        FOR UPDATE
+      ) s
     `,
     [productId],
   );
@@ -488,14 +491,17 @@ async function getAvailableStockForProductTx(tx, productId) {
 
   const reservedRes = await tx.query(
     `
-      SELECT COALESCE(SUM(rsi.cantidad), 0) AS reservado
-      FROM reserva_stock_item rsi
-      INNER JOIN reserva_stock rs
-        ON rs.id_reserva_stock = rsi.id_reserva_stock
-      WHERE rsi.id_producto = $1
-        AND rs.estado = 'ACTIVA'
-        AND rs.expires_at > NOW()
-      FOR UPDATE
+      SELECT COALESCE(SUM(r.cantidad), 0) AS reservado
+      FROM (
+        SELECT rsi.cantidad
+        FROM reserva_stock_item rsi
+        INNER JOIN reserva_stock rs
+          ON rs.id_reserva_stock = rsi.id_reserva_stock
+        WHERE rsi.id_producto = $1
+          AND rs.estado = 'ACTIVA'
+          AND rs.expires_at > NOW()
+        FOR UPDATE OF rsi, rs
+      ) r
     `,
     [productId],
   );

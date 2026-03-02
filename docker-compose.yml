@@ -44,8 +44,8 @@ services:
 
   backend:
     build:
-      context: .
-      dockerfile: ./apps/api/Dockerfile
+      context: ./apps/api
+      dockerfile: Dockerfile
     container_name: tienda_api
     env_file:
       - ./apps/api/.env
@@ -62,7 +62,7 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./apps/api/uploads:/repo/apps/api/uploads
+      - ./apps/api/uploads:/app/uploads
     networks:
       - tienda_net
 
