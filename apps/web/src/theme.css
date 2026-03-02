@@ -159,3 +159,44 @@
   color: var(--mmx-on-warning) !important;
   filter: brightness(0.95);
 }
+
+/* Checkout */
+.checkout-stepper {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.checkout-stepper .step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  color: #6c757d;
+  background: #fff;
+}
+
+.checkout-stepper .step-index {
+  width: 1.45rem;
+  height: 1.45rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid currentColor;
+}
+
+.checkout-stepper .step-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.checkout-stepper .step.active {
+  color: var(--mmx-primary);
+  border-color: color-mix(in srgb, var(--mmx-primary) 40%, #fff);
+  background: color-mix(in srgb, var(--mmx-primary) 6%, #fff);
+}

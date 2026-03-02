@@ -102,9 +102,18 @@ export function CheckoutPage() {
   const [successOrderId, setSuccessOrderId] = useState<string>("");
 
   const [receiptType, setReceiptType] = useState<"BOLETA" | "FACTURA">("BOLETA");
+  const [boletaNombre, setBoletaNombre] = useState<string>("");
+  const [boletaDni, setBoletaDni] = useState<string>("");
+  const [contactEmail, setContactEmail] = useState<string>("");
   const [razonSocial, setRazonSocial] = useState<string>("");
   const [ruc, setRuc] = useState<string>("");
   const [dirFiscal, setDirFiscal] = useState<string>("");
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  function isValidEmail(value: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  }
 
   const [deliveryType, setDeliveryType] = useState<"DOMICILIO" | "RECOJO">(() => {
     const v = localStorage.getItem(DELIVERY_KEY);
@@ -333,12 +342,34 @@ export function CheckoutPage() {
   }
 
   function validateReceiptStep(): boolean {
-    // Checkout realista: la boleta no requiere DNI/nombre para pagar.
-    // Solo validamos datos si el usuario solicita FACTURA.
-    if (receiptType === "FACTURA" && (!ruc.trim() || !razonSocial.trim())) {
-      setAlert({ variant: "warning", text: "RUC y Razón social son obligatorios para la factura." });
+    const errors: Record<string, string> = {};
+
+    if (!contactEmail.trim() || !isValidEmail(contactEmail.trim())) {
+      errors.contactEmail = "Ingresa un correo válido para enviar el comprobante.";
+    }
+
+    if (receiptType === "BOLETA") {
+      if (!boletaNombre.trim()) {
+        errors.boletaNombre = "Ingresa el nombre para la boleta.";
+      }
+      const dni = boletaDni.trim();
+      if (!/^\d{8}$/.test(dni)) {
+        errors.boletaDni = "El DNI debe tener 8 dígitos.";
+      }
+    }
+
+    if (receiptType === "FACTURA") {
+      if (!razonSocial.trim()) errors.razonSocial = "La razón social es obligatoria.";
+      if (!/^\d{11}$/.test(ruc.trim())) errors.ruc = "El RUC debe tener 11 dígitos.";
+      if (!dirFiscal.trim()) errors.dirFiscal = "La dirección fiscal es obligatoria.";
+    }
+
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      setAlert({ variant: "warning", text: "Completa los datos del comprobante para continuar." });
       return false;
     }
+
     return true;
   }
 
@@ -353,10 +384,17 @@ export function CheckoutPage() {
       setAlert({ variant: "warning", text: "Tu carrito está vacío." });
       return;
     }
+    if (!acceptTerms) {
+      setAlert({ variant: "warning", text: "Debes aceptar los términos para continuar con el pago." });
+      return;
+    }
 
     setIsPaying(true);
     try {
-      const receiptData = receiptType === "FACTURA" ? { razon_social: razonSocial.trim(), ruc: ruc.trim(), direccion: dirFiscal.trim() } : {};
+      const receiptData =
+        receiptType === "FACTURA"
+          ? { razon_social: razonSocial.trim(), ruc: ruc.trim(), direccion: dirFiscal.trim(), email: contactEmail.trim() }
+          : { nombre: boletaNombre.trim(), dni: boletaDni.trim(), email: contactEmail.trim() };
 
       // En Mercado Pago (Checkout Pro) el medio de pago real se elige allá.
       // Mantenemos un ID por compatibilidad con el backend.
@@ -411,6 +449,21 @@ export function CheckoutPage() {
   return (
     <main className="container my-4">
       <h1 className="mb-4">Resumen de Compra</h1>
+
+      <div className="checkout-stepper mb-4" role="navigation" aria-label="Progreso del checkout">
+        <div className={`step ${step >= 0 ? "active" : ""}`}>
+          <span className="step-index">1</span>
+          <span className="step-label">Entrega</span>
+        </div>
+        <div className={`step ${step >= 1 ? "active" : ""}`}>
+          <span className="step-index">2</span>
+          <span className="step-label">Comprobante</span>
+        </div>
+        <div className={`step ${step >= 2 ? "active" : ""}`}>
+          <span className="step-index">3</span>
+          <span className="step-label">Pago</span>
+        </div>
+      </div>
 
       {alert ? <div className={`alert alert-${alert.variant}`}>{alert.text}</div> : null}
 
@@ -614,35 +667,122 @@ export function CheckoutPage() {
                         Factura
                       </label>
                     </div>
+                    <div className="col-md-6">
+                      <label className="form-label">E-mail de contacto</label>
+                      <input
+                        className={`form-control ${formErrors.contactEmail ? "is-invalid" : ""}`}
+                        placeholder="correo@ejemplo.com"
+                        value={contactEmail}
+                        onChange={e => {
+                          setContactEmail(e.target.value);
+                          setFormErrors(prev => {
+                            const next = { ...prev };
+                            delete next.contactEmail;
+                            return next;
+                          });
+                        }}
+                      />
+                      {formErrors.contactEmail ? <div className="invalid-feedback d-block">{formErrors.contactEmail}</div> : null}
+                    </div>
                   </div>
 
                   {receiptType === "BOLETA" ? (
-                    <div className="mt-2 text-muted">Boleta (recomendado). No necesitas ingresar datos adicionales para continuar.</div>
+                    <div className="row g-3 mt-1 boleta-fields">
+                      <div className="col-md-7">
+                        <label className="form-label">Nombre completo</label>
+                        <input
+                          className={`form-control ${formErrors.boletaNombre ? "is-invalid" : ""}`}
+                          placeholder="Nombres y apellidos"
+                          value={boletaNombre}
+                          onChange={e => {
+                            setBoletaNombre(e.target.value);
+                            setFormErrors(prev => {
+                              const next = { ...prev };
+                              delete next.boletaNombre;
+                              return next;
+                            });
+                          }}
+                        />
+                        {formErrors.boletaNombre ? <div className="invalid-feedback d-block">{formErrors.boletaNombre}</div> : null}
+                      </div>
+                      <div className="col-md-5">
+                        <label className="form-label">DNI</label>
+                        <input
+                          className={`form-control ${formErrors.boletaDni ? "is-invalid" : ""}`}
+                          placeholder="12345678"
+                          maxLength={8}
+                          value={boletaDni}
+                          onChange={e => {
+                            setBoletaDni(e.target.value.replace(/\D/g, "").slice(0, 8));
+                            setFormErrors(prev => {
+                              const next = { ...prev };
+                              delete next.boletaDni;
+                              return next;
+                            });
+                          }}
+                        />
+                        {formErrors.boletaDni ? <div className="invalid-feedback d-block">{formErrors.boletaDni}</div> : null}
+                      </div>
+                      <div className="col-12">
+                        <small className="text-muted">Usaremos estos datos para emitir tu boleta y enviarte la confirmación de compra.</small>
+                      </div>
+                    </div>
                   ) : (
                     <div className="row g-3 mt-1 factura-fields">
                       <div className="col-md-6">
                         <label className="form-label">Razón Social</label>
                         <input
                           id="razon_social"
-                          className="form-control"
+                          className={`form-control ${formErrors.razonSocial ? "is-invalid" : ""}`}
                           placeholder="Mi Empresa SAC"
                           value={razonSocial}
-                          onChange={e => setRazonSocial(e.target.value)}
+                          onChange={e => {
+                            setRazonSocial(e.target.value);
+                            setFormErrors(prev => {
+                              const next = { ...prev };
+                              delete next.razonSocial;
+                              return next;
+                            });
+                          }}
                         />
+                        {formErrors.razonSocial ? <div className="invalid-feedback d-block">{formErrors.razonSocial}</div> : null}
                       </div>
                       <div className="col-md-3">
                         <label className="form-label">RUC</label>
-                        <input id="ruc" className="form-control" placeholder="20123456789" value={ruc} onChange={e => setRuc(e.target.value)} />
+                        <input
+                          id="ruc"
+                          className={`form-control ${formErrors.ruc ? "is-invalid" : ""}`}
+                          placeholder="20123456789"
+                          maxLength={11}
+                          value={ruc}
+                          onChange={e => {
+                            setRuc(e.target.value.replace(/\D/g, "").slice(0, 11));
+                            setFormErrors(prev => {
+                              const next = { ...prev };
+                              delete next.ruc;
+                              return next;
+                            });
+                          }}
+                        />
+                        {formErrors.ruc ? <div className="invalid-feedback d-block">{formErrors.ruc}</div> : null}
                       </div>
                       <div className="col-md-3">
                         <label className="form-label">Dirección fiscal</label>
                         <input
                           id="dir_fiscal"
-                          className="form-control"
+                          className={`form-control ${formErrors.dirFiscal ? "is-invalid" : ""}`}
                           placeholder="Av. Principal 123"
                           value={dirFiscal}
-                          onChange={e => setDirFiscal(e.target.value)}
+                          onChange={e => {
+                            setDirFiscal(e.target.value);
+                            setFormErrors(prev => {
+                              const next = { ...prev };
+                              delete next.dirFiscal;
+                              return next;
+                            });
+                          }}
                         />
+                        {formErrors.dirFiscal ? <div className="invalid-feedback d-block">{formErrors.dirFiscal}</div> : null}
                       </div>
                     </div>
                   )}
@@ -674,14 +814,36 @@ export function CheckoutPage() {
               <div className="card shadow-sm">
                 <div className="card-body">
                   <h5 className="card-title">Pago</h5>
-                  <div className="text-muted">Serás redirigido a Mercado Pago para completar el pago de forma segura.</div>
+                  <div className="d-flex flex-wrap gap-2 mb-2">
+                    <span className="badge bg-light text-secondary border">Tarjetas</span>
+                    <span className="badge bg-light text-secondary border">Yape</span>
+                    <span className="badge bg-light text-secondary border">Mercado Pago</span>
+                  </div>
+                  <div className="text-muted mb-2">Serás redirigido a Mercado Pago para completar el pago de forma segura.</div>
+                  <ul className="small text-muted ps-3 mb-3">
+                    <li>No almacenamos datos de tarjetas en nuestra tienda.</li>
+                    <li>Recibirás confirmación por correo y en tu panel de pedidos.</li>
+                  </ul>
+
+                  <div className="form-check mb-3">
+                    <input
+                      id="accept-terms"
+                      className="form-check-input"
+                      type="checkbox"
+                      checked={acceptTerms}
+                      onChange={e => setAcceptTerms(e.target.checked)}
+                    />
+                    <label className="form-check-label" htmlFor="accept-terms">
+                      Acepto términos y condiciones de compra y política de privacidad.
+                    </label>
+                  </div>
 
                   <div className="mt-3 d-flex justify-content-between">
                     <button className="btn btn-outline-secondary" type="button" onClick={() => setStep(1)}>
                       Atrás
                     </button>
-                    <button className="btn btn-success" type="button" onClick={() => void onPay()} disabled={isPaying || isCartEmpty}>
-                      {isPaying ? "Procesando..." : "Pagar"}
+                    <button className="btn btn-success" type="button" onClick={() => void onPay()} disabled={isPaying || isCartEmpty || !acceptTerms}>
+                      {isPaying ? "Redirigiendo a Mercado Pago..." : "Ir a pagar con Mercado Pago"}
                     </button>
                   </div>
                 </div>
@@ -744,11 +906,20 @@ export function CheckoutPage() {
               </div>
 
               <div className="d-flex justify-content-between align-items-center mt-2">
+                <span className="text-secondary">Subtotal</span>
+                <span>S/ {subtotal.toFixed(2)}</span>
+              </div>
+
+              <div className="d-flex justify-content-between align-items-center mt-2">
                 <strong>Total a Pagar</strong>
                 <span id="total-pagar" className="fw-bold">
                   S/ {total.toFixed(2)}
                 </span>
               </div>
+
+              <small className="text-muted d-block mt-2">
+                Precios en soles peruanos (PEN). El comprobante se emite según tus datos del paso anterior.
+              </small>
             </div>
           </div>
         </div>
