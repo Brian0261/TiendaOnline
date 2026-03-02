@@ -47,6 +47,22 @@ function getToken(): string | null {
   return localStorage.getItem("auth_token") || localStorage.getItem("token") || null;
 }
 
+function clearStaleAuthState(): void {
+  localStorage.removeItem("auth_token");
+  localStorage.removeItem("token");
+  localStorage.removeItem("auth_user");
+  localStorage.removeItem("user");
+}
+
+function isUnauthorizedError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const e = error as { status?: unknown; message?: unknown };
+  const status = Number(e.status);
+  if (status === 401) return true;
+  if (typeof e.message === "string" && e.message.includes("401")) return true;
+  return false;
+}
+
 function lsRead(): CartItem[] {
   try {
     return JSON.parse(localStorage.getItem(LS_KEY) || "[]") as CartItem[];
@@ -159,12 +175,17 @@ export async function loadCart(): Promise<CartItem[]> {
 
 export async function addToCart(
   product: { id: number; nombre: string; precio: number; imagen?: string; descripcion?: string },
-  qty = 1
+  qty = 1,
 ): Promise<void> {
   const token = getToken();
   if (token) {
-    await api.post<{ success?: boolean }>("/cart/add", { id_producto: product.id, cantidad: qty });
-    return;
+    try {
+      await api.post<{ success?: boolean }>("/cart/add", { id_producto: product.id, cantidad: qty });
+      return;
+    } catch (error) {
+      if (!isUnauthorizedError(error)) throw error;
+      clearStaleAuthState();
+    }
   }
 
   const cart = lsRead();
@@ -194,8 +215,13 @@ export async function setQuantity(productId: number, qty: number): Promise<void>
   const q = Math.max(0, Math.floor(qty));
 
   if (token) {
-    await api.put<{ success?: boolean }>("/cart/update/0", { id_producto: productId, cantidad: q });
-    return;
+    try {
+      await api.put<{ success?: boolean }>("/cart/update/0", { id_producto: productId, cantidad: q });
+      return;
+    } catch (error) {
+      if (!isUnauthorizedError(error)) throw error;
+      clearStaleAuthState();
+    }
   }
 
   const cart = lsRead();
@@ -218,8 +244,13 @@ export async function removeFromCart(productId: number): Promise<void> {
 export async function clearCart(): Promise<void> {
   const token = getToken();
   if (token) {
-    await api.del<{ success?: boolean }>("/cart/clear");
-    return;
+    try {
+      await api.del<{ success?: boolean }>("/cart/clear");
+      return;
+    } catch (error) {
+      if (!isUnauthorizedError(error)) throw error;
+      clearStaleAuthState();
+    }
   }
   lsWrite([]);
 }
