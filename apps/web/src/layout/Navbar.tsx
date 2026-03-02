@@ -274,7 +274,7 @@ export function Navbar() {
                           <div className="flex-grow-1" style={{ minWidth: 0 }}>
                             <div className="text-truncate">
                               {splitByQuery(p.nombre || "", search.trim()).map((part, idx) =>
-                                part.match ? <strong key={idx}>{part.text}</strong> : <span key={idx}>{part.text}</span>
+                                part.match ? <strong key={idx}>{part.text}</strong> : <span key={idx}>{part.text}</span>,
                               )}
                             </div>
                           </div>
@@ -460,18 +460,17 @@ export function Navbar() {
                 ) : (Array.isArray(categoryProducts) ? categoryProducts : []).length === 0 ? (
                   <div className="text-muted">Sin productos en esta categoría.</div>
                 ) : (
-                  <div className="row row-cols-2 g-2">
+                  <div className="d-flex flex-column gap-2">
                     {(Array.isArray(categoryProducts) ? categoryProducts : []).map(p => (
-                      <div key={p.id} className="col">
-                        <button
-                          type="button"
-                          className="btn btn-link p-0 text-start text-decoration-none text-reset w-100"
-                          data-bs-dismiss="offcanvas"
-                          onClick={() => nav(`/products/${p.id}`)}
-                        >
-                          <div className="small text-truncate">{p.nombre}</div>
-                        </button>
-                      </div>
+                      <button
+                        key={p.id}
+                        type="button"
+                        className="btn btn-link p-0 text-start text-decoration-none text-reset w-100"
+                        data-bs-dismiss="offcanvas"
+                        onClick={() => nav(`/products/${p.id}`)}
+                      >
+                        <div className="small text-truncate">{p.nombre}</div>
+                      </button>
                     ))}
                   </div>
                 )
