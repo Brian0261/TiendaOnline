@@ -26,6 +26,49 @@ router.get("/dbping", async (_req, res) => {
   }
 });
 
+// Verifica qué cuenta de Mercado Pago está asociada al token cargado en el servidor.
+router.get("/mp-owner", async (_req, res) => {
+  try {
+    const token = String(process.env.MP_ACCESS_TOKEN || "").trim();
+    if (!token) {
+      return res.status(500).json({ ok: false, message: "MP_ACCESS_TOKEN no configurado en este entorno" });
+    }
+
+    const mpRes = await fetch("https://api.mercadopago.com/users/me", {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const text = await mpRes.text();
+    let json: any = null;
+    try {
+      json = text ? JSON.parse(text) : null;
+    } catch {
+      json = null;
+    }
+
+    if (!mpRes.ok) {
+      return res.status(502).json({
+        ok: false,
+        message: "No se pudo validar owner de Mercado Pago",
+        status: mpRes.status,
+        detail: json || text,
+      });
+    }
+
+    return res.json({
+      ok: true,
+      mpOwner: {
+        id: json?.id || null,
+        nickname: json?.nickname || null,
+        email: json?.email || null,
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({ ok: false, message: "mp-owner failed", detail: err?.message || String(err) });
+  }
+});
+
 module.exports = router;
 
 export {};
