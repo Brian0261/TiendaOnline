@@ -197,17 +197,17 @@ export function Navbar() {
 
   return (
     <>
-      <nav className="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+      <nav className="navbar navbar-expand-lg navbar-dark bg-dark sticky-top mmx-navbar">
         <div className="container-fluid">
-          <div className="d-flex align-items-center gap-3">
-            <Link className="navbar-brand d-flex align-items-center mb-0" to="/">
+          <div className="d-flex align-items-center gap-3 mmx-navbar-left">
+            <Link className="navbar-brand d-flex align-items-center mb-0 mmx-navbar-brand" to="/">
               <img src="/assets/images/logo-bodega.png" alt="Logo Minimarket Express" className="img-fluid" style={{ maxWidth: 42 }} />
-              <span className="fw-bold ms-2">Minimarket Express</span>
+              <span className="fw-bold ms-2 mmx-brand-text">Minimarket Express</span>
             </Link>
 
             <button
               type="button"
-              className="btn btn-link text-white text-decoration-none d-flex align-items-center gap-2 p-0"
+              className="btn btn-link text-white text-decoration-none d-flex align-items-center gap-2 p-0 mmx-menu-trigger"
               data-bs-toggle="offcanvas"
               data-bs-target="#mainMenu"
               aria-controls="mainMenu"
@@ -217,11 +217,11 @@ export function Navbar() {
             </button>
           </div>
 
-          <div className="flex-grow-1 px-3" style={{ maxWidth: 740 }}>
+          <div className="flex-grow-1 px-3 mmx-search-col" style={{ maxWidth: 780 }}>
             <div ref={searchWrapRef} className="position-relative">
-              <form className="search-box" id="search-form" role="search" onSubmit={onSearchSubmit} autoComplete="off">
+              <form className="search-box mmx-search-box" id="search-form" role="search" onSubmit={onSearchSubmit} autoComplete="off">
                 <input
-                  className="form-control"
+                  className="form-control mmx-search-input"
                   type="search"
                   placeholder="Buscar productos..."
                   aria-label="Buscar"
@@ -233,7 +233,7 @@ export function Navbar() {
                     if (q.length >= 2 && (suggestions.length > 0 || suggestLoading)) setSuggestOpen(true);
                   }}
                 />
-                <button className="btn" type="submit" aria-label="Buscar">
+                <button className="btn mmx-search-btn" type="submit" aria-label="Buscar">
                   <i className="fas fa-search"></i>
                 </button>
               </form>
@@ -290,27 +290,31 @@ export function Navbar() {
             </div>
           </div>
 
-          <div className="d-flex align-items-center gap-3 me-2">
+          <div className="d-flex align-items-center gap-3 me-2 mmx-navbar-right">
             {!isAuthenticated ? (
               <div className="dropdown">
                 <button
                   type="button"
-                  className="btn btn-link text-white text-decoration-none p-0 dropdown-toggle"
+                  className="btn btn-link text-white text-decoration-none p-0 dropdown-toggle mmx-account-trigger"
                   id="guestMenu"
                   data-bs-toggle="dropdown"
                   aria-expanded="false"
                 >
-                  <div className="d-flex align-items-center gap-2">
+                  <div className="d-flex align-items-center gap-2 mmx-account-summary">
                     <span
-                      className="rounded-circle bg-light text-dark fw-bold d-inline-flex justify-content-center align-items-center"
+                      className="rounded-circle bg-light text-dark fw-bold d-inline-flex justify-content-center align-items-center mmx-avatar"
                       style={{ width: 30, height: 30, fontSize: "0.95rem" }}
                       aria-label="avatar"
                     >
                       <i className="fa-solid fa-user" aria-hidden="true"></i>
                     </span>
-                    <div className="d-flex flex-column align-items-start" style={{ lineHeight: 1.1 }}>
-                      <span style={{ fontSize: "0.9rem" }}>Hola,</span>
-                      <strong style={{ fontSize: "0.95rem" }}>Inicia sesión</strong>
+                    <div className="d-flex flex-column align-items-start mmx-account-text" style={{ lineHeight: 1.1 }}>
+                      <span className="mmx-account-hello" style={{ fontSize: "0.9rem" }}>
+                        Hola,
+                      </span>
+                      <strong className="mmx-account-name" style={{ fontSize: "0.95rem" }}>
+                        Inicia sesión
+                      </strong>
                     </div>
                   </div>
                 </button>
@@ -349,22 +353,26 @@ export function Navbar() {
               <div className="dropdown" id="user-menu">
                 <button
                   type="button"
-                  className="btn btn-link text-white text-decoration-none p-0 dropdown-toggle"
+                  className="btn btn-link text-white text-decoration-none p-0 dropdown-toggle mmx-account-trigger"
                   id="userDropdown"
                   data-bs-toggle="dropdown"
                   aria-expanded="false"
                 >
-                  <div className="d-flex align-items-center gap-2">
+                  <div className="d-flex align-items-center gap-2 mmx-account-summary">
                     <span
-                      className="rounded-circle bg-light text-dark fw-bold d-inline-flex justify-content-center align-items-center"
+                      className="rounded-circle bg-light text-dark fw-bold d-inline-flex justify-content-center align-items-center mmx-avatar"
                       style={{ width: 30, height: 30, fontSize: "0.95rem" }}
                       aria-label="avatar"
                     >
                       {avatar}
                     </span>
-                    <div className="d-flex flex-column align-items-start" style={{ lineHeight: 1.1 }}>
-                      <span style={{ fontSize: "0.9rem" }}>Hola,</span>
-                      <strong style={{ fontSize: "0.95rem" }}>{user?.nombre || "Usuario"}</strong>
+                    <div className="d-flex flex-column align-items-start mmx-account-text" style={{ lineHeight: 1.1 }}>
+                      <span className="mmx-account-hello" style={{ fontSize: "0.9rem" }}>
+                        Hola,
+                      </span>
+                      <strong className="mmx-account-name" style={{ fontSize: "0.95rem" }}>
+                        {user?.nombre || "Usuario"}
+                      </strong>
                     </div>
                   </div>
                 </button>
@@ -394,9 +402,9 @@ export function Navbar() {
               </div>
             )}
 
-            <NavLink className="nav-link position-relative text-white" to="/cart" aria-label="Carrito">
+            <NavLink className="nav-link position-relative text-white mmx-cart-link" to="/cart" aria-label="Carrito">
               <i className="fas fa-shopping-cart"></i>
-              <span className="badge bg-danger rounded-pill position-absolute" style={{ top: -6, right: -10, fontSize: "0.7rem" }}>
+              <span className="badge rounded-pill position-absolute mmx-cart-badge" style={{ top: -6, right: -10, fontSize: "0.7rem" }}>
                 {count}
               </span>
             </NavLink>
