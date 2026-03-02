@@ -384,7 +384,7 @@ export function Navbar() {
         </div>
       </nav>
 
-      <div className="offcanvas offcanvas-start" tabIndex={-1} id="mainMenu" aria-labelledby="mainMenuLabel" style={{ width: 920, maxWidth: "95vw" }}>
+      <div className="offcanvas offcanvas-start" tabIndex={-1} id="mainMenu" aria-labelledby="mainMenuLabel" style={{ width: 800, maxWidth: "92vw" }}>
         <div className="offcanvas-header">
           <h5 className="offcanvas-title" id="mainMenuLabel">
             Menú
@@ -393,7 +393,7 @@ export function Navbar() {
         </div>
         <div className="offcanvas-body">
           <div className="row g-0" style={{ height: "100%" }}>
-            <div className="col-5 border-end" style={{ maxHeight: "calc(100vh - 140px)", overflowY: "auto" }}>
+            <div className="col-6 border-end" style={{ maxHeight: "calc(100vh - 140px)", overflowY: "auto" }}>
               <div className="list-group list-group-flush">
                 {(Array.isArray(categories) ? categories : []).map(c => (
                   <button
@@ -439,7 +439,7 @@ export function Navbar() {
               </div>
             </div>
 
-            <div className="col-7 p-3" style={{ maxHeight: "calc(100vh - 140px)", overflowY: "auto" }}>
+            <div className="col-6 p-3" style={{ maxHeight: "calc(100vh - 140px)", overflowY: "auto" }}>
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <div className="fw-semibold">{selectedCategory?.name || ""}</div>
                 {selectedCategory ? (
