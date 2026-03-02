@@ -91,10 +91,10 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [build-api, build-web]
     runs-on: ubuntu-latest
-    env:
-      RAILWAY_DEPLOY_HOOK_URL: ${{ secrets.RAILWAY_DEPLOY_HOOK_URL }}
     steps:
       - name: Trigger Railway Deploy Hook
-        if: env.RAILWAY_DEPLOY_HOOK_URL != ''
+        if: ${{ secrets.RAILWAY_DEPLOY_HOOK_URL != '' }}
+        env:
+          RAILWAY_DEPLOY_HOOK_URL: ${{ secrets.RAILWAY_DEPLOY_HOOK_URL }}
         run: |
           curl -fsS -X POST "$RAILWAY_DEPLOY_HOOK_URL"
