@@ -874,22 +874,26 @@ export function CheckoutPage() {
         </div>
 
         <div className="col-lg-4">
-          <div className="card shadow-sm">
+          <aside className="card shadow-sm checkout-summary-card">
             <div className="card-body">
-              <h5 className="card-title">Resumen</h5>
-              <div id="checkout-cart-items">
+              <div className="checkout-summary-header mb-3">
+                <h5 className="card-title mb-1">Resumen</h5>
+                <small className="text-muted">Detalle de tu pedido</small>
+              </div>
+
+              <div id="checkout-cart-items" className="checkout-summary-items">
                 {cartItems.map(it => (
-                  <div key={it.product.id} className="d-flex justify-content-between align-items-start mb-2">
-                    <div>
-                      <div className="fw-semibold">{it.product.name}</div>
-                      <small className="text-muted">x{it.quantity}</small>
+                  <div key={it.product.id} className="checkout-summary-item">
+                    <div className="checkout-summary-item-info">
+                      <div className="checkout-summary-item-name">{it.product.name}</div>
+                      <small className="checkout-summary-item-qty">x{it.quantity}</small>
                     </div>
-                    <div className="fw-semibold">S/ {(Number(it.product.price ?? 0) * Number(it.quantity ?? 0)).toFixed(2)}</div>
+                    <div className="checkout-summary-item-price">S/ {(Number(it.product.price ?? 0) * Number(it.quantity ?? 0)).toFixed(2)}</div>
                   </div>
                 ))}
               </div>
 
-              <div id="shipping-summary" className="summary-row mt-2" aria-live="polite">
+              <div id="shipping-summary" className="checkout-summary-shipping" aria-live="polite">
                 <div className="d-flex align-items-center gap-2">
                   <i className="fa-solid fa-truck-fast text-secondary"></i>
                   <span className="text-secondary">Envío</span>
@@ -900,23 +904,25 @@ export function CheckoutPage() {
                 <strong id="shipping-amount">S/ {shipping.toFixed(2)}</strong>
               </div>
 
-              <div className="d-flex justify-content-between align-items-center mt-2">
-                <span className="text-secondary">Subtotal</span>
-                <span>S/ {subtotal.toFixed(2)}</span>
+              <div className="checkout-summary-totals">
+                <div className="checkout-summary-line">
+                  <span className="text-secondary">Subtotal</span>
+                  <span>S/ {subtotal.toFixed(2)}</span>
+                </div>
+
+                <div className="checkout-summary-total">
+                  <strong>Total a pagar</strong>
+                  <span id="total-pagar" className="fw-bold">
+                    S/ {total.toFixed(2)}
+                  </span>
+                </div>
               </div>
 
-              <div className="d-flex justify-content-between align-items-center mt-2">
-                <strong>Total a Pagar</strong>
-                <span id="total-pagar" className="fw-bold">
-                  S/ {total.toFixed(2)}
-                </span>
-              </div>
-
-              <small className="text-muted d-block mt-2">
-                Precios en soles peruanos (PEN). El comprobante se emite según tus datos del paso anterior.
+              <small className="text-muted d-block checkout-summary-note">
+                Precios en soles peruanos (PEN). Comprobante emitido según tus datos del paso anterior.
               </small>
             </div>
-          </div>
+          </aside>
         </div>
       </div>
     </main>
