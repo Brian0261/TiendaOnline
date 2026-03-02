@@ -230,8 +230,8 @@ async function initMercadoPago({ orderId, receiptType, receiptData }) {
 
   const webBase = getWebBaseUrl();
   const backUrls = {
-    success: `${webBase}/dashboard?tab=orders`,
-    pending: `${webBase}/dashboard?tab=orders`,
+    success: `${webBase}/dashboard/customer?tab=orders`,
+    pending: `${webBase}/dashboard/customer?tab=orders`,
     failure: `${webBase}/checkout?error=payment`,
   };
 
