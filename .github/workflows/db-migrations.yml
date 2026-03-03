@@ -1,0 +1,121 @@
+name: DB Migrations (Supabase)
+
+on:
+  pull_request:
+    branches: ["main", "staging"]
+    paths:
+      - "supabase/migrations/**"
+      - ".github/workflows/db-migrations.yml"
+  push:
+    branches: ["staging"]
+    paths:
+      - "supabase/migrations/**"
+      - ".github/workflows/db-migrations.yml"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: "staging"
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  validate-migrations:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate migration file naming
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(supabase/migrations/*.sql)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No migration files found in supabase/migrations" >&2
+            exit 1
+          fi
+
+          regex='^supabase/migrations/[0-9]{12}_[a-z0-9_]+\.sql$'
+          for f in "${files[@]}"; do
+            if [[ ! "$f" =~ $regex ]]; then
+              echo "Invalid migration filename: $f"
+              echo "Expected format: YYYYMMDDHHMM_name.sql"
+              exit 1
+            fi
+          done
+
+      - name: Basic SQL sanity check
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in supabase/migrations/*.sql; do
+            if grep -qiE 'drop\s+table\s+(?!if\s+exists)' "$f"; then
+              echo "Potentially dangerous DROP TABLE without IF EXISTS in $f"
+              exit 1
+            fi
+          done
+
+  apply-staging-on-push:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
+    needs: [validate-migrations]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_STAGING_PROJECT_REF }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link staging project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+
+      - name: Apply migrations to staging
+        run: supabase db push --linked --password "$SUPABASE_DB_PASSWORD"
+
+  apply-manual:
+    if: github.event_name == 'workflow_dispatch'
+    needs: [validate-migrations]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Select environment variables
+        id: envvars
+        shell: bash
+        run: |
+          if [ "${{ github.event.inputs.environment }}" = "production" ]; then
+            echo "project_ref=${{ secrets.SUPABASE_PROD_PROJECT_REF }}" >> $GITHUB_OUTPUT
+            echo "db_password=${{ secrets.SUPABASE_PROD_DB_PASSWORD }}" >> $GITHUB_OUTPUT
+          else
+            echo "project_ref=${{ secrets.SUPABASE_STAGING_PROJECT_REF }}" >> $GITHUB_OUTPUT
+            echo "db_password=${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Link target project
+        run: supabase link --project-ref "${{ steps.envvars.outputs.project_ref }}"
+
+      - name: Apply migrations
+        run: supabase db push --linked --password "${{ steps.envvars.outputs.db_password }}"

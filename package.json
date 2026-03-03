@@ -14,6 +14,14 @@
     "api:dev": "cd apps/api && npm run dev",
     "api:start": "cd apps/api && npm start",
     "api:test": "cd apps/api && npm test",
-    "api:test:bdd": "cd apps/api && npm run test:bdd"
+    "api:test:bdd": "cd apps/api && npm run test:bdd",
+    "db:start": "npx supabase start",
+    "db:stop": "npx supabase stop",
+    "db:status": "npx supabase status",
+    "db:reset": "npx supabase db reset",
+    "db:lint": "npx supabase db lint",
+    "db:push": "npx supabase db push",
+    "db:pull": "npx supabase db pull",
+    "db:migration:new": "npx supabase migration new"
   }
 }
