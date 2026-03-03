@@ -20,9 +20,11 @@ export function RequireRole({ role, children }: Props) {
   const { user, isAuthenticated } = useAuth();
   const userRole = normalizeRole(user?.rol);
   const isInternalRole = role === "ADMINISTRADOR" || role === "EMPLEADO";
+  const isBackofficeHost = typeof window !== "undefined" && window.location.hostname === "backoffice.minimarketexpress.shop";
+  const internalLoginPath = isBackofficeHost ? "/login" : "/backoffice/login";
 
   if (!isAuthenticated || !user || userRole !== role) {
-    return <Navigate to={isInternalRole ? "/backoffice/login" : "/?login=1"} replace />;
+    return <Navigate to={isInternalRole ? internalLoginPath : "/?login=1"} replace />;
   }
 
   return <>{children}</>;

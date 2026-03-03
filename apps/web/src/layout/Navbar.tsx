@@ -341,7 +341,7 @@ export function Navbar() {
                   <li>
                     <a
                       className="dropdown-item account-dropdown-item d-flex align-items-center gap-2"
-                      href="https://backoffice.minimarketexpress.shop/backoffice/login"
+                      href="https://backoffice.minimarketexpress.shop/login"
                     >
                       <i className="fa-solid fa-shield-halved" aria-hidden="true"></i>
                       <span className="d-flex align-items-center gap-2">

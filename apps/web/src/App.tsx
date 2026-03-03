@@ -18,12 +18,14 @@ import { BackofficeLoginPage } from "./pages/auth/BackofficeLoginPage";
 import { AppLayout } from "./layout/AppLayout";
 
 function App() {
+  const isBackofficeHost = typeof window !== "undefined" && window.location.hostname === "backoffice.minimarketexpress.shop";
+
   return (
     <Routes>
       <Route element={<AppLayout />}>
         <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<Navigate to="/?login=1" replace />} />
-        <Route path="/backoffice/login" element={<BackofficeLoginPage />} />
+        <Route path="/login" element={isBackofficeHost ? <BackofficeLoginPage /> : <Navigate to="/?login=1" replace />} />
+        <Route path="/backoffice/login" element={isBackofficeHost ? <Navigate to="/login" replace /> : <BackofficeLoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
