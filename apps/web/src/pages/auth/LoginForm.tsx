@@ -52,6 +52,7 @@ type LoginFormProps = {
   onCancel?: () => void;
   submitClassName?: string;
   loginChannel?: "customer" | "staff";
+  autoFocusEmail?: boolean;
 };
 
 function toMessage(err: unknown): string {
@@ -60,7 +61,7 @@ function toMessage(err: unknown): string {
   return "No se pudo iniciar sesión.";
 }
 
-export function LoginForm({ onSuccess, onCancel, submitClassName, loginChannel = "customer" }: LoginFormProps) {
+export function LoginForm({ onSuccess, onCancel, submitClassName, loginChannel = "customer", autoFocusEmail = false }: LoginFormProps) {
   const { login } = useAuth();
 
   const [email, setEmail] = useState("");
@@ -180,8 +181,12 @@ export function LoginForm({ onSuccess, onCancel, submitClassName, loginChannel =
   }, [emailSuggestOpen]);
 
   return (
-    <form onSubmit={onSubmit} autoComplete="on">
-      {error ? <div className="alert alert-danger py-2">{error}</div> : null}
+    <form onSubmit={onSubmit} autoComplete="on" aria-busy={loading}>
+      {error ? (
+        <div className="alert alert-danger py-2" role="alert" aria-live="polite">
+          {error}
+        </div>
+      ) : null}
 
       <div className="mb-3">
         <label className="form-label">Correo electrónico</label>
@@ -203,8 +208,10 @@ export function LoginForm({ onSuccess, onCancel, submitClassName, loginChannel =
             ref={emailInputRef}
             type="email"
             className="form-control"
+            autoFocus={autoFocusEmail}
             value={email}
             onChange={e => {
+              if (error) setError(null);
               setEmail(e.target.value);
               setEmailActiveIndex(-1);
             }}
@@ -426,7 +433,10 @@ export function LoginForm({ onSuccess, onCancel, submitClassName, loginChannel =
             type={showPassword ? "text" : "password"}
             className="form-control pe-5"
             value={password}
-            onChange={e => setPassword(e.target.value)}
+            onChange={e => {
+              if (error) setError(null);
+              setPassword(e.target.value);
+            }}
             autoComplete="current-password"
             required
           />

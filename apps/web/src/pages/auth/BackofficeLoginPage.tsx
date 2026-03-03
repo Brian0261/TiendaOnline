@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { LoginForm } from "./LoginForm";
 
 function dashboardPath(rol: string | undefined): string {
@@ -12,9 +12,10 @@ function dashboardPath(rol: string | undefined): string {
 
 export function BackofficeLoginPage() {
   const nav = useNavigate();
+  const publicStoreUrl = "https://minimarketexpress.shop/?login=1";
 
   useEffect(() => {
-    document.title = "Portal interno | Minimarket Express";
+    document.title = "Backoffice | Minimarket Express";
   }, []);
 
   return (
@@ -25,18 +26,23 @@ export function BackofficeLoginPage() {
             <img src="/assets/images/logo-bodega.png" alt="Minimarket Express" style={{ height: 38, width: "auto" }} />
           </div>
           <h1 className="h4 mb-1 text-center">Portal interno</h1>
+          <p className="text-center fw-semibold mb-2">Backoffice Minimarket Express</p>
           <p className="text-muted text-center mb-4">Acceso exclusivo para empleados y administradores.</p>
+          <div className="alert alert-warning py-2 px-3 small" role="note">
+            Uso exclusivo para personal autorizado. La actividad de acceso puede ser registrada por seguridad.
+          </div>
 
           <LoginForm
             loginChannel="staff"
             submitClassName="btn btn-dark w-100"
+            autoFocusEmail
             onSuccess={u => {
               nav(dashboardPath(String(u.rol ?? "")), { replace: true });
             }}
           />
 
           <div className="mt-3 text-center small">
-            <Link to="/?login=1">Volver al acceso de clientes</Link>
+            <a href={publicStoreUrl}>Volver al acceso de clientes</a>
           </div>
         </div>
       </div>
