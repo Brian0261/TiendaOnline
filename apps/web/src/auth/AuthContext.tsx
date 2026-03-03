@@ -31,9 +31,10 @@ function normalizeRole(rol: unknown): Role | string | undefined {
   if (rol == null) return undefined;
   const r = String(rol).trim().toUpperCase();
   if (r === "ADMIN") return "ADMINISTRADOR";
-  if (r === "CLIENTE" || r === "EMPLEADO" || r === "ADMINISTRADOR") return r;
+  if (r === "CLIENTE" || r === "EMPLEADO" || r === "ADMINISTRADOR" || r === "REPARTIDOR") return r;
   if (r === "CUSTOMER") return "CLIENTE";
   if (r === "EMPLOYEE") return "EMPLEADO";
+  if (r === "DELIVERY" || r === "RIDER") return "REPARTIDOR";
   return r;
 }
 

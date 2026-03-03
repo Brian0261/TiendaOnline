@@ -41,7 +41,7 @@ CREATE TABLE usuario (
     fecha_registro TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     telefono VARCHAR(20),
     direccion_principal VARCHAR(255),
-    rol VARCHAR(15) NOT NULL DEFAULT 'CLIENTE' CHECK (rol IN ('CLIENTE', 'ADMINISTRADOR', 'EMPLEADO')),
+    rol VARCHAR(15) NOT NULL DEFAULT 'CLIENTE' CHECK (rol IN ('CLIENTE', 'ADMINISTRADOR', 'EMPLEADO', 'REPARTIDOR')),
     email_verificado BOOLEAN NOT NULL DEFAULT FALSE,
     email_verificado_en TIMESTAMPTZ NULL
 );
@@ -111,7 +111,8 @@ CREATE TABLE motorizado (
     apellido VARCHAR(100) NOT NULL,
     telefono VARCHAR(20) NOT NULL,
     licencia VARCHAR(50) NOT NULL,
-    id_delivery INT NOT NULL REFERENCES delivery(id_delivery)
+    id_delivery INT NOT NULL REFERENCES delivery(id_delivery),
+    id_usuario INT NULL UNIQUE REFERENCES usuario(id_usuario)
 );
 
 CREATE TABLE producto (

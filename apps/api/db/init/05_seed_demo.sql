@@ -7,6 +7,7 @@ INSERT INTO usuario (nombre, apellido, email, contrasena, telefono, direccion_pr
 ('Juan', 'Pérez', 'cli@email.com', '$2a$10$tKJ56pQTAAvrb8Uerajsyuq5h30XvGp6NBaqwRGwZpF/ZkPsjUMPS', '987654321', 'Av. Lima 123', 'CLIENTE', true),
 ('María', 'Gómez', 'emp@email.com', '$2a$10$tKJ56pQTAAvrb8Uerajsyuq5h30XvGp6NBaqwRGwZpF/ZkPsjUMPS', '987654322', 'Av. Arequipa 456', 'EMPLEADO', true),
 ('Carlos', 'López', 'admin@email.com', '$2a$10$tKJ56pQTAAvrb8Uerajsyuq5h30XvGp6NBaqwRGwZpF/ZkPsjUMPS', '987654323', 'Jr. Cusco 789', 'ADMINISTRADOR', true),
+('Diego', 'Reyes', 'repartidor@email.com', '$2a$10$tKJ56pQTAAvrb8Uerajsyuq5h30XvGp6NBaqwRGwZpF/ZkPsjUMPS', '987654331', 'Av. Delivery 100', 'REPARTIDOR', true),
 ('Ana', 'Rodríguez', 'ana@email.com', '$2a$10$B5o9vCtVsQC9xGNbeQjfleBj.ZpUNIK/3uO8KJwCUVsOTiedHdu0K', '987654324', 'Av. Tacna 321', 'CLIENTE', true),
 ('Luis', 'Martínez', 'luis@email.com', '$2a$10$B5o9vCtVsQC9xGNbeQjfleBj.ZpUNIK/3uO8KJwCUVsOTiedHdu0K', '987654325', 'Jr. Ayacucho 654', 'CLIENTE', true),
 ('Pedro', 'Sánchez', 'pedro@email.com', '$2a$10$B5o9vCtVsQC9xGNbeQjfleBj.ZpUNIK/3uO8KJwCUVsOTiedHdu0K', '987654326', 'Av. Bolívar 987', 'ADMINISTRADOR', true),
@@ -14,6 +15,11 @@ INSERT INTO usuario (nombre, apellido, email, contrasena, telefono, direccion_pr
 ('Sofía', 'Hernández', 'sofia@email.com', '$2a$10$B5o9vCtVsQC9xGNbeQjfleBj.ZpUNIK/3uO8KJwCUVsOTiedHdu0K', '987654328', 'Av. Salaverry 321', 'CLIENTE', true),
 ('Miguel', 'Torres', 'miguel@email.com', '$2a$10$B5o9vCtVsQC9xGNbeQjfleBj.ZpUNIK/3uO8KJwCUVsOTiedHdu0K', '987654329', 'Jr. Junín 159', 'CLIENTE', true),
 ('Elena', 'Ruiz', 'elena@email.com', '$2a$10$B5o9vCtVsQC9xGNbeQjfleBj.ZpUNIK/3uO8KJwCUVsOTiedHdu0K', '987654330', 'Av. Brasil 753', 'CLIENTE', true);
+
+-- Vincular usuario repartidor demo con un motorizado
+UPDATE motorizado
+SET id_usuario = (SELECT id_usuario FROM usuario WHERE email = 'repartidor@email.com')
+WHERE id_motorizado = 1;
 
 -- PRODUCTOS
 INSERT INTO producto (nombre_producto, descripcion, precio, imagen, id_categoria, id_marca) VALUES

@@ -12,6 +12,7 @@ function normalizeRole(rol: unknown): string {
   if (raw === "ADMIN") return "ADMINISTRADOR";
   if (raw === "ADMINISTRADOR") return "ADMINISTRADOR";
   if (raw === "EMPLEADO" || raw === "EMPLOYEE") return "EMPLEADO";
+  if (raw === "REPARTIDOR" || raw === "DELIVERY" || raw === "RIDER") return "REPARTIDOR";
   if (raw === "CLIENTE" || raw === "CUSTOMER") return "CLIENTE";
   return raw;
 }
@@ -19,7 +20,7 @@ function normalizeRole(rol: unknown): string {
 export function RequireRole({ role, children }: Props) {
   const { user, isAuthenticated } = useAuth();
   const userRole = normalizeRole(user?.rol);
-  const isInternalRole = role === "ADMINISTRADOR" || role === "EMPLEADO";
+  const isInternalRole = role === "ADMINISTRADOR" || role === "EMPLEADO" || role === "REPARTIDOR";
   const isBackofficeHost = typeof window !== "undefined" && window.location.hostname === "backoffice.minimarketexpress.shop";
   const internalLoginPath = isBackofficeHost ? "/login" : "/backoffice/login";
 

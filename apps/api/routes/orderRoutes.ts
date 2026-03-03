@@ -61,8 +61,13 @@ router.patch("/:id/prepare", authenticateToken, authorizeRoles("EMPLEADO", "ADMI
 router.patch("/:id/transition", authenticateToken, authorizeRoles("EMPLEADO", "ADMINISTRADOR"), orderController.transitionOrder);
 
 // Finalizar pedido tras pago (webhook/mock); el controller devuelve una promesa
-router.post("/:id/finalize", authenticateToken, async (req, res) => {
+router.post("/:id/finalize", authenticateToken, authorizeRoles("ADMINISTRADOR"), async (req, res) => {
   try {
+    const manualFinalizeEnabled = String(process.env.ENABLE_MANUAL_ORDER_FINALIZE || "").trim() === "1";
+    if (!manualFinalizeEnabled) {
+      return res.status(404).json({ message: "Ruta no disponible" });
+    }
+
     const result = await orderController.finalizeOrderOnPayment({
       orderId: +req.params.id,
       userId: req.user?.id_usuario || req.userId,

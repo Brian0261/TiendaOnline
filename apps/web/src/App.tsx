@@ -8,6 +8,7 @@ import { CheckoutPage } from "./pages/cart/CheckoutPage";
 import { AdminDashboardPage } from "./pages/dashboard/AdminDashboardPage";
 import { CustomerDashboardPage } from "./pages/dashboard/CustomerDashboardPage";
 import { EmployeeDashboardPage } from "./pages/dashboard/EmployeeDashboardPage";
+import { DeliveryDashboardPage } from "./pages/dashboard/DeliveryDashboardPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { RequireRole } from "./auth/RequireRole";
 import { RegisterPage } from "./pages/auth/RegisterPage.tsx";
@@ -59,6 +60,14 @@ function App() {
           element={
             <RequireRole role="EMPLEADO">
               <EmployeeDashboardPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/dashboard/delivery"
+          element={
+            <RequireRole role="REPARTIDOR">
+              <DeliveryDashboardPage />
             </RequireRole>
           }
         />

@@ -474,6 +474,20 @@ async function getCartItemsForOrderDraft(userId) {
   return itemsRes.rows || [];
 }
 
+async function getPaymentMethodIdByName(tipoMetodo) {
+  const pool = await poolPromise;
+  const { rows } = await pool.query(
+    `
+      SELECT id_metodo_pago
+      FROM metodos_de_pago
+      WHERE tipo_metodo = $1
+      LIMIT 1
+    `,
+    [tipoMetodo],
+  );
+  return rows?.[0]?.id_metodo_pago ? Number(rows[0].id_metodo_pago) : null;
+}
+
 async function getAvailableStockForProductTx(tx, productId) {
   const stockRes = await tx.query(
     `
@@ -1025,6 +1039,7 @@ module.exports = {
   listPendingOrdersForExport,
   listStatusLogForExport,
   getCartItemsForOrderDraft,
+  getPaymentMethodIdByName,
   createDraftOrderTx,
   ensureShippingCreatedTx,
   consumeReservationAndDecrementInventoryTx,

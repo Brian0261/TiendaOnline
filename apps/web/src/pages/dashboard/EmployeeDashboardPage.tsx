@@ -7,7 +7,7 @@ import { api } from "../../api/http";
 import { downloadApiFile } from "../../api/download";
 import { formatDateTime } from "../../shared/datetime";
 
-type Section = "pending" | "transitionable" | "status-log" | "inventory" | "dispatch";
+type Section = "pending" | "transitionable" | "status-log" | "inventory" | "dispatch" | "delivery";
 
 type EmployeeKpis = {
   pendientes: number;
@@ -60,6 +60,29 @@ type OutboundRow = {
   responsable: string | null;
 };
 
+type DeliveryQueueRow = {
+  id_pedido: number;
+  fecha_creacion: string;
+  estado_pedido: string;
+  direccion_envio: string;
+  total_pedido: number;
+  cliente: string;
+  telefono: string | null;
+  id_envio: number;
+  estado_envio: string | null;
+  id_motorizado: number | null;
+};
+
+type DeliveryRider = {
+  id_motorizado: number;
+  nombre: string;
+  apellido: string;
+  telefono: string;
+  licencia: string;
+  id_usuario: number | null;
+  email_usuario: string;
+};
+
 function getErrorMessage(err: unknown): string {
   if (!err) return "Ocurrió un error";
   const e = err as Partial<ApiError>;
@@ -110,6 +133,9 @@ export function EmployeeDashboardPage() {
     observacion: string;
     items: Array<{ id_inventario: string; cantidad: string }>;
   }>({ id_pedido: "", observacion: "", items: [{ id_inventario: "", cantidad: "" }] });
+
+  const [deliverySearch, setDeliverySearch] = useState("");
+  const [deliveryAssignedRiderByOrder, setDeliveryAssignedRiderByOrder] = useState<Record<number, string>>({});
 
   useEffect(() => {
     document.body.classList.add("d-flex");
@@ -193,6 +219,40 @@ export function EmployeeDashboardPage() {
     enabled: section === "dispatch" && !!dispatchApplied,
   });
 
+  const {
+    data: deliveryQueue,
+    isLoading: deliveryQueueLoading,
+    error: deliveryQueueError,
+  } = useQuery({
+    queryKey: ["employee", "delivery", "queue", deliverySearch],
+    queryFn: () => {
+      const q = new URLSearchParams();
+      if (deliverySearch.trim()) q.set("search", deliverySearch.trim());
+      return api.get<DeliveryQueueRow[]>(`/delivery/queue${q.toString() ? `?${q.toString()}` : ""}`);
+    },
+    enabled: section === "delivery",
+  });
+
+  const {
+    data: deliveryRiders,
+    isLoading: deliveryRidersLoading,
+    error: deliveryRidersError,
+  } = useQuery({
+    queryKey: ["employee", "delivery", "riders"],
+    queryFn: () => api.get<DeliveryRider[]>("/delivery/riders"),
+    enabled: section === "delivery",
+  });
+
+  const assignDelivery = useMutation({
+    mutationFn: (payload: { orderId: number; motorizadoId: number }) => api.patch<{ ok: boolean }>("/delivery/assign", payload),
+    onSuccess: async () => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["employee", "delivery", "queue"] }),
+        qc.invalidateQueries({ queryKey: ["orders", "transitionable"] }),
+      ]);
+    },
+  });
+
   const createDispatch = useMutation({
     mutationFn: (payload: { id_pedido: number | null; observacion: string; items: Array<{ id_inventario: number; cantidad: number }> }) =>
       api.post<{
@@ -239,12 +299,14 @@ export function EmployeeDashboardPage() {
     return section === "pending"
       ? "Pedidos pendientes"
       : section === "transitionable"
-      ? "Transiciones"
-      : section === "status-log"
-      ? "Historial de estados"
-      : section === "inventory"
-      ? "Inventario"
-      : "Despachos";
+        ? "Transiciones"
+        : section === "status-log"
+          ? "Historial de estados"
+          : section === "inventory"
+            ? "Inventario"
+            : section === "delivery"
+              ? "Asignación delivery"
+              : "Despachos";
   }, [section]);
 
   return (
@@ -292,6 +354,11 @@ export function EmployeeDashboardPage() {
               }}
             >
               <i className="fa-solid fa-truck"></i> Despachos
+            </button>
+          </li>
+          <li>
+            <button className={`nav-link ${section === "delivery" ? "active" : ""}`} onClick={() => setSection("delivery")}>
+              <i className="fa-solid fa-motorcycle"></i> Asignación delivery
             </button>
           </li>
           <li className="mt-auto">
@@ -374,9 +441,9 @@ export function EmployeeDashboardPage() {
               </button>
             ) : null}
 
-            <span className="badge bg-light text-dark">Pendientes: {kpisLoading ? "…" : kpis?.pendientes ?? "—"}</span>
-            <span className="badge bg-light text-dark">En camino: {kpisLoading ? "…" : kpis?.encamino ?? "—"}</span>
-            <span className="badge bg-light text-dark">Entregados hoy: {kpisLoading ? "…" : kpis?.entregadosHoy ?? "—"}</span>
+            <span className="badge bg-light text-dark">Pendientes: {kpisLoading ? "…" : (kpis?.pendientes ?? "—")}</span>
+            <span className="badge bg-light text-dark">En camino: {kpisLoading ? "…" : (kpis?.encamino ?? "—")}</span>
+            <span className="badge bg-light text-dark">Entregados hoy: {kpisLoading ? "…" : (kpis?.entregadosHoy ?? "—")}</span>
           </div>
         </div>
 
@@ -672,7 +739,7 @@ export function EmployeeDashboardPage() {
                           const items = dispatchCreateDraft.items
                             .map(it => ({ id_inventario: Number(it.id_inventario), cantidad: Number(it.cantidad) }))
                             .filter(
-                              it => Number.isFinite(it.id_inventario) && it.id_inventario > 0 && Number.isFinite(it.cantidad) && it.cantidad > 0
+                              it => Number.isFinite(it.id_inventario) && it.id_inventario > 0 && Number.isFinite(it.cantidad) && it.cantidad > 0,
                             );
 
                           if (items.length === 0) {
@@ -889,6 +956,124 @@ export function EmployeeDashboardPage() {
                           <td>{r.motivo || "—"}</td>
                           <td>{r.almacen || "—"}</td>
                           <td>{r.responsable || "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
+
+        {section === "delivery" ? (
+          <section className="card">
+            <div className="card-body">
+              <form
+                className="row g-2 align-items-end mb-3"
+                onSubmit={e => {
+                  e.preventDefault();
+                  qc.invalidateQueries({ queryKey: ["employee", "delivery", "queue"] });
+                }}
+              >
+                <div className="col-sm-8 col-md-4">
+                  <label className="form-label" htmlFor="emp-delivery-search">
+                    Buscar pedido
+                  </label>
+                  <input
+                    id="emp-delivery-search"
+                    type="search"
+                    className="form-control form-control-sm"
+                    placeholder="ID, cliente o dirección"
+                    value={deliverySearch}
+                    onChange={e => setDeliverySearch(e.target.value)}
+                  />
+                </div>
+                <div className="col-sm-4 col-md-2">
+                  <button type="submit" className="btn btn-sm btn-primary w-100">
+                    Buscar
+                  </button>
+                </div>
+              </form>
+
+              {deliveryQueueError ? <div className="alert alert-danger">{getErrorMessage(deliveryQueueError)}</div> : null}
+              {deliveryRidersError ? <div className="alert alert-danger">{getErrorMessage(deliveryRidersError)}</div> : null}
+              {assignDelivery.isError ? <div className="alert alert-danger">{getErrorMessage(assignDelivery.error)}</div> : null}
+
+              {deliveryQueueLoading || deliveryRidersLoading ? <div className="text-muted">Cargando...</div> : null}
+
+              {!deliveryQueueLoading && deliveryQueue && deliveryQueue.length === 0 ? (
+                <div className="alert alert-info mb-0">No hay pedidos listos para asignar.</div>
+              ) : null}
+
+              {!deliveryQueueLoading && deliveryQueue && deliveryQueue.length > 0 ? (
+                <div className="table-responsive">
+                  <table className="table table-hover align-middle mb-0">
+                    <thead>
+                      <tr>
+                        <th>Pedido</th>
+                        <th>Cliente</th>
+                        <th>Dirección</th>
+                        <th>Estado</th>
+                        <th style={{ minWidth: 280 }}>Asignación</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {deliveryQueue.map(row => (
+                        <tr key={row.id_pedido}>
+                          <td>
+                            <div className="fw-semibold">#{row.id_pedido}</div>
+                            <div className="small text-muted">
+                              {(() => {
+                                const dt = formatDateTime(row.fecha_creacion, "datetime");
+                                return dt ? `${dt.date} ${dt.time}` : "—";
+                              })()}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="fw-semibold">{row.cliente}</div>
+                            <div className="small text-muted">{row.telefono || "Sin teléfono"}</div>
+                          </td>
+                          <td className="text-truncate" style={{ maxWidth: 260 }} title={row.direccion_envio}>
+                            {row.direccion_envio}
+                          </td>
+                          <td>
+                            <span className="badge bg-secondary">{row.estado_pedido}</span>
+                          </td>
+                          <td>
+                            <div className="d-flex gap-2">
+                              <select
+                                className="form-select form-select-sm"
+                                value={deliveryAssignedRiderByOrder[row.id_pedido] || ""}
+                                onChange={e =>
+                                  setDeliveryAssignedRiderByOrder(prev => ({
+                                    ...prev,
+                                    [row.id_pedido]: e.target.value,
+                                  }))
+                                }
+                              >
+                                <option value="">Selecciona repartidor</option>
+                                {(deliveryRiders || []).map(r => (
+                                  <option key={r.id_motorizado} value={String(r.id_motorizado)}>
+                                    #{r.id_motorizado} · {r.nombre} {r.apellido}
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-primary"
+                                disabled={assignDelivery.isPending || !deliveryAssignedRiderByOrder[row.id_pedido]}
+                                onClick={() =>
+                                  assignDelivery.mutate({
+                                    orderId: row.id_pedido,
+                                    motorizadoId: Number(deliveryAssignedRiderByOrder[row.id_pedido]),
+                                  })
+                                }
+                              >
+                                {assignDelivery.isPending ? "Asignando..." : "Asignar"}
+                              </button>
+                            </div>
+                          </td>
                         </tr>
                       ))}
                     </tbody>

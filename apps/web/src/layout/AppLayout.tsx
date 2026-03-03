@@ -9,7 +9,7 @@ export function AppLayout() {
   const { pathname } = useLocation();
   const p = pathname.toLowerCase();
   const isBackofficeHost = typeof window !== "undefined" && window.location.hostname === "backoffice.minimarketexpress.shop";
-  const isStaffDashboard = p.startsWith("/dashboard/admin") || p.startsWith("/dashboard/employee");
+  const isStaffDashboard = p.startsWith("/dashboard/admin") || p.startsWith("/dashboard/employee") || p.startsWith("/dashboard/delivery");
   const isBackoffice = p.startsWith("/backoffice/");
   const isBackofficeLogin = isBackofficeHost && p === "/login";
   const hidePublicLayout = isStaffDashboard || isBackoffice || isBackofficeLogin;

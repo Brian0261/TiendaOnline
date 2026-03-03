@@ -129,7 +129,7 @@ const register = async (req, res) => {
 // ============== LOGIN ==============
 const login = loginWithAllowedRoles(null);
 const loginCustomer = loginWithAllowedRoles(["CLIENTE"]);
-const loginStaff = loginWithAllowedRoles(["EMPLEADO", "ADMINISTRADOR"]);
+const loginStaff = loginWithAllowedRoles(["EMPLEADO", "ADMINISTRADOR", "REPARTIDOR"]);
 
 // ============== REFRESH TOKEN ==============
 const refresh = async (req, res) => {
@@ -195,6 +195,7 @@ const getDashboardByRole = (req, res) => {
   const { rol } = req.user || {};
   if (rol === "ADMINISTRADOR") return res.redirect("/dashboard/admin.html");
   if (rol === "EMPLEADO") return res.redirect("/dashboard/employee.html");
+  if (rol === "REPARTIDOR") return res.redirect("/dashboard/delivery.html");
   return res.redirect("/dashboard/customer.html");
 };
 

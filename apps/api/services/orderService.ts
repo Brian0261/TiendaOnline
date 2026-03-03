@@ -347,12 +347,29 @@ async function createDraftOrder(userId, body) {
   const total = round2(subtotal + costoEnvio);
   const direccionEnvio = deliveryType === "DOMICILIO" ? address : "Recojo en tienda – Sede Central";
 
+  let effectivePaymentMethodId = Number(paymentMethodId || 0);
+  if (deliveryType === "DOMICILIO") {
+    const mercadoPagoMethodId = await orderRepository.getPaymentMethodIdByName("Mercado Pago");
+    if (!mercadoPagoMethodId) {
+      const err = new Error("Método de pago 'Mercado Pago' no está configurado");
+      (err as any).status = 500;
+      throw err;
+    }
+    effectivePaymentMethodId = mercadoPagoMethodId;
+  }
+
+  if (!Number.isInteger(effectivePaymentMethodId) || effectivePaymentMethodId <= 0) {
+    const err = new Error("Método de pago inválido");
+    (err as any).status = 400;
+    throw err;
+  }
+
   const { orderId } = await orderRepository.createDraftOrderTx({
     userId: effectiveUserId,
     total,
     costoEnvio,
     direccionEnvio,
-    paymentMethodId,
+    paymentMethodId: effectivePaymentMethodId,
     items,
   });
 
@@ -365,7 +382,7 @@ async function createDraftOrder(userId, body) {
       total: round2(total),
       receiptType,
       receiptData,
-      paymentMethodId,
+      paymentMethodId: effectivePaymentMethodId,
       checkoutToken: signGuestCheckoutToken(orderId),
     },
   };

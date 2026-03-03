@@ -1,4 +1,4 @@
-export type Role = "CLIENTE" | "EMPLEADO" | "ADMINISTRADOR";
+export type Role = "CLIENTE" | "EMPLEADO" | "ADMINISTRADOR" | "REPARTIDOR";
 
 export type AuthUser = {
   id_usuario?: number;

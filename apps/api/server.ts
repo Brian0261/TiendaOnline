@@ -30,7 +30,7 @@ app.use(
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
-  })
+  }),
 );
 
 /* ────────────────────────────
@@ -110,6 +110,7 @@ const configRoutes = require("./routes/configRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
 const diagnosticRoutes = require("./routes/diagnosticRoutes");
 const auditRoutes = require("./routes/auditRoutes");
+const deliveryRoutes = require("./routes/deliveryRoutes");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
@@ -124,6 +125,7 @@ app.use("/api/config", configRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/diag", diagnosticRoutes);
 app.use("/api/audit", auditRoutes);
+app.use("/api/delivery", deliveryRoutes);
 
 /* ────────────────────────────
    SSE: stream de cambios de pedidos

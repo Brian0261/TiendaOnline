@@ -7,6 +7,7 @@ function dashboardPath(rol: string | undefined): string {
     .trim()
     .toUpperCase();
   if (r === "ADMIN" || r === "ADMINISTRADOR") return "/dashboard/admin";
+  if (r === "REPARTIDOR" || r === "DELIVERY" || r === "RIDER") return "/dashboard/delivery";
   return "/dashboard/employee";
 }
 
@@ -27,7 +28,7 @@ export function BackofficeLoginPage() {
           </div>
           <h1 className="h4 mb-1 text-center">Portal interno</h1>
           <p className="text-center fw-semibold mb-2">Backoffice Minimarket Express</p>
-          <p className="text-muted text-center mb-4">Acceso exclusivo para empleados y administradores.</p>
+          <p className="text-muted text-center mb-4">Acceso exclusivo para empleados, repartidores y administradores.</p>
           <div className="alert alert-warning py-2 px-3 small" role="note">
             Uso exclusivo para personal autorizado. La actividad de acceso puede ser registrada por seguridad.
           </div>
