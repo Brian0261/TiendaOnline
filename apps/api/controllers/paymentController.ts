@@ -41,7 +41,9 @@ exports.mockConfirm = async (req, res) => {
 exports.initMercadoPago = async (req, res) => {
   try {
     const data = await paymentService.initMercadoPago({
+      userId: req.user?.id_usuario || req.userId || null,
       orderId: req.body?.orderId,
+      checkoutToken: req.body?.checkoutToken,
       receiptType: req.body?.receiptType,
       receiptData: req.body?.receiptData,
     });

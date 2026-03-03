@@ -2,9 +2,10 @@ const { poolPromise } = require("../config/db.config");
 
 async function getOrderPaymentInfo(orderId) {
   const pool = await poolPromise;
-  const orderRes = await pool.query("SELECT id_pedido, total_pedido FROM pedido WHERE id_pedido = $1 AND estado_pedido = 'PENDIENTE_PAGO'", [
-    orderId,
-  ]);
+  const orderRes = await pool.query(
+    "SELECT id_pedido, total_pedido, id_usuario FROM pedido WHERE id_pedido = $1 AND estado_pedido = 'PENDIENTE_PAGO'",
+    [orderId],
+  );
 
   return orderRes.rows?.[0] || null;
 }

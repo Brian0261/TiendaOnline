@@ -1,8 +1,93 @@
 const { poolPromise } = require("../config/db.config");
 const orderRepository = require("../repositories/orderRepository");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
+const { JWT_SECRET } = require("../config/auth.config");
 
 function round2(n) {
   return Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+}
+
+function normalizeText(value, fallback = "") {
+  const v = String(value == null ? "" : value).trim();
+  return v || fallback;
+}
+
+function buildItemsFromGuestPayload(rawItems) {
+  if (!Array.isArray(rawItems)) return [];
+  const items = [];
+  for (const it of rawItems) {
+    const productId = Number(it?.id_producto ?? it?.idProducto ?? it?.productId ?? it?.id);
+    const quantity = Number(it?.cantidad ?? it?.quantity ?? 0);
+    if (!Number.isInteger(productId) || productId <= 0) continue;
+    if (!Number.isFinite(quantity) || quantity <= 0) continue;
+    items.push({ id_producto: productId, cantidad: Math.floor(quantity) });
+  }
+  return items;
+}
+
+function mergeItemQuantities(items) {
+  const acc = new Map();
+  for (const it of items) {
+    const prev = acc.get(it.id_producto) || 0;
+    acc.set(it.id_producto, prev + Number(it.cantidad || 0));
+  }
+  return Array.from(acc.entries()).map(([id_producto, cantidad]) => ({ id_producto, cantidad }));
+}
+
+function signGuestCheckoutToken(orderId) {
+  return jwt.sign({ kind: "guest_checkout", orderId: Number(orderId) }, JWT_SECRET, { expiresIn: "30m" });
+}
+
+async function ensureGuestUserId(receiptData: any = {}) {
+  const pool = await poolPromise;
+  const name = normalizeText(receiptData?.nombre, "Cliente");
+  const lastName = normalizeText(receiptData?.apellido, "Invitado");
+  const random = `${Date.now()}${Math.floor(Math.random() * 100000)}`;
+  const email = `guest+${random}@minimarketexpress.local`;
+  const passwordHash = await bcrypt.hash(crypto.randomBytes(16).toString("hex"), 10);
+
+  const rs = await pool.query(
+    `
+      INSERT INTO usuario (nombre, apellido, email, contrasena, rol, email_verificado, email_verificado_en)
+      VALUES ($1, $2, $3, $4, 'CLIENTE', TRUE, NOW())
+      RETURNING id_usuario
+    `,
+    [name, lastName, email, passwordHash],
+  );
+
+  return Number(rs.rows?.[0]?.id_usuario || 0);
+}
+
+async function hydrateGuestItems(guestItems) {
+  const merged = mergeItemQuantities(buildItemsFromGuestPayload(guestItems));
+  if (!merged.length) return [];
+
+  const ids = merged.map(it => it.id_producto);
+  const pool = await poolPromise;
+  const rs = await pool.query(
+    `
+      SELECT id_producto, nombre_producto, precio
+      FROM producto
+      WHERE id_producto = ANY($1) AND activo = TRUE
+    `,
+    [ids],
+  );
+
+  const byId = new Map<number, any>((rs.rows || []).map((r: any) => [Number(r.id_producto), r]));
+  return merged
+    .map(it => {
+      const product = byId.get(Number(it.id_producto));
+      if (!product) return null;
+      return {
+        id_producto: Number(product.id_producto),
+        cantidad: Number(it.cantidad),
+        precio: Number(product.precio || 0),
+        nombre_producto: String(product.nombre_producto || ""),
+      };
+    })
+    .filter(Boolean);
 }
 
 // Mapa de transiciones válidas
@@ -247,7 +332,10 @@ async function createDraftOrder(userId, body) {
     paymentMethodId = 4,
   } = body || {};
 
-  const items = await orderRepository.getCartItemsForOrderDraft(userId);
+  const isGuest = !userId;
+  const effectiveUserId = isGuest ? await ensureGuestUserId(receiptData) : Number(userId);
+
+  const items = isGuest ? await hydrateGuestItems(body?.items) : await orderRepository.getCartItemsForOrderDraft(effectiveUserId);
   if (!items.length) {
     const err = new Error("Tu carrito está vacío");
     (err as any).status = 400;
@@ -260,7 +348,7 @@ async function createDraftOrder(userId, body) {
   const direccionEnvio = deliveryType === "DOMICILIO" ? address : "Recojo en tienda – Sede Central";
 
   const { orderId } = await orderRepository.createDraftOrderTx({
-    userId,
+    userId: effectiveUserId,
     total,
     costoEnvio,
     direccionEnvio,
@@ -278,6 +366,7 @@ async function createDraftOrder(userId, body) {
       receiptType,
       receiptData,
       paymentMethodId,
+      checkoutToken: signGuestCheckoutToken(orderId),
     },
   };
 }

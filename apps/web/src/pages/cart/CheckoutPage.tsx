@@ -24,6 +24,7 @@ type DraftOrderResponse = {
   subtotal: number;
   shipping: number;
   total: number;
+  checkoutToken?: string;
   receiptType?: "BOLETA" | "FACTURA";
   receiptData?: Record<string, unknown>;
   paymentMethodId?: number;
@@ -376,10 +377,6 @@ export function CheckoutPage() {
   async function onPay() {
     setAlert(null);
 
-    if (!isAuthenticated) {
-      setAlert({ variant: "warning", text: "Debes iniciar sesión para finalizar tu compra." });
-      return;
-    }
     if (isCartEmpty) {
       setAlert({ variant: "warning", text: "Tu carrito está vacío." });
       return;
@@ -409,11 +406,13 @@ export function CheckoutPage() {
         receiptType,
         receiptData,
         paymentMethodId,
+        items: cartItems.map(it => ({ id_producto: it.product.id, cantidad: Number(it.quantity ?? 0) })),
       });
 
       // Mercado Pago real (Checkout Pro)
       const init = await api.post<IzipayInitResponse>("/payment/mercadopago/init", {
         orderId: order.orderId,
+        checkoutToken: order.checkoutToken,
         receiptType,
         receiptData,
       });
@@ -468,8 +467,8 @@ export function CheckoutPage() {
       {alert ? <div className={`alert alert-${alert.variant}`}>{alert.text}</div> : null}
 
       {!isAuthenticated && step !== 3 ? (
-        <div className="alert alert-warning">
-          Debes <Link to="?login=1">iniciar sesión</Link> para finalizar la compra.
+        <div className="alert alert-info">
+          Puedes finalizar tu compra como invitado. Si prefieres, también puedes <Link to="?login=1">iniciar sesión</Link>.
         </div>
       ) : null}
 

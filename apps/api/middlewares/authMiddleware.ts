@@ -25,6 +25,32 @@ const authenticateToken = (req, res, next) => {
 };
 
 /**
+ * Intenta autenticar si llega token; si no llega, continúa como invitado.
+ */
+const optionalAuthenticateToken = (req, _res, next) => {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+
+  if (!token) {
+    req.user = null;
+    req.userId = null;
+    return next();
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, userData) => {
+    if (err) {
+      req.user = null;
+      req.userId = null;
+      return next();
+    }
+
+    req.user = userData;
+    req.userId = userData.id_usuario;
+    return next();
+  });
+};
+
+/**
  * Restringe la ruta a los roles indicados.
  * Uso: authorizeRoles("ADMINISTRADOR", "EMPLEADO")
  */
@@ -39,6 +65,7 @@ const authorizeRoles = (...roles) => {
 
 module.exports = {
   authenticateToken,
+  optionalAuthenticateToken,
   authorizeRoles,
 };
 

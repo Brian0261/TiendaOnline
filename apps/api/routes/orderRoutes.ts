@@ -1,7 +1,7 @@
 // backend/routes/orderRoutes.js
 
 const express = require("express");
-const { authenticateToken, authorizeRoles } = require("../middlewares/authMiddleware");
+const { authenticateToken, optionalAuthenticateToken, authorizeRoles } = require("../middlewares/authMiddleware");
 const orderController = require("../controllers/orderController");
 
 const router = express.Router();
@@ -19,7 +19,7 @@ router.get("/my", authenticateToken, orderController.getMyOrders);
 
 // Crear pedido (borrador) desde el carrito del usuario
 // Body: { deliveryType, address, shippingCost, receiptType, receiptData, paymentMethodId }
-router.post("/", authenticateToken, orderController.createDraftOrder);
+router.post("/", optionalAuthenticateToken, orderController.createDraftOrder);
 
 // Cancelar pedido no pagado (cliente/admin)
 router.patch("/:id/cancel", authenticateToken, orderController.cancelDraftOrder);

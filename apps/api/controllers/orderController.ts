@@ -201,8 +201,7 @@ exports.exportStatusLog = async (req, res) => {
  */
 // === POST /api/orders  (crea pedido en estado PENDIENTE a partir del CARRITO) ===
 exports.createDraftOrder = async (req, res) => {
-  const userId = req.user?.id_usuario || req.userId;
-  if (!userId) return res.status(401).json({ message: "No autenticado" });
+  const userId = req.user?.id_usuario || req.userId || null;
 
   try {
     const { status, body } = await orderService.createDraftOrder(userId, req.body);

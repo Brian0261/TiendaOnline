@@ -1,5 +1,7 @@
 const paymentRepository = require("../repositories/paymentRepository");
 const orderService = require("./orderService");
+const jwt = require("jsonwebtoken");
+const { JWT_SECRET } = require("../config/auth.config");
 
 const MP_PROVIDER = "mercadopago";
 
@@ -205,7 +207,7 @@ async function initIzipay({ orderId, method }) {
   return { mode: "mock", orderId: order.id_pedido, total: order.total_pedido, method: method || "TARJETA" };
 }
 
-async function initMercadoPago({ orderId, receiptType, receiptData }) {
+async function initMercadoPago({ userId, orderId, checkoutToken, receiptType, receiptData }) {
   assertRealGatewayConfig();
 
   if (!orderId) {
@@ -215,6 +217,38 @@ async function initMercadoPago({ orderId, receiptType, receiptData }) {
   }
 
   const order = await paymentRepository.getOrderPaymentInfo(orderId);
+  const numericOrderId = Number(orderId);
+  const requesterUserId = Number(userId || 0);
+
+  if (requesterUserId > 0) {
+    if (Number(order.id_usuario) !== requesterUserId) {
+      const err: any = new Error("No autorizado para iniciar pago de este pedido");
+      err.status = 403;
+      throw err;
+    }
+  } else {
+    if (!checkoutToken) {
+      const err: any = new Error("Se requiere token de checkout para pago invitado");
+      err.status = 401;
+      throw err;
+    }
+
+    let payload: any;
+    try {
+      payload = jwt.verify(String(checkoutToken), JWT_SECRET);
+    } catch {
+      const err: any = new Error("Token de checkout inválido o expirado");
+      err.status = 401;
+      throw err;
+    }
+
+    if (payload?.kind !== "guest_checkout" || Number(payload?.orderId) !== numericOrderId) {
+      const err: any = new Error("Token de checkout no corresponde al pedido");
+      err.status = 401;
+      throw err;
+    }
+  }
+
   if (!order) {
     const err: any = new Error("Pedido no encontrado o no está en PENDIENTE_PAGO");
     err.status = 404;
