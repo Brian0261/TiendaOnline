@@ -59,7 +59,7 @@ export function LoginModal({ open, onClose, onLoggedIn }: LoginModalProps) {
               />
 
               <div className="mt-2 small text-muted">
-                ¿Eres empleado o administrador? <a href="https://backoffice.minimarketexpress.shop/login">Ingresa al portal interno</a>
+                ¿Eres empleado o administrador? <a href="https://backoffice.minimarketexpress.shop/backoffice/login">Ingresa al portal interno</a>
               </div>
 
               <div className="mt-3">
