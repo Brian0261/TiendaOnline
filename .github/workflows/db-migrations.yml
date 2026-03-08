@@ -81,11 +81,14 @@ jobs:
         with:
           version: latest
 
+      - name: Login to Supabase
+        run: echo "$SUPABASE_ACCESS_TOKEN" | supabase login --no-browser
+
       - name: Link staging project
-        run: supabase link --token "$SUPABASE_ACCESS_TOKEN" --project-ref "$SUPABASE_PROJECT_REF"
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
 
       - name: Apply migrations to staging
-        run: supabase db push --token "$SUPABASE_ACCESS_TOKEN" --linked --password "$SUPABASE_DB_PASSWORD"
+        run: supabase db push --linked --password "$SUPABASE_DB_PASSWORD"
 
   apply-manual:
     if: github.event_name == 'workflow_dispatch'
@@ -105,6 +108,9 @@ jobs:
         with:
           version: latest
 
+      - name: Login to Supabase
+        run: echo "$SUPABASE_ACCESS_TOKEN" | supabase login --no-browser
+
       - name: Select environment variables
         id: envvars
         shell: bash
@@ -118,7 +124,7 @@ jobs:
           fi
 
       - name: Link target project
-        run: supabase link --token "$SUPABASE_ACCESS_TOKEN" --project-ref "${{ steps.envvars.outputs.project_ref }}"
+        run: supabase link --project-ref "${{ steps.envvars.outputs.project_ref }}"
 
       - name: Apply migrations
-        run: supabase db push --token "$SUPABASE_ACCESS_TOKEN" --linked --password "${{ steps.envvars.outputs.db_password }}"
+        run: supabase db push --linked --password "${{ steps.envvars.outputs.db_password }}"
