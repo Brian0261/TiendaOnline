@@ -36,15 +36,15 @@ async function connectWithRetry(retries = 15, delayMs = 3000) {
       await new Promise(r => setTimeout(r, delayMs));
     }
   }
-  console.warn("⚠️ No se pudo conectar a PostgreSQL en el arranque.");
-  return null;
+  // Evita dejar la app con pool nulo: el driver puede reconectar en consultas posteriores.
+  console.warn("⚠️ No se pudo conectar a PostgreSQL en el arranque. Se continuará y se reintentará en runtime.");
+  return pool;
 }
 
 const poolPromise = connectWithRetry();
 
 async function getPool() {
   const readyPool = await poolPromise;
-  if (!readyPool) throw new Error("Pool no inicializado");
   return readyPool;
 }
 
