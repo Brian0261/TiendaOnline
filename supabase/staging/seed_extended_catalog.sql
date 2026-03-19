@@ -54,7 +54,8 @@ WITH product_seed(nombre_producto, descripcion, precio, imagen, categoria, marca
     ('Pan Carioca 400g', 'Pan carioca en bolsa', 6.50, '/api/uploads/images/pan-carioca-la-florencia-400g.webp', 'Panadería', 'La Florencia', 60),
     ('Pan de Molde Blanco 500g', 'Pan de molde blanco', 7.50, '/api/uploads/images/pan-molde-blanco-la-florencia-500g.webp', 'Panadería', 'La Florencia', 45),
     ('Pan de Molde Bimbo XL 770g', 'Pan de molde XL 770 g', 12.90, '/api/uploads/images/pan-molde-blanco-bimbo-xl-770g.webp', 'Panadería', 'Bimbo', 80),
-    ('Piqueo Snax 110g', 'Snack sabor original', 6.90, '/api/uploads/images/piqueo-snax-original-110g.webp', 'Snacks', 'Snax', 75)
+    ('Piqueo Snax 110g', 'Snack sabor original', 6.90, '/api/uploads/images/piqueo-snax-original-110g.webp', 'Snacks', 'Snax', 75),
+    ('Condimento SIBARITA Palillo amarillito Sobre 32.4Gr', 'Condimento SIBARITA Palillo amarillito Sobre 32.4Gr', 1.00, '/api/uploads/images/sibarita_palillo_amarillito_32.4g.webp', 'Abarrotes', 'Alicorp', 100)
 ),
 inserted AS (
   INSERT INTO producto (nombre_producto, descripcion, precio, imagen, id_categoria, id_marca)
@@ -100,7 +101,8 @@ WITH product_seed(nombre_producto, stock) AS (
     ('Pan Carioca 400g', 60),
     ('Pan de Molde Blanco 500g', 45),
     ('Pan de Molde Bimbo XL 770g', 80),
-    ('Piqueo Snax 110g', 75)
+    ('Piqueo Snax 110g', 75),
+    ('Condimento SIBARITA Palillo amarillito Sobre 32.4Gr', 100)
 ),
 central_warehouse AS (
   SELECT id_almacen

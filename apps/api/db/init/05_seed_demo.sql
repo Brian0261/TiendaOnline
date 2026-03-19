@@ -64,7 +64,8 @@ INSERT INTO producto (nombre_producto, descripcion, precio, imagen, id_categoria
 ('Pan Carioca La Florencia 400 g', 'Pan carioca en bolsa 400 g', 6.50, '/api/uploads/images/pan-carioca-la-florencia-400g.webp', 7, 14),
 ('Pan de Molde Blanco La Florencia 500 g', 'Pan de molde blanco 500 g', 7.50, '/api/uploads/images/pan-molde-blanco-la-florencia-500g.webp', 7, 14),
 ('Pan de Molde Blanco XL Bimbo 770 g', 'Pan de molde blanco XL 770 g', 12.90, '/api/uploads/images/pan-molde-blanco-bimbo-xl-770g.webp', 7, 15),
-('Piqueo Snax Original 110 g', 'Snack piqueo sabor original 110 g', 6.90, '/api/uploads/images/piqueo-snax-original-110g.webp', 9, 9);
+('Piqueo Snax Original 110 g', 'Snack piqueo sabor original 110 g', 6.90, '/api/uploads/images/piqueo-snax-original-110g.webp', 9, 9),
+('Condimento SIBARITA Palillo amarillito Sobre 32.4Gr', 'Condimento SIBARITA Palillo amarillito Sobre 32.4Gr', 1.00, '/api/uploads/images/sibarita_palillo_amarillito_32.4g.webp', 1, 4);
 
 -- INVENTARIO
 INSERT INTO inventario (cantidad_disponible, id_producto, id_almacen) VALUES
@@ -87,7 +88,8 @@ INSERT INTO inventario (cantidad_disponible, id_producto, id_almacen) VALUES
 (60, 17, 1),
 (45, 18, 1),
 (80, 19, 1),
-(75, 20, 1);
+(75, 20, 1),
+(100, 21, 1);
 
 -- ENTRADA_INVENTARIO
 INSERT INTO entrada_inventario (cantidad_recibida, fecha_entrada, motivo_entrada, id_inventario) VALUES
