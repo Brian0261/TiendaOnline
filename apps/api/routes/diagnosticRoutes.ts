@@ -15,7 +15,7 @@ router.get("/dbping", async (_req, res) => {
   const t0 = Date.now();
   try {
     const pool = await getPool();
-    await pool.query("SET statement_timeout = $1", [REQ_TIMEOUT]);
+    await pool.query("SELECT set_config('statement_timeout', $1, false)", [String(REQ_TIMEOUT)]);
     const r = await pool.query("SELECT 1 AS uno");
     const ms = Date.now() - t0;
     return res.json({ ok: true, alive: true, ms, result: r.rows });
@@ -31,7 +31,7 @@ router.get("/fingerprint", async (_req, res) => {
   const t0 = Date.now();
   try {
     const pool = await getPool();
-    await pool.query("SET statement_timeout = $1", [REQ_TIMEOUT]);
+    await pool.query("SELECT set_config('statement_timeout', $1, false)", [String(REQ_TIMEOUT)]);
 
     const coreTables = [
       "usuario",
