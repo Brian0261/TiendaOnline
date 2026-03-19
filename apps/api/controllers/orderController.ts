@@ -146,8 +146,21 @@ exports.transitionOrder = async (req, res) => {
 // GET /orders/status-log?limit=20
 exports.getStatusLog = async (req, res) => {
   try {
-    const limit = Math.min(Number(req.query.limit) || 20, 100);
-    const data = await orderService.getStatusLog(limit);
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const pageSize = Math.min(Math.max(Number(req.query.pageSize) || Number(req.query.limit) || 20, 1), 100);
+    const idPedido = req.query.idPedido ? Number(req.query.idPedido) : null;
+    const evento = String(req.query.evento || "").trim();
+    const fechaInicio = String(req.query.fechaInicio || "").trim();
+    const fechaFin = String(req.query.fechaFin || "").trim();
+
+    const data = await orderService.getStatusLog({
+      page,
+      pageSize,
+      idPedido,
+      evento,
+      fechaInicio,
+      fechaFin,
+    });
     res.json(data);
   } catch (err) {
     console.error("getStatusLog:", err);
@@ -183,8 +196,19 @@ exports.exportPendingOrders = async (req, res) => {
 // Exporta CSV del HISTORIAL DE ESTADOS (empleado)
 exports.exportStatusLog = async (req, res) => {
   try {
-    const limit = Math.min(Number(req.query.limit) || 200, 1000);
-    const { filename, csv } = await orderService.exportStatusLogCsv(limit);
+    const limit = Math.min(Math.max(Number(req.query.limit) || 5000, 1), 10000);
+    const idPedido = req.query.idPedido ? Number(req.query.idPedido) : null;
+    const evento = String(req.query.evento || "").trim();
+    const fechaInicio = String(req.query.fechaInicio || "").trim();
+    const fechaFin = String(req.query.fechaFin || "").trim();
+
+    const { filename, csv } = await orderService.exportStatusLogCsv({
+      limit,
+      idPedido,
+      evento,
+      fechaInicio,
+      fechaFin,
+    });
     res.header("Content-Type", "text/csv");
     res.attachment(filename);
     return res.send(csv);
@@ -201,10 +225,10 @@ exports.exportStatusLog = async (req, res) => {
  */
 // === POST /api/orders  (crea pedido en estado PENDIENTE a partir del CARRITO) ===
 exports.createDraftOrder = async (req, res) => {
-  const userId = req.user?.id_usuario || req.userId || null;
+  const requester = req.user || null;
 
   try {
-    const { status, body } = await orderService.createDraftOrder(userId, req.body);
+    const { status, body } = await orderService.createDraftOrder(requester, req.body);
     return res.status(status).json(body);
   } catch (err) {
     console.error("createDraftOrder error:", err);

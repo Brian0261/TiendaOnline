@@ -5,7 +5,13 @@ const { createDispatch, listOutbound, exportOutbound } = require("../controllers
 
 const router = express.Router();
 
-router.post("/", authenticateToken, authorizeRoles("EMPLEADO", "ADMINISTRADOR"), createDispatch);
+const allowAdminDispatchCreate =
+  String(process.env.DISPATCH_ADMIN_CONTINGENCY || "")
+    .trim()
+    .toLowerCase() === "1";
+const dispatchCreateRoles = allowAdminDispatchCreate ? ["EMPLEADO", "ADMINISTRADOR"] : ["EMPLEADO"];
+
+router.post("/", authenticateToken, authorizeRoles(...dispatchCreateRoles), createDispatch);
 router.get("/outbound", authenticateToken, authorizeRoles("EMPLEADO", "ADMINISTRADOR"), listOutbound);
 router.get("/outbound/export", authenticateToken, authorizeRoles("EMPLEADO", "ADMINISTRADOR"), exportOutbound);
 

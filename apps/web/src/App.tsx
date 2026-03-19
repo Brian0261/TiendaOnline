@@ -17,16 +17,17 @@ import { ResetPasswordPage } from "./pages/auth/ResetPasswordPage";
 import { VerifyEmailPage } from "./pages/auth/VerifyEmailPage";
 import { BackofficeLoginPage } from "./pages/auth/BackofficeLoginPage";
 import { AppLayout } from "./layout/AppLayout";
+import { isBackofficeHost } from "./utils/host";
 
 function App() {
-  const isBackofficeHost = typeof window !== "undefined" && window.location.hostname === "backoffice.minimarketexpress.shop";
+  const isInternalHost = isBackofficeHost();
 
   return (
     <Routes>
       <Route element={<AppLayout />}>
         <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={isBackofficeHost ? <BackofficeLoginPage /> : <Navigate to="/?login=1" replace />} />
-        <Route path="/backoffice/login" element={isBackofficeHost ? <Navigate to="/login" replace /> : <BackofficeLoginPage />} />
+        <Route path="/login" element={isInternalHost ? <BackofficeLoginPage /> : <Navigate to="/?login=1" replace />} />
+        <Route path="/backoffice/login" element={isInternalHost ? <Navigate to="/login" replace /> : <BackofficeLoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />

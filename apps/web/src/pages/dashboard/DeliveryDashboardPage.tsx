@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/http";
@@ -26,15 +26,27 @@ function getErrorMessage(e: unknown, fallback = "Ocurrió un error") {
   return typeof msg === "string" && msg.trim() ? msg : fallback;
 }
 
+function formatShipmentStateLabel(value: string | null | undefined): string {
+  const raw = String(value || "")
+    .trim()
+    .toUpperCase();
+  if (!raw) return "—";
+  if (raw === "EN_RUTA") return "EN CAMINO";
+  if (raw === "NO_ENTREGADO") return "NO ENTREGADO";
+  return raw.replace(/_/g, " ");
+}
+
 export function DeliveryDashboardPage() {
   const nav = useNavigate();
   const qc = useQueryClient();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  const deliveryDisplayName = `${user?.nombre ?? ""} ${user?.apellido ?? ""}`.trim() || "Usuario";
 
   const [estadoFilter, setEstadoFilter] = useState<string>("");
   const [incidenceReasonByOrder, setIncidenceReasonByOrder] = useState<Record<number, string>>({});
   const [receiverByOrder, setReceiverByOrder] = useState<Record<number, string>>({});
   const [dniByOrder, setDniByOrder] = useState<Record<number, string>>({});
+  const [observationByOrder, setObservationByOrder] = useState<Record<number, string>>({});
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["delivery", "my-shipments", estadoFilter],
@@ -46,6 +58,15 @@ export function DeliveryDashboardPage() {
     },
   });
 
+  useEffect(() => {
+    if (!error || typeof error !== "object") return;
+    const status = (error as { status?: unknown }).status;
+    if (status === 401 || status === 403) {
+      logout();
+      nav("/backoffice/login", { replace: true });
+    }
+  }, [error, logout, nav]);
+
   const startRoute = useMutation({
     mutationFn: (orderId: number) => api.patch(`/delivery/${orderId}/start-route`),
     onSuccess: async () => {
@@ -54,10 +75,11 @@ export function DeliveryDashboardPage() {
   });
 
   const deliver = useMutation({
-    mutationFn: (input: { orderId: number; nombreReceptor: string; dniReceptor?: string }) =>
+    mutationFn: (input: { orderId: number; nombreReceptor: string; dniReceptor?: string; observacion?: string }) =>
       api.patch(`/delivery/${input.orderId}/deliver`, {
         nombre_receptor: input.nombreReceptor,
         dni_receptor: input.dniReceptor || undefined,
+        observacion: input.observacion || undefined,
       }),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["delivery", "my-shipments"] });
@@ -78,10 +100,13 @@ export function DeliveryDashboardPage() {
       <aside id="sidebar" className="d-flex flex-column flex-shrink-0 p-3">
         <div className="text-center mb-4">
           <img src="/assets/images/logo-bodega.png" alt="logo" className="rounded-circle mb-2" width={80} height={80} />
-          <h5 className="m-0 fw-semibold">Repartidor</h5>
+          <h5 className="m-0 fw-semibold text-truncate" title={deliveryDisplayName}>
+            {deliveryDisplayName}
+          </h5>
+          <div className="small text-muted">Repartidor</div>
         </div>
 
-        <div className="menu-title">Panel Delivery</div>
+        <div className="menu-title">Panel Reparto</div>
 
         <div className="mt-auto">
           <button
@@ -117,9 +142,9 @@ export function DeliveryDashboardPage() {
             >
               <option value="">Todos</option>
               <option value="ASIGNADO">ASIGNADO</option>
-              <option value="EN_RUTA">EN_RUTA</option>
+              <option value="EN_RUTA">EN CAMINO</option>
               <option value="ENTREGADO">ENTREGADO</option>
-              <option value="NO_ENTREGADO">NO_ENTREGADO</option>
+              <option value="NO_ENTREGADO">NO ENTREGADO</option>
             </select>
           </div>
         </div>
@@ -165,7 +190,7 @@ export function DeliveryDashboardPage() {
                       {s.direccion_envio}
                     </td>
                     <td>
-                      <span className="badge bg-secondary">{s.estado_envio || s.estado_pedido}</span>
+                      <span className="badge bg-secondary">{formatShipmentStateLabel(s.estado_envio || s.estado_pedido)}</span>
                     </td>
                     <td>
                       <div className="d-flex flex-column gap-2">
@@ -205,11 +230,23 @@ export function DeliveryDashboardPage() {
                                   orderId: s.id_pedido,
                                   nombreReceptor: (receiverByOrder[s.id_pedido] || "").trim(),
                                   dniReceptor: (dniByOrder[s.id_pedido] || "").trim(),
+                                  observacion: (observationByOrder[s.id_pedido] || "").trim(),
                                 })
                               }
                             >
                               {deliver.isPending ? "Guardando..." : "Marcar entregado"}
                             </button>
+                          </div>
+                        </div>
+
+                        <div className="row g-2">
+                          <div className="col-12">
+                            <input
+                              className="form-control form-control-sm"
+                              placeholder="Observación de entrega (opcional)"
+                              value={observationByOrder[s.id_pedido] || ""}
+                              onChange={e => setObservationByOrder(prev => ({ ...prev, [s.id_pedido]: e.target.value }))}
+                            />
                           </div>
                         </div>
 

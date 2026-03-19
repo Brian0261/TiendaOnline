@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/http";
 import type { AuthUser, Role } from "./types";
@@ -57,12 +57,49 @@ type RegisterResponse = {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const qc = useQueryClient();
+  const normalizeAuthUser = useCallback((value: AuthUser | null): AuthUser | null => {
+    if (!value) return null;
+    return { ...value, rol: normalizeRole(value.rol) };
+  }, []);
+
   const [token, setToken] = useState<string | null>(() => readToken());
-  const [user, setUser] = useState<AuthUser | null>(() => {
-    const u = readUser();
-    if (!u) return null;
-    return { ...u, rol: normalizeRole(u.rol) };
-  });
+  const [user, setUser] = useState<AuthUser | null>(() => normalizeAuthUser(readUser()));
+
+  const syncAuthFromStorage = useCallback(() => {
+    const nextToken = readToken();
+    const nextUser = normalizeAuthUser(readUser());
+
+    setToken(prev => (prev === nextToken ? prev : nextToken));
+    setUser(prev => {
+      const prevSnapshot = prev ? JSON.stringify(prev) : "";
+      const nextSnapshot = nextUser ? JSON.stringify(nextUser) : "";
+      return prevSnapshot === nextSnapshot ? prev : nextUser;
+    });
+  }, [normalizeAuthUser]);
+
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (!event.key || ["auth_token", "token", "auth_user", "user"].includes(event.key)) {
+        syncAuthFromStorage();
+      }
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        syncAuthFromStorage();
+      }
+    };
+
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("focus", syncAuthFromStorage);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("focus", syncAuthFromStorage);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [syncAuthFromStorage]);
 
   const logout = useCallback(() => {
     const tokenSnapshot = token || readToken();
@@ -107,7 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       writeUser({ ...res.user, rol: normalizeRole(res.user.rol) });
 
       setToken(res.token);
-      setUser({ ...res.user, rol: normalizeRole(res.user.rol) });
+      setUser(normalizeAuthUser(res.user));
 
       // Si había carrito invitado, lo subimos al carrito del usuario.
       try {
@@ -121,7 +158,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return res.user;
     },
-    [qc],
+    [normalizeAuthUser, qc],
   );
 
   const register = useCallback(async (input: RegisterInput) => {

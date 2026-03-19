@@ -19,14 +19,78 @@ function toUpper(v) {
     .toUpperCase();
 }
 
+let schemaValidatedAt = 0;
+let schemaValidationCacheOk = false;
+
+async function ensureDeliverySchema(pool) {
+  const now = Date.now();
+  const cacheWindowMs = 60_000;
+
+  if (schemaValidationCacheOk && now - schemaValidatedAt < cacheWindowMs) {
+    return;
+  }
+
+  const health = await deliveryRepository.getDeliverySchemaHealth(pool);
+  if (!health.ok) {
+    const detail = [...(health.missingColumns || []).map(v => `columna:${v}`), ...(health.missingTables || []).map(v => `tabla:${v}`)];
+    throw createHttpError(
+      503,
+      "El módulo de delivery no está habilitado en esta base de datos. Ejecuta la migración 202603030001_delivery_v2.sql.",
+      detail.join(", "),
+    );
+  }
+
+  schemaValidationCacheOk = true;
+  schemaValidatedAt = now;
+}
+
 async function listRiders() {
   const pool = await deliveryRepository.getPool();
+  await ensureDeliverySchema(pool);
   return deliveryRepository.listRiders(pool);
 }
 
 async function listAssignableShipments({ search = "", limit = 100 }) {
   const pool = await deliveryRepository.getPool();
+  await ensureDeliverySchema(pool);
   return deliveryRepository.listAssignableShipments(pool, { search, limit });
+}
+
+async function resolveMotorizadoForUser(pool, userId) {
+  const normalizedUserId = Number(userId);
+  const currentLink = await deliveryRepository.getMotorizadoByUserId(pool, normalizedUserId);
+  if (currentLink) return currentLink;
+
+  const riderUser = await deliveryRepository.getRiderUserById(pool, normalizedUserId);
+  if (!riderUser) return null;
+  if (toUpper(riderUser.rol) !== "REPARTIDOR") return null;
+  if (toUpper(riderUser.estado || "ACTIVO") !== "ACTIVO") return null;
+
+  const orphan = await deliveryRepository.findOrphanMotorizadoCandidate(pool, {
+    nombre: riderUser.nombre,
+    apellido: riderUser.apellido,
+    telefono: riderUser.telefono || "",
+  });
+  if (!orphan?.id_motorizado) return null;
+
+  const tx = await pool.connect();
+  try {
+    await tx.query("BEGIN");
+    await deliveryRepository.relinkMotorizadoToUserTx(tx, {
+      id_motorizado: orphan.id_motorizado,
+      id_usuario: normalizedUserId,
+    });
+    await tx.query("COMMIT");
+  } catch (err) {
+    try {
+      await tx.query("ROLLBACK");
+    } catch {}
+    throw err;
+  } finally {
+    tx.release();
+  }
+
+  return deliveryRepository.getMotorizadoByUserId(pool, normalizedUserId);
 }
 
 async function listMyShipments({ userId, estado = "" }) {
@@ -35,10 +99,24 @@ async function listMyShipments({ userId, estado = "" }) {
   }
 
   const pool = await deliveryRepository.getPool();
-  const motorizado = await deliveryRepository.getMotorizadoByUserId(pool, Number(userId));
+  await ensureDeliverySchema(pool);
+  const motorizado = await resolveMotorizadoForUser(pool, Number(userId));
   if (!motorizado) throw createHttpError(403, "Tu usuario no está vinculado a un motorizado");
 
   return deliveryRepository.listMyShipments(pool, { userId: Number(userId), estado });
+}
+
+async function getDeliveryDetail({ orderId }) {
+  const idPedido = Number(orderId);
+  if (!Number.isInteger(idPedido) || idPedido <= 0) {
+    throw createHttpError(400, "orderId inválido");
+  }
+
+  const pool = await deliveryRepository.getPool();
+  await ensureDeliverySchema(pool);
+  const detail = await deliveryRepository.getDeliveryDetailByOrderId(pool, idPedido);
+  if (!detail) throw createHttpError(404, "Pedido no encontrado");
+  return detail;
 }
 
 async function assignShipment({ orderId, motorizadoId, assignedBy }) {
@@ -50,6 +128,10 @@ async function assignShipment({ orderId, motorizadoId, assignedBy }) {
   if (!Number.isInteger(idMotorizado) || idMotorizado <= 0) throw createHttpError(400, "motorizadoId inválido");
 
   const pool = await deliveryRepository.getPool();
+  await ensureDeliverySchema(pool);
+  const rider = await deliveryRepository.getRiderById(pool, idMotorizado);
+  if (!rider) throw createHttpError(404, "Repartidor no encontrado");
+
   const tx = await pool.connect();
 
   try {
@@ -71,15 +153,6 @@ async function assignShipment({ orderId, motorizadoId, assignedBy }) {
       orderId: idPedido,
       motorizadoId: idMotorizado,
       assignedBy: Number.isFinite(idUsuario) ? idUsuario : null,
-    });
-
-    await deliveryRepository.insertDeliveryEventTx(tx, {
-      idEnvio: shipment.id_envio,
-      idPedido,
-      tipoEvento: "ASIGNADO",
-      detalle: `Pedido asignado al motorizado ${idMotorizado}`,
-      payloadJson: JSON.stringify({ motorizadoId: idMotorizado }),
-      userId: Number.isFinite(idUsuario) ? idUsuario : null,
     });
 
     await orderRepository.insertHistoryTx(tx, {
@@ -109,7 +182,8 @@ async function startRoute({ orderId, userId }) {
   if (!Number.isInteger(idUsuario) || idUsuario <= 0) throw createHttpError(401, "Usuario no autenticado");
 
   const pool = await deliveryRepository.getPool();
-  const motorizado = await deliveryRepository.getMotorizadoByUserId(pool, idUsuario);
+  await ensureDeliverySchema(pool);
+  const motorizado = await resolveMotorizadoForUser(pool, idUsuario);
   if (!motorizado) throw createHttpError(403, "Tu usuario no está vinculado a un motorizado");
 
   const tx = await pool.connect();
@@ -129,15 +203,6 @@ async function startRoute({ orderId, userId }) {
 
     await deliveryRepository.startRouteTx(tx, { orderId: idPedido });
     await orderRepository.updateOrderStateTx(tx, idPedido, "EN CAMINO");
-
-    await deliveryRepository.insertDeliveryEventTx(tx, {
-      idEnvio: shipment.id_envio,
-      idPedido,
-      tipoEvento: "EN_RUTA",
-      detalle: "Repartidor inició ruta",
-      payloadJson: null,
-      userId: idUsuario,
-    });
 
     await orderRepository.insertHistoryTx(tx, {
       descripcion: "PREPARADO -> EN CAMINO (delivery)",
@@ -170,18 +235,10 @@ async function markDelivered({ orderId, userId, evidence }) {
 
   const dniReceptor = normalizeText(evidence?.dni_receptor || evidence?.dniReceptor || "");
   const observacion = normalizeText(evidence?.observacion || "");
-  const fotoUrl = normalizeText(evidence?.foto_url || evidence?.fotoUrl || "");
-
-  const latRaw = evidence?.lat;
-  const lngRaw = evidence?.lng;
-  const lat = latRaw == null || latRaw === "" ? null : Number(latRaw);
-  const lng = lngRaw == null || lngRaw === "" ? null : Number(lngRaw);
-
-  if (lat !== null && !Number.isFinite(lat)) throw createHttpError(400, "lat inválida");
-  if (lng !== null && !Number.isFinite(lng)) throw createHttpError(400, "lng inválida");
 
   const pool = await deliveryRepository.getPool();
-  const motorizado = await deliveryRepository.getMotorizadoByUserId(pool, idUsuario);
+  await ensureDeliverySchema(pool);
+  const motorizado = await resolveMotorizadoForUser(pool, idUsuario);
   if (!motorizado) throw createHttpError(403, "Tu usuario no está vinculado a un motorizado");
 
   const tx = await pool.connect();
@@ -205,23 +262,11 @@ async function markDelivered({ orderId, userId, evidence }) {
       nombreReceptor,
       dniReceptor,
       observacion,
-      fotoUrl,
-      lat,
-      lng,
       userId: idUsuario,
     });
 
     await deliveryRepository.markDeliveredTx(tx, { orderId: idPedido });
     await orderRepository.updateOrderStateTx(tx, idPedido, "ENTREGADO");
-
-    await deliveryRepository.insertDeliveryEventTx(tx, {
-      idEnvio: shipment.id_envio,
-      idPedido,
-      tipoEvento: "ENTREGADO",
-      detalle: `Entrega confirmada por ${nombreReceptor}`,
-      payloadJson: JSON.stringify({ nombreReceptor, dniReceptor: dniReceptor || null }),
-      userId: idUsuario,
-    });
 
     await orderRepository.insertHistoryTx(tx, {
       descripcion: "EN CAMINO -> ENTREGADO (delivery)",
@@ -252,7 +297,8 @@ async function markFailed({ orderId, userId, motivo }) {
   if (!reason) throw createHttpError(400, "motivo es obligatorio");
 
   const pool = await deliveryRepository.getPool();
-  const motorizado = await deliveryRepository.getMotorizadoByUserId(pool, idUsuario);
+  await ensureDeliverySchema(pool);
+  const motorizado = await resolveMotorizadoForUser(pool, idUsuario);
   if (!motorizado) throw createHttpError(403, "Tu usuario no está vinculado a un motorizado");
 
   const tx = await pool.connect();
@@ -272,15 +318,6 @@ async function markFailed({ orderId, userId, motivo }) {
 
     await deliveryRepository.markFailedTx(tx, { orderId: idPedido, reason });
     await orderRepository.updateOrderStateTx(tx, idPedido, "PREPARADO");
-
-    await deliveryRepository.insertDeliveryEventTx(tx, {
-      idEnvio: shipment.id_envio,
-      idPedido,
-      tipoEvento: "NO_ENTREGADO",
-      detalle: reason,
-      payloadJson: null,
-      userId: idUsuario,
-    });
 
     await orderRepository.insertHistoryTx(tx, {
       descripcion: `Incidencia delivery: ${reason}`,
@@ -305,6 +342,7 @@ module.exports = {
   listRiders,
   listAssignableShipments,
   listMyShipments,
+  getDeliveryDetail,
   assignShipment,
   startRoute,
   markDelivered,

@@ -1,7 +1,7 @@
 const { poolPromise } = require("../config/db.config");
 
 async function listOrdersAdmin({ search = "", estado = "", fechaInicio = "", fechaFin = "" }) {
-  const filtros = [];
+  const filtros = ["u.rol = 'CLIENTE'"];
   const params = [];
 
   if (estado) {
@@ -39,12 +39,24 @@ async function listOrdersAdmin({ search = "", estado = "", fechaInicio = "", fec
         pe.id_pedido,
         pe.fecha_creacion,
         pe.estado_pedido,
+        e.estado_envio,
         pe.total_pedido,
+        cb.tipo_comprobante,
+        cb.numero_comprobante,
+        cb.estado_comprobante,
         u.id_usuario,
         u.nombre || ' ' || u.apellido AS cliente,
         u.email
       FROM pedido pe
       INNER JOIN usuario u ON pe.id_usuario = u.id_usuario
+      LEFT JOIN envio e ON pe.id_pedido = e.id_pedido
+      LEFT JOIN LATERAL (
+        SELECT c.tipo_comprobante, c.numero_comprobante, c.estado_comprobante
+        FROM comprobante c
+        WHERE c.id_pedido = pe.id_pedido
+        ORDER BY c.fecha_creacion DESC, c.id_comprobante DESC
+        LIMIT 1
+      ) cb ON TRUE
       ${where}
       ORDER BY pe.fecha_creacion DESC, pe.id_pedido DESC
     `,
@@ -83,8 +95,18 @@ async function listOrdersByUser(userId) {
         pe.id_pedido,
         pe.fecha_creacion,
         pe.estado_pedido,
-        pe.total_pedido
+        pe.total_pedido,
+        cb.tipo_comprobante,
+        cb.numero_comprobante,
+        cb.estado_comprobante
       FROM pedido pe
+      LEFT JOIN LATERAL (
+        SELECT c.tipo_comprobante, c.numero_comprobante, c.estado_comprobante
+        FROM comprobante c
+        WHERE c.id_pedido = pe.id_pedido
+        ORDER BY c.fecha_creacion DESC, c.id_comprobante DESC
+        LIMIT 1
+      ) cb ON TRUE
       WHERE pe.id_usuario = $1
       ORDER BY pe.fecha_creacion DESC, pe.id_pedido DESC
     `,
@@ -118,7 +140,7 @@ async function listOrdersByUser(userId) {
 async function listPendingOrders({ fechaInicio, fechaFin, search = "" }) {
   const pool = await poolPromise;
   const params = [];
-  let where = "WHERE pe.estado_pedido = 'PENDIENTE'";
+  let where = "WHERE pe.estado_pedido = 'PENDIENTE' AND u.rol = 'CLIENTE'";
   if (fechaInicio && fechaFin) {
     params.push(fechaInicio, fechaFin);
     where += ` AND pe.fecha_creacion::date BETWEEN $${params.length - 1} AND $${params.length}`;
@@ -199,9 +221,19 @@ async function getOrderHeaderById(id) {
         pe.estado_pedido,
         pe.total_pedido,
         pe.direccion_envio,
-        u.nombre || ' ' || u.apellido AS cliente
+        u.nombre || ' ' || u.apellido AS cliente,
+        cb.tipo_comprobante,
+        cb.numero_comprobante,
+        cb.estado_comprobante
       FROM pedido pe
       JOIN usuario u ON u.id_usuario = pe.id_usuario
+      LEFT JOIN LATERAL (
+        SELECT c.tipo_comprobante, c.numero_comprobante, c.estado_comprobante
+        FROM comprobante c
+        WHERE c.id_pedido = pe.id_pedido
+        ORDER BY c.fecha_creacion DESC, c.id_comprobante DESC
+        LIMIT 1
+      ) cb ON TRUE
       WHERE pe.id_pedido = $1
     `,
     [id],
@@ -268,7 +300,7 @@ async function updateShippingOnTransition(id, to) {
     await pool.query(
       `
         UPDATE envio
-        SET estado_envio = 'EN CAMINO',
+        SET estado_envio = 'EN_RUTA',
             fecha_envio  = COALESCE(fecha_envio, NOW())
         WHERE id_pedido = $1
       `,
@@ -290,8 +322,8 @@ async function insertHistory({ descripcion, accion, id_pedido, id_usuario }) {
   const pool = await poolPromise;
   await pool.query(
     `
-      INSERT INTO historial (descripcion, accion, id_pedido, id_usuario)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO historial (descripcion, accion, modulo, entidad, referencia_id, id_pedido, id_usuario)
+      VALUES ($1, $2, 'PEDIDO', 'PEDIDO', $3, $3, $4)
     `,
     [descripcion, accion, id_pedido, id_usuario],
   );
@@ -300,8 +332,8 @@ async function insertHistory({ descripcion, accion, id_pedido, id_usuario }) {
 async function insertHistoryTx(tx, { descripcion, accion, id_pedido, id_usuario }) {
   await tx.query(
     `
-      INSERT INTO historial (descripcion, accion, id_pedido, id_usuario)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO historial (descripcion, accion, modulo, entidad, referencia_id, id_pedido, id_usuario)
+      VALUES ($1, $2, 'PEDIDO', 'PEDIDO', $3, $3, $4)
     `,
     [descripcion, accion, id_pedido ?? null, id_usuario],
   );
@@ -331,26 +363,85 @@ async function listTransitionableOrders() {
   return result.rows || [];
 }
 
-async function listStatusLog(limit) {
+async function listStatusLog({ limit = 20, offset = 0, idPedido = null, evento = "", fechaInicio = "", fechaFin = "" } = {}) {
   const pool = await poolPromise;
-  const safeLimit = Math.min(Number(limit) || 20, 100);
+  const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
+  const safeOffset = Math.max(Number(offset) || 0, 0);
+
+  const allowedActions = [
+    "TRANSICION_ESTADO",
+    "PREPARAR_PEDIDO",
+    "DELIVERY_ASIGNADO",
+    "DELIVERY_EN_RUTA",
+    "DELIVERY_ENTREGADO",
+    "DELIVERY_NO_ENTREGADO",
+  ];
+
+  const params = [];
+  const where = [];
+
+  params.push(allowedActions);
+  where.push(`h.accion = ANY($${params.length}::text[])`);
+
+  const eventoClean = String(evento || "")
+    .trim()
+    .toUpperCase();
+  if (eventoClean && allowedActions.includes(eventoClean)) {
+    params.push(eventoClean);
+    where.push(`h.accion = $${params.length}`);
+  }
+
+  if (Number.isFinite(Number(idPedido)) && Number(idPedido) > 0) {
+    params.push(Number(idPedido));
+    where.push(`h.id_pedido = $${params.length}`);
+  }
+
+  if (fechaInicio && fechaFin) {
+    params.push(fechaInicio, fechaFin);
+    where.push(`h.fecha_accion::date BETWEEN $${params.length - 1} AND $${params.length}`);
+  } else if (fechaInicio) {
+    params.push(fechaInicio);
+    where.push(`h.fecha_accion::date >= $${params.length}`);
+  } else if (fechaFin) {
+    params.push(fechaFin);
+    where.push(`h.fecha_accion::date <= $${params.length}`);
+  }
+
+  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+  const totalResult = await pool.query(
+    `
+      SELECT COUNT(*)::int AS total
+      FROM historial h
+      INNER JOIN usuario u ON u.id_usuario = h.id_usuario
+      ${whereSql}
+    `,
+    params,
+  );
+
+  const queryParams = [...params, safeLimit, safeOffset];
   const result = await pool.query(
     `
       SELECT
         to_char(h.fecha_accion AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS fecha_iso_utc,
         h.id_pedido,
+        h.accion,
         h.descripcion AS cambio,
         u.nombre || ' ' || u.apellido AS responsable
       FROM historial h
       INNER JOIN usuario u ON u.id_usuario = h.id_usuario
-      WHERE h.accion IN ('TRANSICION_ESTADO','PREPARAR_PEDIDO')
+      ${whereSql}
       ORDER BY h.fecha_accion DESC, h.id_historial DESC
-      LIMIT $1
+      LIMIT $${params.length + 1}
+      OFFSET $${params.length + 2}
     `,
-    [safeLimit],
+    queryParams,
   );
 
-  return result.rows || [];
+  return {
+    rows: result.rows || [],
+    total: Number(totalResult.rows?.[0]?.total) || 0,
+  };
 }
 
 async function getEmployeeKpis() {
@@ -358,15 +449,32 @@ async function getEmployeeKpis() {
   const result = await pool.query(
     `
       SELECT
-        (SELECT COUNT(*) FROM pedido WHERE estado_pedido = 'PENDIENTE') AS pendientes,
-        (SELECT COUNT(*) FROM pedido WHERE estado_pedido = 'EN CAMINO') AS encamino,
+        (
+          SELECT COUNT(*)
+          FROM pedido p
+          INNER JOIN usuario u ON u.id_usuario = p.id_usuario
+          WHERE p.estado_pedido = 'PENDIENTE'
+            AND u.rol = 'CLIENTE'
+        ) AS pendientes,
+        (
+          SELECT COUNT(*)
+          FROM pedido p
+          INNER JOIN usuario u ON u.id_usuario = p.id_usuario
+          WHERE p.estado_pedido = 'EN CAMINO'
+            AND u.rol = 'CLIENTE'
+        ) AS encamino,
         (
           SELECT COUNT(*)
           FROM historial h
-          WHERE h.accion = 'TRANSICION_ESTADO'
+          INNER JOIN pedido p ON p.id_pedido = h.id_pedido
+          INNER JOIN usuario u ON u.id_usuario = p.id_usuario
+          WHERE h.accion IN ('TRANSICION_ESTADO', 'DELIVERY_ENTREGADO')
             AND h.fecha_accion::date = CURRENT_DATE
-            AND h.descripcion ILIKE '%EN CAMINO%'
-            AND h.descripcion ILIKE '%ENTREGADO%'
+            AND u.rol = 'CLIENTE'
+            AND (
+              h.accion = 'DELIVERY_ENTREGADO'
+              OR (h.descripcion ILIKE '%EN CAMINO%' AND h.descripcion ILIKE '%ENTREGADO%')
+            )
         ) AS "entregadosHoy"
     `,
   );
@@ -439,23 +547,67 @@ async function listPendingOrdersForExport({ fechaInicio = "", fechaFin = "", sea
   return { pedidos, detalles };
 }
 
-async function listStatusLogForExport(limit) {
+async function listStatusLogForExport({ limit = 5000, idPedido = null, evento = "", fechaInicio = "", fechaFin = "" } = {}) {
   const pool = await poolPromise;
-  const safeLimit = Math.min(Number(limit) || 200, 1000);
+  const safeLimit = Math.min(Math.max(Number(limit) || 5000, 1), 10000);
+
+  const allowedActions = [
+    "TRANSICION_ESTADO",
+    "PREPARAR_PEDIDO",
+    "DELIVERY_ASIGNADO",
+    "DELIVERY_EN_RUTA",
+    "DELIVERY_ENTREGADO",
+    "DELIVERY_NO_ENTREGADO",
+  ];
+
+  const params = [];
+  const where = [];
+
+  params.push(allowedActions);
+  where.push(`h.accion = ANY($${params.length}::text[])`);
+
+  const eventoClean = String(evento || "")
+    .trim()
+    .toUpperCase();
+  if (eventoClean && allowedActions.includes(eventoClean)) {
+    params.push(eventoClean);
+    where.push(`h.accion = $${params.length}`);
+  }
+
+  if (Number.isFinite(Number(idPedido)) && Number(idPedido) > 0) {
+    params.push(Number(idPedido));
+    where.push(`h.id_pedido = $${params.length}`);
+  }
+
+  if (fechaInicio && fechaFin) {
+    params.push(fechaInicio, fechaFin);
+    where.push(`h.fecha_accion::date BETWEEN $${params.length - 1} AND $${params.length}`);
+  } else if (fechaInicio) {
+    params.push(fechaInicio);
+    where.push(`h.fecha_accion::date >= $${params.length}`);
+  } else if (fechaFin) {
+    params.push(fechaFin);
+    where.push(`h.fecha_accion::date <= $${params.length}`);
+  }
+
+  params.push(safeLimit);
+  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
   const rs = await pool.query(
     `
       SELECT
         to_char(h.fecha_accion AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS fecha_iso_utc,
         h.id_pedido,
+        h.accion,
         h.descripcion AS cambio,
         u.nombre || ' ' || u.apellido AS responsable
       FROM historial h
       INNER JOIN usuario u ON u.id_usuario = h.id_usuario
-      WHERE h.accion IN ('TRANSICION_ESTADO','PREPARAR_PEDIDO')
+      ${whereSql}
       ORDER BY h.fecha_accion DESC, h.id_historial DESC
-      LIMIT $1
+      LIMIT $${params.length}
     `,
-    [safeLimit],
+    params,
   );
   return rs.rows || [];
 }
@@ -636,13 +788,13 @@ async function insertSalidaInventarioTx(tx, { cantidad, motivo, idInventario, us
   );
 }
 
-async function insertEntradaInventarioTx(tx, { cantidad, motivo, idInventario }) {
+async function insertEntradaInventarioTx(tx, { cantidad, motivo, idInventario, idUsuario = null }) {
   await tx.query(
     `
-      INSERT INTO entrada_inventario (cantidad_recibida, motivo_entrada, id_inventario)
-      VALUES ($1, $2, $3);
+      INSERT INTO entrada_inventario (cantidad_recibida, motivo_entrada, id_inventario, id_usuario)
+      VALUES ($1, $2, $3, $4);
     `,
-    [cantidad, motivo, idInventario],
+    [cantidad, motivo, idInventario, idUsuario],
   );
 }
 
@@ -752,8 +904,8 @@ async function ensureShippingCreatedTx(tx, { orderId, shippingCost }) {
 
   const rs = await tx.query(
     `
-      INSERT INTO envio (numero_rastreo, transportista, fecha_envio, estado_envio, costo_envio, id_pedido, id_delivery)
-      VALUES ($1, $2, NULL, $3, $4, $5, NULL)
+      INSERT INTO envio (numero_rastreo, transportista, fecha_envio, estado_envio, costo_envio, id_pedido)
+      VALUES ($1, $2, NULL, $3, $4, $5)
       RETURNING id_envio AS id
     `,
     [tracking, carrier, "PENDIENTE", cost.toFixed(2), orderId],
@@ -879,9 +1031,24 @@ async function updateOrderPaymentTx(tx, { orderId, paymentMethodId, nuevoEstado 
 }
 
 async function getNextComprobanteNumberByCountTx(tx, tipo) {
+  await tx.query(
+    `
+      SELECT pg_advisory_xact_lock(hashtext($1))
+    `,
+    [`comprobante:${tipo}`],
+  );
+
   const { rows } = await tx.query(
     `
-      SELECT COUNT(*) + 1 AS n
+      SELECT COALESCE(
+        MAX(
+          NULLIF(
+            regexp_replace(numero_comprobante, '^.+-(\\d+)$', '\\1'),
+            numero_comprobante
+          )::integer
+        ),
+        0
+      ) + 1 AS n
       FROM comprobante
       WHERE tipo_comprobante = $1
     `,
@@ -1002,8 +1169,9 @@ async function markOrdersPreparedBulkTx({ ids, userId }) {
     if (updatedIds.length) {
       await transaction.query(
         `
-          INSERT INTO historial (descripcion, accion, id_pedido, id_usuario)
-          SELECT 'Pedidos preparados masivo', 'PREPARAR_PEDIDO', unnest($1::int[]), $2
+          INSERT INTO historial (descripcion, accion, modulo, entidad, referencia_id, id_pedido, id_usuario)
+          SELECT 'Pedidos preparados masivo', 'PREPARAR_PEDIDO', 'PEDIDO', 'PEDIDO', x.id_pedido, x.id_pedido, $2
+          FROM unnest($1::int[]) AS x(id_pedido)
         `,
         [updatedIds, Number(userId)],
       );

@@ -116,7 +116,8 @@ async function getMyOrders(userId) {
 async function exportOrdersCsv({ search, estado, fechaInicio, fechaFin }) {
   const { pedidos, detalles } = await orderRepository.listOrdersAdmin({ search, estado, fechaInicio, fechaFin });
 
-  let csv = "ID Pedido,Fecha,Cliente,Email,Estado,Monto Total,Producto,Cantidad,Precio Unitario\n";
+  let csv =
+    "ID Pedido,Fecha,Cliente,Email,Estado,Monto Total,Tipo Comprobante,Número Comprobante,Estado Comprobante,Producto,Cantidad,Precio Unitario\n";
   pedidos.forEach(p => {
     const productos = detalles.filter(d => d.id_pedido === p.id_pedido);
     productos.forEach(prod => {
@@ -128,6 +129,9 @@ async function exportOrdersCsv({ search, estado, fechaInicio, fechaFin }) {
           p.email,
           p.estado_pedido,
           p.total_pedido,
+          p.tipo_comprobante || "",
+          p.numero_comprobante || "",
+          p.estado_comprobante || "",
           `"${prod.nombre}"`,
           prod.cantidad,
           prod.precio_unitario_venta,
@@ -142,6 +146,9 @@ async function exportOrdersCsv({ search, estado, fechaInicio, fechaFin }) {
           p.email,
           p.estado_pedido,
           p.total_pedido,
+          p.tipo_comprobante || "",
+          p.numero_comprobante || "",
+          p.estado_comprobante || "",
           "",
           "",
           "",
@@ -252,18 +259,106 @@ async function transitionOrder({ id, from, to, userId }) {
   return { ok: true, id_pedido: id, from, to };
 }
 
-async function getStatusLog(limit) {
-  const rows = await orderRepository.listStatusLog(limit);
-  return rows.map(r => {
-    const parts = (r.cambio || "").split(/\s*(?:→|->|⇒|➡|>)+\s*/);
+function parseStateChange(text) {
+  const raw = String(text || "").trim();
+  const match = raw.match(/^([^\-→⇒➡>]+?)\s*(?:→|->|⇒|➡|>)\s*([^\(]+?)(?:\s*\((.+)\))?$/);
+  if (match) {
+    return {
+      anterior: match[1]?.trim() || null,
+      nuevo: match[2]?.trim() || null,
+      comentario: match[3]?.trim() || null,
+    };
+  }
+
+  const parts = raw.split(/\s*(?:→|->|⇒|➡|>)+\s*/);
+  if (parts.length >= 2) {
+    return {
+      anterior: parts[0]?.trim() || null,
+      nuevo: parts[1]?.trim() || null,
+      comentario: null,
+    };
+  }
+
+  return {
+    anterior: null,
+    nuevo: null,
+    comentario: raw || null,
+  };
+}
+
+function getEventLabelByAction(action) {
+  const key = String(action || "")
+    .trim()
+    .toUpperCase();
+  if (key === "PREPARAR_PEDIDO") return "Pedido preparado";
+  if (key === "TRANSICION_ESTADO") return "Cambio de estado";
+  if (key === "DELIVERY_ASIGNADO") return "Delivery asignado";
+  if (key === "DELIVERY_EN_RUTA") return "Inicio de ruta";
+  if (key === "DELIVERY_ENTREGADO") return "Entrega completada";
+  if (key === "DELIVERY_NO_ENTREGADO") return "Entrega no completada";
+  return key || "Evento";
+}
+
+function getReadableDetailByAction(action, rawDetail) {
+  const key = String(action || "")
+    .trim()
+    .toUpperCase();
+  const detail = String(rawDetail || "").trim();
+
+  if (detail) {
+    if (key === "PREPARAR_PEDIDO") return detail || "Pedido marcado como preparado";
+    if (key === "DELIVERY_ASIGNADO") return detail || "Repartidor asignado al pedido";
+    if (key === "DELIVERY_EN_RUTA") return detail || "Pedido en ruta";
+    if (key === "DELIVERY_ENTREGADO") return detail || "Entrega completada";
+    if (key === "DELIVERY_NO_ENTREGADO") return detail || "Entrega no completada";
+    return detail;
+  }
+
+  if (key === "PREPARAR_PEDIDO") return "Pedido marcado como preparado";
+  if (key === "DELIVERY_ASIGNADO") return "Repartidor asignado al pedido";
+  if (key === "DELIVERY_EN_RUTA") return "Pedido en ruta";
+  if (key === "DELIVERY_ENTREGADO") return "Entrega completada";
+  if (key === "DELIVERY_NO_ENTREGADO") return "Entrega no completada";
+
+  return "";
+}
+
+async function getStatusLog({ page = 1, pageSize = 20, idPedido = null, evento = "", fechaInicio = "", fechaFin = "" } = {}) {
+  const currentPage = Math.max(Number(page) || 1, 1);
+  const safePageSize = Math.min(Math.max(Number(pageSize) || 20, 1), 100);
+  const offset = (currentPage - 1) * safePageSize;
+
+  const { rows, total } = await orderRepository.listStatusLog({
+    limit: safePageSize,
+    offset,
+    idPedido,
+    evento,
+    fechaInicio,
+    fechaFin,
+  });
+
+  const mapped = rows.map(r => {
+    const parsed = parseStateChange(r.cambio);
+    const isTransition = !!(parsed.anterior && parsed.nuevo);
     return {
       fecha_accion_utc: r.fecha_iso_utc,
       id_pedido: r.id_pedido,
       responsable: r.responsable,
-      anterior: parts[0] || null,
-      nuevo: parts[1] || null,
+      evento: getEventLabelByAction(r.accion),
+      accion: r.accion,
+      detalle: isTransition ? parsed.comentario || "" : getReadableDetailByAction(r.accion, r.cambio),
+      anterior: parsed.anterior,
+      nuevo: parsed.nuevo,
     };
   });
+
+  return {
+    rows: mapped,
+    total: Number(total) || 0,
+    page: currentPage,
+    pageSize: safePageSize,
+    totalPages: Math.max(Math.ceil((Number(total) || 0) / safePageSize), 1),
+  };
 }
 
 async function getEmployeeKpis() {
@@ -306,23 +401,30 @@ async function exportPendingOrdersCsv({ fechaInicio = "", fechaFin = "", search 
   return { filename: "pendientes.csv", csv };
 }
 
-async function exportStatusLogCsv(limit) {
-  const rows = await orderRepository.listStatusLogForExport(limit);
+async function exportStatusLogCsv({ limit = 5000, idPedido = null, evento = "", fechaInicio = "", fechaFin = "" } = {}) {
+  const rows = await orderRepository.listStatusLogForExport({ limit, idPedido, evento, fechaInicio, fechaFin });
 
   const mapped = rows.map(r => {
-    const [anterior = "", nuevo = ""] = (r.cambio || "").split(/\s*(?:→|->|⇒|➡|>)+\s*/);
-    return { fecha: r.fecha_iso_utc, id_pedido: r.id_pedido, anterior, nuevo, responsable: r.responsable };
+    const parsed = parseStateChange(r.cambio);
+    const detalle = parsed.anterior && parsed.nuevo ? `${parsed.anterior} -> ${parsed.nuevo}` : getReadableDetailByAction(r.accion, r.cambio);
+    return {
+      fecha: r.fecha_iso_utc,
+      id_pedido: r.id_pedido,
+      evento: getEventLabelByAction(r.accion),
+      detalle,
+      responsable: r.responsable,
+    };
   });
 
-  let csv = "Fecha UTC,Pedido,Estado Anterior,Estado Nuevo,Responsable\n";
+  let csv = "Fecha UTC,Pedido,Evento,Detalle,Responsable\n";
   for (const r of mapped) {
-    csv += [r.fecha, r.id_pedido, r.anterior, r.nuevo, `"${r.responsable}"`].join(",") + "\n";
+    csv += [r.fecha, r.id_pedido, `\"${r.evento}\"`, `\"${r.detalle}\"`, `\"${r.responsable}\"`].join(",") + "\n";
   }
 
   return { filename: "historial_estados.csv", csv };
 }
 
-async function createDraftOrder(userId, body) {
+async function createDraftOrder(requester, body) {
   const {
     deliveryType = "RECOJO",
     address = "Recojo en tienda – Sede Central",
@@ -332,8 +434,19 @@ async function createDraftOrder(userId, body) {
     paymentMethodId = 4,
   } = body || {};
 
-  const isGuest = !userId;
-  const effectiveUserId = isGuest ? await ensureGuestUserId(receiptData) : Number(userId);
+  const requesterId = requester?.id_usuario ? Number(requester.id_usuario) : null;
+  const requesterRole = String(requester?.rol || "")
+    .trim()
+    .toUpperCase();
+  const isGuest = !requesterId;
+
+  if (!isGuest && requesterRole !== "CLIENTE") {
+    const err = new Error("Solo los clientes pueden realizar pedidos");
+    (err as any).status = 403;
+    throw err;
+  }
+
+  const effectiveUserId = isGuest ? await ensureGuestUserId(receiptData) : Number(requesterId);
 
   const items = isGuest ? await hydrateGuestItems(body?.items) : await orderRepository.getCartItemsForOrderDraft(effectiveUserId);
   if (!items.length) {
@@ -478,6 +591,7 @@ async function refundOrder({ orderId, requester }) {
         cantidad: m.cantidad,
         motivo: `REEMBOLSO_PEDIDO_${orderId}`.substring(0, 255),
         idInventario: m.id_inventario,
+        idUsuario: requester.id_usuario,
       });
       await orderRepository.insertPedidoInventarioMovTx(tx, { orderId, idInventario: m.id_inventario, tipo: "ENTRADA", cantidad: m.cantidad });
     }

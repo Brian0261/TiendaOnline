@@ -20,6 +20,9 @@ type Order = {
   fecha_creacion: string;
   estado_pedido: string;
   total_pedido: number;
+  tipo_comprobante?: string | null;
+  numero_comprobante?: string | null;
+  estado_comprobante?: string | null;
   productos: Array<{ nombre: string; cantidad: number; precio_unitario_venta: number }>;
 };
 
@@ -314,6 +317,7 @@ export function CustomerDashboardPage() {
                         <th># Pedido</th>
                         <th>Fecha</th>
                         <th>Estado</th>
+                        <th>Comprobante</th>
                         <th>Total (S/)</th>
                         <th>Productos</th>
                       </tr>
@@ -337,6 +341,16 @@ export function CustomerDashboardPage() {
                             </td>
                             <td>
                               <span className={`badge status-badge status-${cls}`}>{o.estado_pedido}</span>
+                            </td>
+                            <td>
+                              {o.numero_comprobante ? (
+                                <div>
+                                  <div className="fw-semibold">{o.numero_comprobante}</div>
+                                  <div className="text-muted small">{o.tipo_comprobante || "COMPROBANTE"}</div>
+                                </div>
+                              ) : (
+                                <span className="text-muted">Pendiente</span>
+                              )}
                             </td>
                             <td className="fw-semibold">{Number(o.total_pedido ?? 0).toFixed(2)}</td>
                             <td className="products-col">{o.productos.map(p => `${p.nombre} x${p.cantidad}`).join("\n")}</td>

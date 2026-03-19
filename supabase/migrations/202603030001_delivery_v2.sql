@@ -40,12 +40,13 @@ CREATE TABLE IF NOT EXISTS entrega_evidencia (
   nombre_receptor VARCHAR(120) NOT NULL,
   dni_receptor VARCHAR(20) NULL,
   observacion TEXT NULL,
-  foto_url VARCHAR(2048) NULL,
-  lat DECIMAL(10,7) NULL,
-  lng DECIMAL(10,7) NULL,
   id_usuario INT NULL REFERENCES usuario(id_usuario),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE entrega_evidencia DROP COLUMN IF EXISTS foto_url;
+ALTER TABLE entrega_evidencia DROP COLUMN IF EXISTS lat;
+ALTER TABLE entrega_evidencia DROP COLUMN IF EXISTS lng;
 
 CREATE INDEX IF NOT EXISTS idx_envio_motorizado_estado ON envio (id_motorizado, estado_envio, fecha_asignacion);
 CREATE INDEX IF NOT EXISTS idx_delivery_event_pedido ON delivery_event (id_pedido, created_at DESC);

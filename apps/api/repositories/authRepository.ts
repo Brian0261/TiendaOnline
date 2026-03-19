@@ -28,7 +28,7 @@ async function getUserProfileById(id_usuario) {
   const result = await pool.query(
     `
       SELECT id_usuario, nombre, apellido, email,
-             telefono, direccion_principal, rol
+             telefono, direccion_principal, rol, estado
       FROM   usuario
       WHERE  id_usuario = $1
     `,
@@ -76,6 +76,20 @@ async function updateUserPasswordHashById(id_usuario, passwordHash) {
   );
 }
 
+async function getUserStatusById(id_usuario) {
+  const pool = await poolPromise;
+  const result = await pool.query(
+    `
+      SELECT id_usuario, rol, estado
+      FROM usuario
+      WHERE id_usuario = $1
+      LIMIT 1
+    `,
+    [id_usuario],
+  );
+  return result.rows[0] || null;
+}
+
 module.exports = {
   userExistsByEmail,
   findUserByEmail,
@@ -84,6 +98,7 @@ module.exports = {
   findUserByIdForVerification,
   updateUserProfile,
   updateUserPasswordHashById,
+  getUserStatusById,
 };
 
 export {};

@@ -7,6 +7,33 @@
 const { poolPromise } = require("../config/db.config");
 const { PLACEHOLDER_PRODUCT } = require("../shared/image");
 
+async function resolveCanonicalWarehouseId(tx) {
+  const configured = Number(process.env.CANONICAL_WAREHOUSE_ID || 0);
+  if (Number.isInteger(configured) && configured > 0) return configured;
+
+  const rs = await tx.query(
+    `
+      SELECT id_almacen
+      FROM almacen
+      ORDER BY id_almacen ASC
+      LIMIT 1
+    `,
+  );
+
+  const id = Number(rs.rows?.[0]?.id_almacen || 0);
+  if (Number.isInteger(id) && id > 0) return id;
+
+  const created = await tx.query(
+    `
+      INSERT INTO almacen (nombre_almacen, direccion, telefono, responsable)
+      VALUES ('Tienda Principal', 'Av. Principal 123, Lima', '(01) 123-4567', 'Sistema')
+      RETURNING id_almacen
+    `,
+  );
+
+  return Number(created.rows?.[0]?.id_almacen || 1);
+}
+
 const Product = {
   /* =========================================================
      LISTADO (status = active | inactive | all)
@@ -102,12 +129,14 @@ const Product = {
   /* =========================================================
      CREAR + stock inicial
      ========================================================= */
-  async createProduct({ name, description = null, price, categoryId, brandId, stock = 0, imagePath = PLACEHOLDER_PRODUCT, almacenId = 1 }) {
+  async createProduct({ name, description = null, price, categoryId, brandId, stock = 0, imagePath = PLACEHOLDER_PRODUCT }) {
     const pool = await poolPromise;
     const tx = await pool.connect();
 
     await tx.query("BEGIN");
     try {
+      const canonicalWarehouseId = await resolveCanonicalWarehouseId(tx);
+
       /* 1️⃣ Producto */
       const { rows } = await tx.query(
         `
@@ -129,7 +158,7 @@ const Product = {
             (cantidad_disponible, id_producto, id_almacen)
           VALUES ($1, $2, $3);
         `,
-        [stock, newId, almacenId],
+        [stock, newId, canonicalWarehouseId],
       );
 
       await tx.query("COMMIT");

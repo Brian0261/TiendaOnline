@@ -130,21 +130,6 @@ export function Navbar() {
     return () => window.clearTimeout(timerId);
   }, [locationSearch, nav, pathname]);
 
-  if (isStaffDashboard) return null;
-
-  // Si el usuario cambia de rol en storage, este navbar se re-renderiza porque viene del contexto.
-  const avatar = getInitials(user?.nombre, user?.apellido);
-
-  const onSearchSubmit = (e: FormEventType) => {
-    e.preventDefault();
-    const q = search.trim();
-    // Mantiene el look del buscador legacy, pero por ahora redirige al catálogo.
-    // (Luego podemos implementar filtros reales sin romper el diseño.)
-    setSuggestOpen(false);
-    if (q) nav(`/products?search=${encodeURIComponent(q)}`);
-    else nav("/products");
-  };
-
   useEffect(() => {
     const onDocMouseDown = (ev: MouseEvent) => {
       const root = searchWrapRef.current;
@@ -189,6 +174,21 @@ export function Navbar() {
 
     return () => window.clearTimeout(timer);
   }, [allProducts, search]);
+
+  if (isStaffDashboard) return null;
+
+  // Si el usuario cambia de rol en storage, este navbar se re-renderiza porque viene del contexto.
+  const avatar = getInitials(user?.nombre, user?.apellido);
+
+  const onSearchSubmit = (e: FormEventType) => {
+    e.preventDefault();
+    const q = search.trim();
+    // Mantiene el look del buscador legacy, pero por ahora redirige al catálogo.
+    // (Luego podemos implementar filtros reales sin romper el diseño.)
+    setSuggestOpen(false);
+    if (q) nav(`/products?search=${encodeURIComponent(q)}`);
+    else nav("/products");
+  };
 
   const onLogout = () => {
     logout();
@@ -339,16 +339,13 @@ export function Navbar() {
                     <hr className="dropdown-divider account-dropdown-divider" />
                   </li>
                   <li>
-                    <a
-                      className="dropdown-item account-dropdown-item d-flex align-items-center gap-2"
-                      href="https://backoffice.minimarketexpress.shop/login"
-                    >
+                    <NavLink className="dropdown-item account-dropdown-item d-flex align-items-center gap-2" to="/backoffice/login">
                       <i className="fa-solid fa-shield-halved" aria-hidden="true"></i>
                       <span className="d-flex align-items-center gap-2">
                         Portal interno
                         <span className="badge text-bg-light border text-secondary fw-semibold">Staff</span>
                       </span>
-                    </a>
+                    </NavLink>
                   </li>
                 </ul>
               </div>

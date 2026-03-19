@@ -1,4 +1,22 @@
-import { normalizeImageUrl as normalizeImageUrlAny, PLACEHOLDER_PRODUCT as PLACEHOLDER_PRODUCT_ANY } from "@shared/image.js";
+import * as sharedImageModule from "@shared/image.js";
+
+type SharedImageModule = {
+  normalizeImageUrl?: (value?: unknown) => string;
+  PLACEHOLDER_PRODUCT?: string;
+  default?: {
+    normalizeImageUrl?: (value?: unknown) => string;
+    PLACEHOLDER_PRODUCT?: string;
+  };
+};
+
+const sharedImage = sharedImageModule as SharedImageModule;
+const normalizeImageUrlAny =
+  sharedImage.normalizeImageUrl ||
+  sharedImage.default?.normalizeImageUrl ||
+  ((value?: unknown) => String(value || "/assets/images/placeholder-product.png"));
+
+const PLACEHOLDER_PRODUCT_ANY =
+  sharedImage.PLACEHOLDER_PRODUCT || sharedImage.default?.PLACEHOLDER_PRODUCT || "/assets/images/placeholder-product.png";
 
 export const PLACEHOLDER_PRODUCT: string = PLACEHOLDER_PRODUCT_ANY;
 

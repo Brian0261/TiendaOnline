@@ -158,6 +158,10 @@ async function login({ email, plainPwd }) {
   const userRow = await authRepository.findUserByEmail(email);
   if (!userRow) throw createHttpError(401, "Credenciales incorrectas.");
 
+  if (String(userRow.estado || "ACTIVO").toUpperCase() !== "ACTIVO") {
+    throw createHttpError(403, "Tu cuenta está inactiva. Contacta al administrador.");
+  }
+
   // Doble opt-in: no permitir login si el email no fue verificado.
   if (userRow.email_verificado === 0 || userRow.email_verificado === false) {
     throw createHttpError(403, "Debes verificar tu email antes de iniciar sesión.");
@@ -319,6 +323,9 @@ async function refresh(req) {
 
   const userRow = await authRepository.getUserProfileById(Number(id_usuario));
   if (!userRow) throw createHttpError(401, "Usuario no encontrado.");
+  if (String(userRow.estado || "ACTIVO").toUpperCase() !== "ACTIVO") {
+    throw createHttpError(403, "Tu cuenta está inactiva. Contacta al administrador.");
+  }
 
   const { token, refreshToken: newRefreshToken } = await issueTokensForUser(userRow);
   return {

@@ -44,6 +44,18 @@ exports.listMyShipments = async (req, res) => {
   }
 };
 
+exports.getDeliveryDetail = async (req, res) => {
+  try {
+    const data = await deliveryService.getDeliveryDetail({
+      orderId: req.params?.orderId,
+    });
+    return res.json(data);
+  } catch (err) {
+    console.error("getDeliveryDetail:", err);
+    return res.status(getStatus(err)).json({ message: getMessage(err, "Error al obtener detalle delivery") });
+  }
+};
+
 exports.assignShipment = async (req, res) => {
   try {
     const data = await deliveryService.assignShipment({

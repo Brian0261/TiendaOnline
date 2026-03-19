@@ -32,6 +32,10 @@ jest.mock("../../middlewares/authMiddleware", () => ({
     req.user = { id_usuario: 1, rol: "CLIENTE" }; // Usuario simulado
     next();
   },
+  optionalAuthenticateToken: (req, _res, next) => {
+    req.user = { id_usuario: 1, rol: "CLIENTE" };
+    next();
+  },
   authorizeRoles: () => (req, res, next) => next(),
 }));
 

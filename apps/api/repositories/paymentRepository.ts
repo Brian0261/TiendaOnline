@@ -38,6 +38,56 @@ async function getPaymentMethodIdByName(tipoMetodo) {
   return rows?.[0]?.id_metodo_pago ? Number(rows[0].id_metodo_pago) : null;
 }
 
+async function ensurePaymentMethodIdByName(tipoMetodo, detalles = null) {
+  const pool = await poolPromise;
+  const tx = await pool.connect();
+
+  try {
+    await tx.query("BEGIN");
+    await tx.query(
+      `
+        SELECT pg_advisory_xact_lock(hashtext($1))
+      `,
+      [`metodos_de_pago:${String(tipoMetodo || "").trim()}`],
+    );
+
+    const existing = await tx.query(
+      `
+        SELECT id_metodo_pago
+        FROM metodos_de_pago
+        WHERE tipo_metodo = $1
+        ORDER BY id_metodo_pago ASC
+        LIMIT 1
+      `,
+      [tipoMetodo],
+    );
+
+    let id = existing.rows?.[0]?.id_metodo_pago ? Number(existing.rows[0].id_metodo_pago) : null;
+
+    if (!id) {
+      const inserted = await tx.query(
+        `
+          INSERT INTO metodos_de_pago (tipo_metodo, detalles)
+          VALUES ($1, $2)
+          RETURNING id_metodo_pago
+        `,
+        [tipoMetodo, detalles],
+      );
+      id = inserted.rows?.[0]?.id_metodo_pago ? Number(inserted.rows[0].id_metodo_pago) : null;
+    }
+
+    await tx.query("COMMIT");
+    return id;
+  } catch (err) {
+    try {
+      await tx.query("ROLLBACK");
+    } catch {}
+    throw err;
+  } finally {
+    tx.release();
+  }
+}
+
 async function upsertPaymentIntent({ provider, orderId, paymentMethodId, preferenceId, initPoint, receiptType, receiptData }) {
   const pool = await poolPromise;
   await pool.query(
@@ -180,6 +230,7 @@ module.exports = {
   getOrderPaymentInfo,
   getOrderItemsForPayment,
   getPaymentMethodIdByName,
+  ensurePaymentMethodIdByName,
   upsertPaymentIntent,
   getPaymentIntentByOrder,
   markPaymentIntentConfirmed,

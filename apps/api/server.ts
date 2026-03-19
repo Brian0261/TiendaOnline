@@ -28,7 +28,7 @@ app.use(
   cors({
     origin: CORS_ORIGINS,
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
@@ -111,6 +111,7 @@ const categoryRoutes = require("./routes/categoryRoutes");
 const diagnosticRoutes = require("./routes/diagnosticRoutes");
 const auditRoutes = require("./routes/auditRoutes");
 const deliveryRoutes = require("./routes/deliveryRoutes");
+const userManagementRoutes = require("./routes/userManagementRoutes");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
@@ -126,6 +127,7 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/diag", diagnosticRoutes);
 app.use("/api/audit", auditRoutes);
 app.use("/api/delivery", deliveryRoutes);
+app.use("/api/users", userManagementRoutes);
 
 /* ────────────────────────────
    SSE: stream de cambios de pedidos

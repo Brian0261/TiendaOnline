@@ -58,6 +58,7 @@ exports.initMercadoPago = async (req, res) => {
 exports.mercadoPagoWebhook = async (req, res) => {
   try {
     const result = await paymentService.handleMercadoPagoWebhook({
+      headers: req.headers,
       query: req.query,
       body: req.body,
     });

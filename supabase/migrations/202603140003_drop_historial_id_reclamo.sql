@@ -1,0 +1,2 @@
+ALTER TABLE historial
+DROP COLUMN IF EXISTS id_reclamo;

@@ -1,38 +1,58 @@
 const db = require("../config/db.config");
 const dispatchRepository = require("../repositories/dispatchRepository");
 
-function buildOutboundFilters({ fechaInicio = "", fechaFin = "", search = "", almacen = "" }) {
+const DISPATCH_BUSINESS_TIMEZONE = "America/Lima";
+
+function normalizeDateInput(value) {
+  const v = String(value || "").trim();
+  if (!v) return "";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+    const err = new Error("Formato de fecha inválido. Usa YYYY-MM-DD.");
+    (err as any).status = 400;
+    throw err;
+  }
+  return v;
+}
+
+function buildOutboundFilters({ fechaInicio = "", fechaFin = "", search = "" }) {
   const filtros = [];
   const params = [];
 
-  if (fechaInicio && fechaFin) {
-    params.push(fechaInicio, fechaFin);
-    filtros.push(`si.fecha_salida::date BETWEEN $${params.length - 1} AND $${params.length}`);
-  } else if (fechaInicio) {
-    params.push(fechaInicio);
-    filtros.push(`si.fecha_salida::date >= $${params.length}`);
-  } else if (fechaFin) {
-    params.push(fechaFin);
-    filtros.push(`si.fecha_salida::date <= $${params.length}`);
+  const startDate = normalizeDateInput(fechaInicio);
+  const endDate = normalizeDateInput(fechaFin);
+
+  if (startDate && endDate && startDate > endDate) {
+    const err = new Error("El rango de fechas es inválido.");
+    (err as any).status = 400;
+    throw err;
   }
 
-  if (search) {
-    params.push(`%${search}%`);
+  const businessDateExpr = `(si.fecha_salida AT TIME ZONE '${DISPATCH_BUSINESS_TIMEZONE}')::date`;
+
+  if (startDate && endDate) {
+    params.push(startDate, endDate);
+    filtros.push(`${businessDateExpr} BETWEEN $${params.length - 1}::date AND $${params.length}::date`);
+  } else if (startDate) {
+    params.push(startDate);
+    filtros.push(`${businessDateExpr} >= $${params.length}::date`);
+  } else if (endDate) {
+    params.push(endDate);
+    filtros.push(`${businessDateExpr} <= $${params.length}::date`);
+  }
+
+  const searchText = String(search || "").trim();
+  if (searchText) {
+    params.push(`%${searchText}%`);
     filtros.push(
       `(p.nombre_producto ILIKE $${params.length} OR si.motivo_salida ILIKE $${params.length} OR (u.nombre || ' ' || u.apellido) ILIKE $${params.length})`,
     );
-  }
-
-  if (almacen) {
-    params.push(Number(almacen));
-    filtros.push(`i.id_almacen = $${params.length}`);
   }
 
   const whereSql = filtros.length ? "WHERE " + filtros.join(" AND ") : "";
   return { whereSql, params };
 }
 
-async function createDispatch({ userId, observacion = "", items = [], id_pedido = null }) {
+async function createDispatch({ userId, observacion = "", items = [] }) {
   if (!Array.isArray(items) || items.length === 0) {
     const err = new Error("No hay items para despachar.");
     (err as any).status = 400;
@@ -86,7 +106,7 @@ async function createDispatch({ userId, observacion = "", items = [], id_pedido 
     await dispatchRepository.insertHistorialTx(tx, {
       descripcion: `SALIDA_DESPACHO: ${items.length} items. ${(observacion || "").substring(0, 200)}`,
       accion: "SALIDA_DESPACHO",
-      idPedido: id_pedido ?? null,
+      idPedido: null,
       userId,
     });
 
@@ -108,14 +128,32 @@ async function createDispatch({ userId, observacion = "", items = [], id_pedido 
 
 async function listOutbound(query) {
   const pool = await db.poolPromise;
+  const page = Math.max(Number(query?.page) || 1, 1);
+  const pageSize = Math.min(Math.max(Number(query?.pageSize) || 20, 1), 200);
+  const offset = (page - 1) * pageSize;
   const { whereSql, params } = buildOutboundFilters(query || {});
-  return dispatchRepository.listOutbound(pool, { whereSql, params });
+  const { rows, total } = await dispatchRepository.listOutbound(pool, { whereSql, params, limit: pageSize, offset });
+
+  return {
+    rows,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.max(Math.ceil((Number(total) || 0) / pageSize), 1),
+  };
 }
 
 async function exportOutboundCsv(query) {
-  const rows = await listOutbound(query);
+  const pool = await db.poolPromise;
+  const { whereSql, params } = buildOutboundFilters(query || {});
+  const { rows } = await dispatchRepository.listOutbound(pool, {
+    whereSql,
+    params,
+    limit: Math.min(Math.max(Number(query?.limit) || 10000, 1), 20000),
+    offset: 0,
+  });
 
-  let csv = "Fecha/Hora,Producto,Cantidad,Motivo,Almacén,Responsable\n";
+  let csv = "Fecha/Hora,Producto,Cantidad,Motivo,Responsable\n";
   for (const r of rows) {
     const fecha = new Date(r.fecha_salida_utc).toLocaleString("es-PE", {
       timeZone: "America/Lima",
@@ -127,7 +165,6 @@ async function exportOutboundCsv(query) {
       `"${String(r.producto || "").replace(/"/g, '""')}"`,
       r.cantidad,
       `"${String(r.motivo || "").replace(/"/g, '""')}"`,
-      `"${String(r.almacen || "").replace(/"/g, '""')}"`,
       `"${String(r.responsable || "-").replace(/"/g, '""')}"`,
     ].join(",");
     csv += row + "\n";
