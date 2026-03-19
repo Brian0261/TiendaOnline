@@ -32,12 +32,12 @@ services:
       PGPASSWORD: "Tienda#2025!"
       PGDATABASE: db_tienda
     volumes:
-      - ./apps/api/db/init:/init:ro
+      - ./supabase/init-staging.sql:/init/init-staging.sql:ro
     entrypoint:
       [
         "/bin/sh",
         "-c",
-        "set -e; for f in /init/*.sql; do echo '>> Ejecutando' $$f; psql -v ON_ERROR_STOP=1 -f $$f; done; echo 'OK Scripts completados'",
+        "set -e; echo '>> Ejecutando /init/init-staging.sql'; psql -v ON_ERROR_STOP=1 -f /init/init-staging.sql; echo 'OK Script completado'",
       ]
     networks:
       - tienda_net
