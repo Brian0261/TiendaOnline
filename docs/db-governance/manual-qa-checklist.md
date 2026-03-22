@@ -8,6 +8,17 @@
 - [ ] Usuario inactivo no puede iniciar sesión.
 - [ ] Refresh token de usuario inactivo es rechazado.
 
+## 1.1) Recuperación de contraseña (local / staging)
+
+- [ ] Forgot password con correo existente responde mensaje genérico y envía correo.
+- [ ] Forgot password con correo inexistente responde el mismo mensaje genérico (sin enumeración).
+- [ ] Correo recibido incluye URL de reset correcta por entorno (`localhost` en local, dominio staging en staging).
+- [ ] Reset password con token válido cambia la contraseña y permite login posterior.
+- [ ] Token de reset no puede reutilizarse (segundo intento falla).
+- [ ] Token inválido o expirado retorna error controlado.
+- [ ] Contraseña débil es rechazada en frontend y backend.
+- [ ] Login, verify-email, refresh y logout siguen funcionando tras los cambios.
+
 ## 2) Dashboard administrador
 
 - [ ] Sección Usuarios lista/pagina correctamente.

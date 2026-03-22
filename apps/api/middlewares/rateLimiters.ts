@@ -35,9 +35,37 @@ function createRegisterLimiter() {
   });
 }
 
+function createForgotPasswordLimiter() {
+  const windowMinutes = toInt(process.env.FORGOT_PASSWORD_RATE_LIMIT_WINDOW_MINUTES, 15);
+  const max = toInt(process.env.FORGOT_PASSWORD_RATE_LIMIT_MAX, 8);
+
+  return rateLimit({
+    windowMs: minutes(windowMinutes),
+    limit: max,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Demasiadas solicitudes de recuperación. Intenta más tarde." },
+  });
+}
+
+function createResetPasswordLimiter() {
+  const windowMinutes = toInt(process.env.RESET_PASSWORD_RATE_LIMIT_WINDOW_MINUTES, 15);
+  const max = toInt(process.env.RESET_PASSWORD_RATE_LIMIT_MAX, 10);
+
+  return rateLimit({
+    windowMs: minutes(windowMinutes),
+    limit: max,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Demasiados intentos de restablecimiento. Intenta más tarde." },
+  });
+}
+
 module.exports = {
   createLoginLimiter,
   createRegisterLimiter,
+  createForgotPasswordLimiter,
+  createResetPasswordLimiter,
 };
 
 export {};

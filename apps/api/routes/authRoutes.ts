@@ -4,11 +4,13 @@ const express = require("express");
 const router = express.Router();
 const authController = require("../controllers/authController");
 const { authenticateToken } = require("../middlewares/authMiddleware");
-const { createLoginLimiter, createRegisterLimiter } = require("../middlewares/rateLimiters");
+const { createLoginLimiter, createRegisterLimiter, createForgotPasswordLimiter, createResetPasswordLimiter } = require("../middlewares/rateLimiters");
 const { checkLoginLock } = require("../middlewares/bruteforceProtection");
 
 const loginLimiter = createLoginLimiter();
 const registerLimiter = createRegisterLimiter();
+const forgotPasswordLimiter = createForgotPasswordLimiter();
+const resetPasswordLimiter = createResetPasswordLimiter();
 
 // Registro de nuevo cliente
 router.post("/register", registerLimiter, authController.register);
@@ -25,8 +27,8 @@ router.post("/refresh", authController.refresh);
 router.post("/logout", authController.logout);
 
 // Recuperación / restablecimiento de contraseña
-router.post("/forgot-password", loginLimiter, authController.forgotPassword);
-router.post("/reset-password", loginLimiter, authController.resetPassword);
+router.post("/forgot-password", forgotPasswordLimiter, authController.forgotPassword);
+router.post("/reset-password", resetPasswordLimiter, authController.resetPassword);
 
 // Verificación de email (doble opt-in)
 router.post("/request-email-verification", registerLimiter, authController.requestEmailVerification);

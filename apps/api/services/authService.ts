@@ -5,6 +5,7 @@ const { JWT_SECRET, JWT_EXPIRES_IN, JWT_REFRESH_SECRET, JWT_REFRESH_EXPIRES_IN }
 const authRepository = require("../repositories/authRepository");
 const securityTokenRepository = require("../repositories/securityTokenRepository");
 const historialRepository = require("../repositories/historialRepository");
+const emailService = require("./emailService");
 
 const REFRESH_COOKIE_NAME = "refresh_token";
 
@@ -49,12 +50,24 @@ function getPasswordResetTtlMs() {
   return minutes * 60 * 1000;
 }
 
+function getPasswordResetTtlMinutes() {
+  return Math.round(getPasswordResetTtlMs() / (60 * 1000));
+}
+
+function getEmailVerificationTtlMinutes() {
+  return Math.round(getEmailVerificationTtlMs() / (60 * 1000));
+}
+
 function logDevEmailLink(kind, urlOrToken) {
   // En dev imprimimos el link/token para poder probar sin proveedor real de email.
   // En producción, por defecto no lo hacemos.
   const force = String(process.env.DEV_EMAIL_LINKS || "").trim() === "1";
   if (process.env.NODE_ENV === "production" && !force) return;
   console.log(`[DEV:${kind}] ${urlOrToken}`);
+}
+
+function isStrongPassword(value) {
+  return /^(?=.*[A-Z])(?=.*\d).{8,}$/.test(String(value || ""));
 }
 
 function toAuthUser(userRow) {
@@ -143,7 +156,11 @@ async function register({ nombre, apellido, email, plainPwd, telefono, direccion
 
     const base = getWebBaseUrl();
     const link = base ? `${base}/verify-email?token=${encodeURIComponent(token)}` : token;
-    logDevEmailLink("verify-email", link);
+    await emailService.sendEmailVerificationEmail({
+      to: userRow.email,
+      verifyLink: link,
+      expiresMinutes: getEmailVerificationTtlMinutes(),
+    });
   } catch {
     // Si falla la generación del token, no bloqueamos el registro.
   }
@@ -222,7 +239,11 @@ async function requestEmailVerification({ id_usuario, email }) {
 
   const base = getWebBaseUrl();
   const link = base ? `${base}/verify-email?token=${encodeURIComponent(token)}` : token;
-  logDevEmailLink("verify-email", link);
+  await emailService.sendEmailVerificationEmail({
+    to: userRow.email,
+    verifyLink: link,
+    expiresMinutes: getEmailVerificationTtlMinutes(),
+  });
 
   return safeMessage;
 }
@@ -264,6 +285,10 @@ async function forgotPassword({ email }) {
   const token_hash = sha256Hex(token);
   const expires_at = new Date(Date.now() + getPasswordResetTtlMs());
 
+  await securityTokenRepository.invalidateActivePasswordResetTokensByUserId({
+    id_usuario: userRow.id_usuario,
+  });
+
   await securityTokenRepository.createPasswordResetToken({
     id_usuario: userRow.id_usuario,
     token_hash,
@@ -272,7 +297,11 @@ async function forgotPassword({ email }) {
 
   const base = getWebBaseUrl();
   const link = base ? `${base}/reset-password?token=${encodeURIComponent(token)}` : token;
-  logDevEmailLink("reset-password", link);
+  await emailService.sendPasswordResetEmail({
+    to: userRow.email,
+    resetLink: link,
+    expiresMinutes: getPasswordResetTtlMinutes(),
+  });
 
   return safeMessage;
 }
@@ -283,6 +312,9 @@ async function resetPassword({ token, newPassword }) {
 
   const plainPwd = String(newPassword || "").trim();
   if (!plainPwd) throw createHttpError(400, "Contraseña inválida.");
+  if (!isStrongPassword(plainPwd)) {
+    throw createHttpError(400, "La contraseña debe tener mínimo 8 caracteres, una mayúscula y un número.");
+  }
 
   const passwordHash = await bcrypt.hash(plainPwd, getBcryptSaltRounds());
   const token_hash = sha256Hex(rawToken);
