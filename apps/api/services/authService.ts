@@ -297,11 +297,16 @@ async function forgotPassword({ email }) {
 
   const base = getWebBaseUrl();
   const link = base ? `${base}/reset-password?token=${encodeURIComponent(token)}` : token;
-  await emailService.sendPasswordResetEmail({
-    to: userRow.email,
-    resetLink: link,
-    expiresMinutes: getPasswordResetTtlMinutes(),
-  });
+  try {
+    await emailService.sendPasswordResetEmail({
+      to: userRow.email,
+      resetLink: link,
+      expiresMinutes: getPasswordResetTtlMinutes(),
+    });
+  } catch (err) {
+    console.error("[authService] Error enviando email de recuperación:", err?.message || err);
+    return safeMessage;
+  }
 
   return safeMessage;
 }

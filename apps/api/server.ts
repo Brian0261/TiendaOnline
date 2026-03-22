@@ -12,10 +12,23 @@ const { poolPromise } = require("./config/db.config");
 
 const app = express();
 
-// Importante cuando estás detrás de Nginx/Reverse Proxy (req.ip correcto para rate limiting).
-if (process.env.TRUST_PROXY === "1") {
-  app.set("trust proxy", 1);
+function resolveTrustProxyValue() {
+  const raw = String(process.env.TRUST_PROXY || "")
+    .trim()
+    .toLowerCase();
+  if (["1", "true", "yes", "on"].includes(raw)) return 1;
+  if (["0", "false", "no", "off"].includes(raw)) return false;
+
+  const nodeEnv = String(process.env.NODE_ENV || "")
+    .trim()
+    .toLowerCase();
+  if (nodeEnv === "production" || nodeEnv === "staging") return 1;
+
+  return false;
 }
+
+// Importante detrás de Nginx/Reverse Proxy para req.ip correcto en rate limiting.
+app.set("trust proxy", resolveTrustProxyValue());
 
 /* ────────────────────────────
    CORS
