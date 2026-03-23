@@ -34,22 +34,49 @@ function getMailtrapApiConfig() {
   };
 }
 
+function getResendApiConfig() {
+  const apiKey = String(process.env.RESEND_API_KEY || "").trim();
+  const apiBaseUrl = String(process.env.RESEND_API_BASE_URL || "https://api.resend.com")
+    .trim()
+    .replace(/\/+$/, "");
+  const timeoutMs = toPositiveInt(process.env.RESEND_API_TIMEOUT_MS, 10_000);
+  const smtpFallbackEnabled = toBool(process.env.RESEND_SMTP_FALLBACK_ENABLED, false);
+
+  return {
+    apiKey,
+    apiBaseUrl,
+    timeoutMs,
+    smtpFallbackEnabled,
+  };
+}
+
 function hasMailtrapApiConfig() {
   const config = getMailtrapApiConfig();
   return Boolean(config.token && config.inboxId);
+}
+
+function hasResendApiConfig() {
+  const config = getResendApiConfig();
+  return Boolean(config.apiKey);
+}
+
+function hasSmtpConfig() {
+  const host = String(process.env.SMTP_HOST || "").trim();
+  const port = Number.parseInt(String(process.env.SMTP_PORT || ""), 10);
+  return Boolean(host) && Number.isFinite(port);
 }
 
 function getEmailMode() {
   const explicit = String(process.env.EMAIL_PROVIDER || "")
     .trim()
     .toLowerCase();
+  if (explicit === "resend") return "resend";
   if (explicit === "smtp") return "smtp";
   if (explicit === "mailtrap_api") return "mailtrap_api";
   if (explicit === "console") return "console";
 
-  const hasSmtpHost = Boolean(String(process.env.SMTP_HOST || "").trim());
-  const hasSmtpPort = Number.isFinite(Number.parseInt(String(process.env.SMTP_PORT || ""), 10));
-  if (hasSmtpHost && hasSmtpPort) return "smtp";
+  if (hasResendApiConfig()) return "resend";
+  if (hasSmtpConfig()) return "smtp";
   if (hasMailtrapApiConfig()) return "mailtrap_api";
   return "console";
 }
@@ -126,6 +153,64 @@ function toRecipientList(to) {
     .map(value => value.trim())
     .filter(Boolean)
     .map(email => ({ email }));
+}
+
+function toRecipientEmails(to) {
+  if (Array.isArray(to)) {
+    return to.map(value => String(value || "").trim()).filter(Boolean);
+  }
+
+  return String(to || "")
+    .split(",")
+    .map(value => value.trim())
+    .filter(Boolean);
+}
+
+async function sendViaResendApi({ to, subject, text, html }) {
+  const config = getResendApiConfig();
+  if (!config.apiKey) {
+    throw new Error("RESEND_API_KEY no configurado para envío por Resend.");
+  }
+
+  const recipients = toRecipientEmails(to);
+  if (!recipients.length) {
+    throw new Error("No hay destinatarios válidos para envío por Resend.");
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), config.timeoutMs);
+
+  try {
+    const response = await fetch(`${config.apiBaseUrl}/emails`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${config.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: getFromAddress(),
+        to: recipients,
+        subject,
+        text,
+        html,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`Resend API respondió ${response.status}: ${errorBody}`);
+    }
+  } catch (err) {
+    if (err?.name === "AbortError") {
+      const timeoutError = new Error("Timeout en Resend API");
+      (timeoutError as any).code = "ETIMEDOUT";
+      throw timeoutError;
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 async function sendViaMailtrapApi({ to, subject, text, html }) {
@@ -347,6 +432,33 @@ async function sendEmail({ to, subject, text, html, kind, debugLink }) {
 
   if (mode === "mailtrap_api") {
     await sendViaMailtrapApi({ to, subject, text, html });
+
+    if (canLogDevLinks() && debugLink) {
+      console.log(`[DEV:${kind}] ${debugLink}`);
+    }
+
+    return { delivered: true, mode };
+  }
+
+  if (mode === "resend") {
+    try {
+      await sendViaResendApi({ to, subject, text, html });
+    } catch (resendErr) {
+      const resendConfig = getResendApiConfig();
+      const shouldFallbackToSmtp = resendConfig.smtpFallbackEnabled && hasSmtpConfig();
+      if (!shouldFallbackToSmtp) {
+        throw resendErr;
+      }
+
+      console.warn(`[emailService] Resend falló; intentando SMTP fallback (${resendErr?.code || resendErr?.message || "UNKNOWN"}).`);
+      await sendViaSmtp({
+        from: getFromAddress(),
+        to,
+        subject,
+        text,
+        html,
+      });
+    }
 
     if (canLogDevLinks() && debugLink) {
       console.log(`[DEV:${kind}] ${debugLink}`);
