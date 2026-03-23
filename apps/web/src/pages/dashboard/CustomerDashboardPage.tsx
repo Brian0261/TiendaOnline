@@ -143,17 +143,19 @@ export function CustomerDashboardPage() {
 
   const profile = useMemo<Profile | undefined>(() => {
     const fromApi = profileData?.user;
-    if (fromApi) return fromApi;
-    if (!authUser) return undefined;
+    if (!fromApi && !authUser) return undefined;
+
+    const safeFromApi = fromApi || ({} as Partial<Profile>);
+    const safeAuthUser = authUser || {};
 
     return {
-      id_usuario: Number(authUser.id_usuario || 0),
-      nombre: String(authUser.nombre || ""),
-      apellido: String(authUser.apellido || ""),
-      email: String(authUser.email || ""),
-      telefono: "",
-      direccion_principal: "",
-      rol: authUser.rol,
+      id_usuario: Number(safeFromApi.id_usuario || safeAuthUser.id_usuario || 0),
+      nombre: String(safeFromApi.nombre || safeAuthUser.nombre || ""),
+      apellido: String(safeFromApi.apellido || safeAuthUser.apellido || ""),
+      email: String(safeFromApi.email || safeAuthUser.email || ""),
+      telefono: String(safeFromApi.telefono || ""),
+      direccion_principal: String(safeFromApi.direccion_principal || ""),
+      rol: safeFromApi.rol || safeAuthUser.rol,
     };
   }, [authUser, profileData?.user]);
 
