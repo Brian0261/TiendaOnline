@@ -13,6 +13,13 @@ function toPositiveInt(value, fallback) {
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }
 
+function normalizeBrandName(value) {
+  const normalized = String(value || "").trim();
+  if (!normalized) return "";
+  if (/tiendaonline/i.test(normalized)) return "Minimarket Express";
+  return normalized;
+}
+
 function getMailtrapApiConfig() {
   const token = String(process.env.MAILTRAP_API_TOKEN || "").trim();
   const inboxId = String(process.env.MAILTRAP_INBOX_ID || "").trim();
@@ -49,7 +56,7 @@ function getEmailMode() {
 
 function getFromParts() {
   const email = String(process.env.MAIL_FROM || "no-reply@tiendaonline.local").trim();
-  const name = String(process.env.MAIL_FROM_NAME || "Minimarket Express").trim();
+  const name = normalizeBrandName(process.env.MAIL_FROM_NAME) || "Minimarket Express";
   return { email, name };
 }
 
@@ -210,7 +217,13 @@ function escapeHtml(value) {
 }
 
 function getBrandName() {
-  return String(process.env.MAIL_FROM_NAME || "Minimarket Express").trim();
+  const explicitBrand = normalizeBrandName(process.env.MAIL_BRAND_NAME);
+  if (explicitBrand) return explicitBrand;
+
+  const fromName = normalizeBrandName(process.env.MAIL_FROM_NAME);
+  if (fromName) return fromName;
+
+  return "Minimarket Express";
 }
 
 function getRequestTimestamp() {
