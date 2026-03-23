@@ -49,7 +49,7 @@ function getEmailMode() {
 
 function getFromParts() {
   const email = String(process.env.MAIL_FROM || "no-reply@tiendaonline.local").trim();
-  const name = String(process.env.MAIL_FROM_NAME || "TiendaOnline").trim();
+  const name = String(process.env.MAIL_FROM_NAME || "Minimarket Express").trim();
   return { email, name };
 }
 
@@ -210,7 +210,7 @@ function escapeHtml(value) {
 }
 
 function getBrandName() {
-  return String(process.env.MAIL_FROM_NAME || "TiendaOnline").trim();
+  return String(process.env.MAIL_FROM_NAME || "Minimarket Express").trim();
 }
 
 function getRequestTimestamp() {
