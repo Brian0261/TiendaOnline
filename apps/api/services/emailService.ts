@@ -8,6 +8,11 @@ function toBool(value, fallback = false) {
   return fallback;
 }
 
+function toPositiveInt(value, fallback) {
+  const n = Number.parseInt(String(value ?? ""), 10);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
 function getEmailMode() {
   const explicit = String(process.env.EMAIL_PROVIDER || "")
     .trim()
@@ -28,18 +33,19 @@ function getFromAddress() {
 }
 
 function getSmtpConfig() {
-  const port = Number.parseInt(String(process.env.SMTP_PORT || "587"), 10);
+  const port = toPositiveInt(process.env.SMTP_PORT, 587);
   const secure = toBool(process.env.SMTP_SECURE, port === 465);
   const host = String(process.env.SMTP_HOST || "").trim();
   const user = String(process.env.SMTP_USER || "").trim();
   const pass = String(process.env.SMTP_PASS || "").trim();
   const requireAuth = toBool(process.env.SMTP_REQUIRE_AUTH, Boolean(user || pass));
+  const connectionTimeout = toPositiveInt(process.env.SMTP_CONNECTION_TIMEOUT_MS, 10_000);
 
   const config = {
     host,
-    port: Number.isFinite(port) ? port : 587,
+    port,
     secure,
-    connectionTimeout: 10_000,
+    connectionTimeout,
   };
 
   if (requireAuth) {
@@ -52,12 +58,53 @@ function getSmtpConfig() {
   return config;
 }
 
-let cachedTransporter = null;
+function getSmtpFallbackPorts(primaryPort) {
+  const parsed = String(process.env.SMTP_FALLBACK_PORTS || "")
+    .split(",")
+    .map(value => Number.parseInt(value.trim(), 10))
+    .filter(value => Number.isFinite(value) && value > 0);
 
-function getTransporter() {
-  if (cachedTransporter) return cachedTransporter;
-  cachedTransporter = nodemailer.createTransport(getSmtpConfig());
-  return cachedTransporter;
+  const defaults = [2525, 587, 465];
+  const combined = [primaryPort, ...parsed, ...defaults];
+  const unique = [];
+
+  for (const port of combined) {
+    if (!unique.includes(port)) unique.push(port);
+  }
+
+  return unique;
+}
+
+function isRecoverableSmtpError(err) {
+  const code = String(err?.code || "").toUpperCase();
+  return ["ETIMEDOUT", "ECONNREFUSED", "EHOSTUNREACH", "ENOTFOUND", "ESOCKET", "ECONNECTION"].includes(code);
+}
+
+async function sendViaSmtp(message) {
+  const baseConfig = getSmtpConfig();
+  const ports = getSmtpFallbackPorts(baseConfig.port);
+  let lastError = null;
+
+  for (const port of ports) {
+    const transporter = nodemailer.createTransport({
+      ...baseConfig,
+      port,
+      secure: port === 465 ? true : baseConfig.secure,
+    });
+
+    try {
+      await transporter.sendMail(message);
+      return;
+    } catch (err) {
+      lastError = err;
+      if (!isRecoverableSmtpError(err)) {
+        throw err;
+      }
+      console.warn(`[emailService] SMTP falló en puerto ${port}: ${err?.code || err?.message || "UNKNOWN"}`);
+    }
+  }
+
+  throw lastError || new Error("No se pudo enviar email por SMTP.");
 }
 
 function canLogDevLinks() {
@@ -131,8 +178,7 @@ async function sendEmail({ to, subject, text, html, kind, debugLink }) {
     return { delivered: false, mode };
   }
 
-  const transporter = getTransporter();
-  await transporter.sendMail({
+  await sendViaSmtp({
     from: getFromAddress(),
     to,
     subject,
