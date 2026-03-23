@@ -593,7 +593,7 @@ export function CheckoutPage() {
                         </div>
                         <div className="body">
                           <div className="title" id="pickup-name">
-                            {deliveryCfg?.store?.name || "Almacén Central"}
+                            {deliveryCfg?.store?.name || "Tienda Principal"}
                           </div>
                           <div className="row">
                             <div className="col-sm-7">

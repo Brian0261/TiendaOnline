@@ -22,6 +22,20 @@ async function createPasswordResetToken({ id_usuario, token_hash, expires_at }) 
   );
 }
 
+async function invalidateActivePasswordResetTokensByUserId({ id_usuario }) {
+  const pool = await poolPromise;
+  await pool.query(
+    `
+      UPDATE password_reset_token
+      SET used_at = NOW()
+      WHERE id_usuario = $1
+        AND used_at IS NULL
+        AND expires_at > NOW();
+    `,
+    [id_usuario],
+  );
+}
+
 async function consumeEmailVerificationTokenAndVerifyUser({ token_hash }) {
   const pool = await poolPromise;
   const tx = await pool.connect();
@@ -122,6 +136,7 @@ async function consumePasswordResetTokenAndUpdatePassword({ token_hash, password
 module.exports = {
   createEmailVerificationToken,
   createPasswordResetToken,
+  invalidateActivePasswordResetTokensByUserId,
   consumeEmailVerificationTokenAndVerifyUser,
   consumePasswordResetTokenAndUpdatePassword,
 };

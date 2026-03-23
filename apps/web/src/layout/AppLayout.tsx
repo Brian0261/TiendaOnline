@@ -2,16 +2,17 @@ import { useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Footer } from "./Footer";
 import { Navbar } from "./Navbar";
+import { isBackofficeHost } from "../utils/host";
 
 const AUTH_EXPIRED_EVENT = "auth:expired";
 
 export function AppLayout() {
   const { pathname } = useLocation();
   const p = pathname.toLowerCase();
-  const isBackofficeHost = typeof window !== "undefined" && window.location.hostname === "backoffice.minimarketexpress.shop";
+  const isInternalHost = isBackofficeHost();
   const isStaffDashboard = p.startsWith("/dashboard/admin") || p.startsWith("/dashboard/employee") || p.startsWith("/dashboard/delivery");
   const isBackoffice = p.startsWith("/backoffice/");
-  const isBackofficeLogin = isBackofficeHost && p === "/login";
+  const isBackofficeLogin = isInternalHost && p === "/login";
   const hidePublicLayout = isStaffDashboard || isBackoffice || isBackofficeLogin;
   const isHome = p === "/";
   const [authNotice, setAuthNotice] = useState<string>("");

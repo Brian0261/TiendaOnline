@@ -32,12 +32,12 @@ services:
       PGPASSWORD: "Tienda#2025!"
       PGDATABASE: db_tienda
     volumes:
-      - ./apps/api/db/init:/init:ro
+      - ./supabase/init-staging.sql:/init/init-staging.sql:ro
     entrypoint:
       [
         "/bin/sh",
         "-c",
-        "set -e; for f in /init/*.sql; do echo '>> Ejecutando' $$f; psql -v ON_ERROR_STOP=1 -f $$f; done; echo 'OK Scripts completados'",
+        "set -e; echo '>> Ejecutando /init/init-staging.sql'; psql -v ON_ERROR_STOP=1 -f /init/init-staging.sql; echo 'OK Script completado'",
       ]
     networks:
       - tienda_net
@@ -56,6 +56,11 @@ services:
       PG_PASSWORD: "Tienda#2025!"
       PG_DATABASE: db_tienda
       PG_SSL: "false"
+      EMAIL_PROVIDER: smtp
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_SECURE: "false"
+      SMTP_REQUIRE_AUTH: "false"
     depends_on:
       db:
         condition: service_healthy
@@ -63,6 +68,15 @@ services:
       - "3000:3000"
     volumes:
       - ./apps/api/uploads:/app/uploads
+    networks:
+      - tienda_net
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: tienda_mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
     networks:
       - tienda_net
 

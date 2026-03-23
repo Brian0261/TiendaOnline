@@ -21,9 +21,7 @@ exports.exportInventory = async (req, res) => {
       await historialRepository.insertHistorial({
         id_usuario: req.user.id_usuario,
         accion: "INVENTARIO_EXPORTADO",
-        descripcion: `Exportación de inventario. Filtros: search=${String(req.query?.search || "").trim()} almacen=${String(
-          req.query?.almacen || ""
-        ).trim()}`,
+        descripcion: `Exportación de inventario. Filtros: search=${String(req.query?.search || "").trim()}`,
       });
     }
 
@@ -33,6 +31,87 @@ exports.exportInventory = async (req, res) => {
   } catch (err) {
     console.error("exportInventory:", err);
     res.status(500).json({ message: "Error al exportar inventario" });
+  }
+};
+
+exports.searchDispatchInventory = async (req, res) => {
+  try {
+    const result = await inventoryService.searchInventoryForDispatch(req.query);
+    return res.json(result);
+  } catch (err) {
+    console.error("searchDispatchInventory:", err);
+    res.status(500).json({ message: "Error al buscar inventario para despacho" });
+  }
+};
+
+exports.getInventoryKpis = async (_req, res) => {
+  try {
+    const data = await inventoryService.getInventoryKpis();
+    return res.json(data);
+  } catch (err) {
+    console.error("getInventoryKpis:", err);
+    res.status(500).json({ message: "Error al obtener KPIs de inventario" });
+  }
+};
+
+exports.getInventoryPaginated = async (req, res) => {
+  try {
+    const result = await inventoryService.getInventoryPaginated(req.query);
+    return res.json(result);
+  } catch (err) {
+    console.error("getInventoryPaginated:", err);
+    res.status(500).json({ message: "Error al listar inventario paginado" });
+  }
+};
+
+exports.getInboundInventoryPaginated = async (req, res) => {
+  try {
+    const result = await inventoryService.getInboundInventoryPaginated(req.query);
+    return res.json(result);
+  } catch (err) {
+    console.error("getInboundInventoryPaginated:", err);
+    res.status(500).json({ message: "Error al listar entradas de inventario" });
+  }
+};
+
+exports.createInboundInventory = async (req, res) => {
+  try {
+    const data = await inventoryService.createInboundInventory({
+      userId: req.user?.id_usuario,
+      payload: req.body || {},
+    });
+    return res.status(201).json(data);
+  } catch (err) {
+    const status = err?.status || 500;
+    if (status >= 400 && status < 500) {
+      return res.status(status).json({ message: err?.message || "Solicitud inválida" });
+    }
+
+    console.error("createInboundInventory:", err);
+    return res.status(500).json({ message: "Error al registrar entrada de inventario" });
+  }
+};
+
+exports.exportInventoryAdmin = async (req, res) => {
+  try {
+    const { filename, csv } = await inventoryService.exportInventoryCsvAdmin(req.query);
+
+    if (req.user?.id_usuario) {
+      await historialRepository.insertHistorial({
+        id_usuario: req.user.id_usuario,
+        accion: "INVENTARIO_ADMIN_EXPORTADO",
+        descripcion:
+          `Exportación admin de inventario. Filtros: search=${String(req.query?.search || "").trim()}` +
+          ` categoriaId=${String(req.query?.categoriaId || "").trim()}`,
+      });
+    }
+
+    res.header("Content-Type", "text/csv");
+    res.attachment(filename);
+    return res.send(csv);
+  } catch (err) {
+    console.error("exportInventoryAdmin:", err);
+    res.status(500).json({ message: "Error al exportar inventario admin" });
   }
 };
 

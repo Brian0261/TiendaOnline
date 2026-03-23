@@ -76,10 +76,51 @@ async function getSalesReport({ fechaInicio, fechaFin }) {
   };
 }
 
+async function exportSalesReportCsv({ fechaInicio, fechaFin }) {
+  if (!fechaInicio || !fechaFin) {
+    const err = new Error("Debes indicar el rango de fechas.");
+    (err as any).status = 400;
+    throw err;
+  }
+
+  const fi = toDate(fechaInicio);
+  const ff = toDate(fechaFin);
+
+  const { totalVentas, cantidadPedidos } = await reportRepository.getSalesTotalsBetweenDates({ fechaInicio: fi, fechaFin: ff });
+  const topProductos = await reportRepository.getTopProductsBetweenDates({ fechaInicio: fi, fechaFin: ff });
+  const metodosPago = await reportRepository.getPaymentMethodsBetweenDates({ fechaInicio: fi, fechaFin: ff });
+
+  const lines: string[] = [];
+
+  lines.push("Reporte de Ventas");
+  lines.push(`Periodo,${fi},${ff}`);
+  lines.push(`Total Ventas (S/),${Number(totalVentas || 0).toFixed(2)}`);
+  lines.push(`Pedidos Completados,${Number(cantidadPedidos || 0)}`);
+  lines.push("");
+
+  lines.push("Top Productos");
+  lines.push("Producto,Cantidad,Total (S/)");
+  (topProductos || []).forEach(p => {
+    lines.push(`"${String(p.nombre || "").replace(/"/g, '""')}",${Number(p.cantidad)},${Number(p.total).toFixed(2)}`);
+  });
+  lines.push("");
+
+  lines.push("Metodos de Pago");
+  lines.push("Metodo,Cantidad");
+  (metodosPago || []).forEach(m => {
+    lines.push(`"${String(m.metodo || "").replace(/"/g, '""')}",${Number(m.cantidad)}`);
+  });
+
+  const csv = lines.join("\n");
+  const filename = `reporte-ventas-${fi}_a_${ff}.csv`;
+  return { filename, csv };
+}
+
 module.exports = {
   toDate,
   getDashboardOverview,
   getSalesReport,
+  exportSalesReportCsv,
 };
 
 export {};

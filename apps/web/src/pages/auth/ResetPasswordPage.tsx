@@ -10,6 +10,10 @@ function toMessage(err: unknown): string {
   return "No se pudo restablecer la contraseña.";
 }
 
+function isStrongPassword(value: string): boolean {
+  return /^(?=.*[A-Z])(?=.*\d).{8,}$/.test(String(value || ""));
+}
+
 export function ResetPasswordPage() {
   const [params] = useSearchParams();
   const token = params.get("token") || "";
@@ -25,6 +29,7 @@ export function ResetPasswordPage() {
     if (loading) return false;
     if (!token.trim()) return false;
     if (!password.trim()) return false;
+    if (!isStrongPassword(password)) return false;
     if (password !== confirm) return false;
     return true;
   }, [confirm, loading, password, token]);
@@ -73,6 +78,9 @@ export function ResetPasswordPage() {
           <label className="form-label">Nueva contraseña</label>
           <input className="form-control" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
           <div className="form-text">Mínimo 8 caracteres, una mayúscula y un número.</div>
+          {password && !isStrongPassword(password) ? (
+            <div className="form-text text-danger">La contraseña no cumple los requisitos mínimos.</div>
+          ) : null}
         </div>
 
         <div className="mb-3">
@@ -85,7 +93,7 @@ export function ResetPasswordPage() {
           <button className="btn btn-danger" type="submit" disabled={!canSubmit}>
             {loading ? "Actualizando..." : "Actualizar"}
           </button>
-          <Link className="btn btn-outline-secondary" to="/?login=1">
+          <Link className="btn btn-outline-secondary" to="/login">
             Ir a login
           </Link>
         </div>

@@ -11,7 +11,7 @@ router.get("/maps-key", (req, res) => {
 router.get("/delivery", (req, res) => {
   res.json({
     store: {
-      name: "Almacén Central",
+      name: "Tienda Principal",
       address: "Av. Principal 123, Lima",
       lat: -12.046373,
       lng: -77.042754,

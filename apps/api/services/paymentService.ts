@@ -1,6 +1,7 @@
 const paymentRepository = require("../repositories/paymentRepository");
 const orderService = require("./orderService");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 const { JWT_SECRET } = require("../config/auth.config");
 
 const MP_PROVIDER = "mercadopago";
@@ -15,23 +16,41 @@ function isTestAccessToken(token) {
   return typeof token === "string" && /^TEST-/.test(token.trim());
 }
 
+function isRuntimeProduction() {
+  return (
+    String(process.env.NODE_ENV || "")
+      .trim()
+      .toLowerCase() === "production"
+  );
+}
+
 function shouldUseSandbox() {
   const env = String(process.env.MP_ENV || "")
     .trim()
     .toLowerCase();
-  if (String(process.env.NODE_ENV || "").trim() === "production") return false;
   if (env === "sandbox" || env === "test") return true;
-  if (env === "prod" || env === "production") return false;
+  if (env === "prod" || env === "production" || env === "live") return false;
   if (String(process.env.MP_USE_SANDBOX || "").trim() === "1") return true;
+  if (String(process.env.MP_USE_SANDBOX || "").trim() === "0") return false;
+  if (isTestAccessToken(process.env.MP_ACCESS_TOKEN)) return true;
   // En dev, por defecto usamos sandbox para poder pagar con tarjetas/usuarios de prueba.
-  if (String(process.env.NODE_ENV || "").trim() !== "production") return true;
-  return isTestAccessToken(process.env.MP_ACCESS_TOKEN);
+  return String(process.env.NODE_ENV || "").trim() !== "production";
 }
 
 function assertRealGatewayConfig() {
-  const isProd = String(process.env.NODE_ENV || "").trim() === "production";
+  const env = String(process.env.MP_ENV || "")
+    .trim()
+    .toLowerCase();
+  const sandboxFlag = String(process.env.MP_USE_SANDBOX || "").trim();
+
+  if (isRuntimeProduction() && (env === "sandbox" || env === "test" || sandboxFlag === "1")) {
+    const err: any = new Error("Sandbox está deshabilitado con NODE_ENV=production. Ajusta MP_ENV=production y quita MP_USE_SANDBOX (o usa 0).");
+    err.status = 500;
+    throw err;
+  }
+
   const accessToken = String(process.env.MP_ACCESS_TOKEN || "").trim();
-  if (!isProd) return;
+  if (shouldUseSandbox()) return;
 
   if (!accessToken) {
     const err: any = new Error("Configura MP_ACCESS_TOKEN productivo para habilitar pagos reales.");
@@ -45,14 +64,145 @@ function assertRealGatewayConfig() {
     throw err;
   }
 
-  const env = String(process.env.MP_ENV || "")
-    .trim()
-    .toLowerCase();
-  if (env === "sandbox" || env === "test" || String(process.env.MP_USE_SANDBOX || "").trim() === "1") {
-    const err: any = new Error("Sandbox está deshabilitado en producción. Ajusta MP_ENV=production y quita MP_USE_SANDBOX.");
+  // Si no estamos en sandbox, ya validamos token real. No se requieren más checks aquí.
+}
+
+function getHeaderValue(headers, headerName) {
+  if (!headers || typeof headers !== "object") return "";
+  const direct = headers[headerName];
+  if (Array.isArray(direct)) return String(direct[0] || "").trim();
+  if (direct != null) return String(direct).trim();
+
+  const lowerKey = Object.keys(headers).find(key => key.toLowerCase() === headerName.toLowerCase());
+  if (!lowerKey) return "";
+
+  const value = headers[lowerKey];
+  if (Array.isArray(value)) return String(value[0] || "").trim();
+  return value == null ? "" : String(value).trim();
+}
+
+function parseMercadoPagoSignature(signatureHeader) {
+  return String(signatureHeader || "")
+    .split(",")
+    .map(part => part.trim())
+    .filter(Boolean)
+    .reduce(
+      (acc, entry) => {
+        const [rawKey, rawValue] = entry.split("=", 2);
+        const key = String(rawKey || "")
+          .trim()
+          .toLowerCase();
+        const value = String(rawValue || "").trim();
+        if (key) acc[key] = value;
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
+}
+
+function getWebhookResourceId(query, body) {
+  return query?.["data.id"] || query?.id || body?.data?.id || body?.id || null;
+}
+
+function secureCompareHex(left, right) {
+  const leftBuffer = Buffer.from(
+    String(left || "")
+      .trim()
+      .toLowerCase(),
+    "utf8",
+  );
+  const rightBuffer = Buffer.from(
+    String(right || "")
+      .trim()
+      .toLowerCase(),
+    "utf8",
+  );
+  if (leftBuffer.length === 0 || rightBuffer.length === 0 || leftBuffer.length !== rightBuffer.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(leftBuffer, rightBuffer);
+}
+
+function verifyMercadoPagoWebhookSignature({ headers, query, body }) {
+  const secret = String(process.env.MP_WEBHOOK_SECRET || "").trim();
+  const signatureHeader = getHeaderValue(headers, "x-signature");
+  const requestId = getHeaderValue(headers, "x-request-id");
+
+  if (!secret) {
+    if (shouldUseSandbox()) return { verified: false, skipped: true, reason: "MP_WEBHOOK_SECRET no configurado" };
+    const err: any = new Error("MP_WEBHOOK_SECRET no configurado para validar webhooks reales de Mercado Pago.");
     err.status = 500;
     throw err;
   }
+
+  if (!signatureHeader || !requestId) {
+    if (shouldUseSandbox()) return { verified: false, skipped: true, reason: "Webhook sin cabeceras de firma" };
+    const err: any = new Error("Webhook de Mercado Pago sin cabeceras de firma requeridas.");
+    err.status = 401;
+    throw err;
+  }
+
+  const signature = parseMercadoPagoSignature(signatureHeader);
+  const ts = signature.ts;
+  const receivedV1 = signature.v1;
+  const resourceId = getWebhookResourceId(query, body);
+
+  if (!ts || !receivedV1 || !resourceId) {
+    if (shouldUseSandbox()) return { verified: false, skipped: true, reason: "Webhook sin datos suficientes para firma" };
+    const err: any = new Error("Webhook de Mercado Pago sin datos suficientes para validar la firma.");
+    err.status = 401;
+    throw err;
+  }
+
+  const manifest = `id:${resourceId};request-id:${requestId};ts:${ts};`;
+  const expectedV1 = crypto.createHmac("sha256", secret).update(manifest).digest("hex");
+
+  if (!secureCompareHex(expectedV1, receivedV1)) {
+    const err: any = new Error("Firma inválida en webhook de Mercado Pago.");
+    err.status = 401;
+    throw err;
+  }
+
+  return { verified: true, skipped: false };
+}
+
+async function validateApprovedPayment({ payment, orderId }) {
+  const order = await paymentRepository.getOrderPaymentInfo(orderId);
+  if (!order) {
+    return { ok: true, skipped: true, reason: "Pedido ya no está pendiente" };
+  }
+
+  const transactionAmount = Number(payment?.transaction_amount || 0);
+  const expectedAmount = Number(order.total_pedido || 0);
+  if (!Number.isFinite(transactionAmount) || Math.abs(transactionAmount - expectedAmount) > 0.01) {
+    return {
+      ok: false,
+      reason: "Monto aprobado distinto al total del pedido",
+      detail: { expectedAmount, transactionAmount },
+    };
+  }
+
+  const currency = String(payment?.currency_id || "")
+    .trim()
+    .toUpperCase();
+  if (currency && currency !== "PEN") {
+    return {
+      ok: false,
+      reason: "Moneda no permitida para el pedido",
+      detail: { currency },
+    };
+  }
+
+  if (!shouldUseSandbox() && payment?.live_mode === false) {
+    return {
+      ok: false,
+      reason: "El pago recibido no corresponde a credenciales reales",
+      detail: { live_mode: payment?.live_mode },
+    };
+  }
+
+  return { ok: true };
 }
 
 function pickInitPoint(pref) {
@@ -255,7 +405,7 @@ async function initMercadoPago({ userId, orderId, checkoutToken, receiptType, re
     throw err;
   }
 
-  const paymentMethodId = await paymentRepository.getPaymentMethodIdByName("Mercado Pago");
+  const paymentMethodId = await paymentRepository.ensurePaymentMethodIdByName("Mercado Pago", "Checkout Pro (redirect)");
   if (!paymentMethodId) {
     const err: any = new Error("Método de pago 'Mercado Pago' no existe en BD");
     err.status = 500;
@@ -323,14 +473,16 @@ async function initMercadoPago({ userId, orderId, checkoutToken, receiptType, re
   };
 }
 
-async function handleMercadoPagoWebhook({ query, body }) {
+async function handleMercadoPagoWebhook({ headers, query, body }) {
   // Mercado Pago puede enviar: ?topic=payment&id=123 o body: { type, data: { id } }
   const topic = String(query?.topic || query?.type || body?.type || "payment");
-  const paymentId = query?.id || body?.data?.id || body?.id;
+  const paymentId = getWebhookResourceId(query, body);
   if (!paymentId) {
     // Responder 200 para no reintentar indefinidamente si vino sin payload útil.
     return { ok: true, ignored: true, reason: "Sin payment id" };
   }
+
+  const signatureCheck = verifyMercadoPagoWebhookSignature({ headers, query, body });
 
   const eventId = `${topic}:${paymentId}`;
   const rawBody = (() => {
@@ -412,8 +564,19 @@ async function handleMercadoPagoWebhook({ query, body }) {
     return { ok: true, status };
   }
 
+  const paymentValidation = await validateApprovedPayment({ payment, orderId });
+  if (!paymentValidation.ok) {
+    await paymentRepository.markWebhookEventProcessed(MP_PROVIDER, eventId);
+    return {
+      ok: true,
+      ignored: true,
+      reason: paymentValidation.reason,
+      detail: paymentValidation.detail || null,
+    };
+  }
+
   const intent = await paymentRepository.getPaymentIntentByOrder(MP_PROVIDER, orderId);
-  const paymentMethodId = intent?.paymentMethodId || (await paymentRepository.getPaymentMethodIdByName("Mercado Pago"));
+  const paymentMethodId = intent?.paymentMethodId || (await paymentRepository.ensurePaymentMethodIdByName("Mercado Pago", "Checkout Pro (redirect)"));
 
   const receiptType = intent?.receiptType || "BOLETA";
   const receiptData = intent?.receiptData || null;
@@ -452,7 +615,7 @@ async function handleMercadoPagoWebhook({ query, body }) {
     await paymentRepository.markWebhookEventProcessed(MP_PROVIDER, eventId);
   }
 
-  return { ok: true, status: "approved", orderId };
+  return { ok: true, status: "approved", orderId, signatureVerified: signatureCheck.verified };
 }
 
 async function mockConfirm({ userId, orderId, receiptType, receiptData, paymentMethodId, emitToUser }) {

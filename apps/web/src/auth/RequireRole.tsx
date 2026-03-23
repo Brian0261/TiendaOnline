@@ -1,6 +1,7 @@
 import { Navigate } from "react-router-dom";
 import type { Role } from "./types";
 import { useAuth } from "./useAuth";
+import { isBackofficeHost } from "../utils/host";
 
 type Props = {
   role: Role;
@@ -21,8 +22,7 @@ export function RequireRole({ role, children }: Props) {
   const { user, isAuthenticated } = useAuth();
   const userRole = normalizeRole(user?.rol);
   const isInternalRole = role === "ADMINISTRADOR" || role === "EMPLEADO" || role === "REPARTIDOR";
-  const isBackofficeHost = typeof window !== "undefined" && window.location.hostname === "backoffice.minimarketexpress.shop";
-  const internalLoginPath = isBackofficeHost ? "/login" : "/backoffice/login";
+  const internalLoginPath = isBackofficeHost() ? "/login" : "/backoffice/login";
 
   if (!isAuthenticated || !user || userRole !== role) {
     return <Navigate to={isInternalRole ? internalLoginPath : "/?login=1"} replace />;

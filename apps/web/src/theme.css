@@ -254,6 +254,124 @@
   color: #fff !important;
 }
 
+.dispatch-toast-stack {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  width: min(100vw - 2rem, 26.5rem);
+  display: grid;
+  gap: 0.55rem;
+  z-index: 1080;
+}
+
+.dispatch-toast {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.72rem 0.72rem 0.72rem 0.88rem;
+  border: 1px solid rgba(21, 128, 61, 0.26);
+  border-radius: 0.7rem;
+  background: #d1e8dd;
+  box-shadow: 0 10px 24px rgba(16, 24, 40, 0.12);
+  animation: dispatch-toast-enter 160ms ease-out;
+  transform-origin: right bottom;
+}
+
+.dispatch-toast--closing {
+  animation: dispatch-toast-exit 140ms ease-in forwards;
+}
+
+.dispatch-toast-text {
+  flex: 1;
+  margin: 0;
+  color: rgba(20, 83, 45, 0.95);
+  font-size: 0.96rem;
+  line-height: 1.35;
+}
+
+.dispatch-toast-close {
+  width: 1.82rem;
+  height: 1.82rem;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(21, 128, 61, 0.35);
+  border-radius: 999px;
+  background: rgba(21, 128, 61, 0.07);
+  color: rgba(20, 83, 45, 0.72);
+  font-size: 1.22rem;
+  line-height: 1;
+  font-weight: 400;
+  transition:
+    background-color 0.14s ease,
+    color 0.14s ease,
+    border-color 0.14s ease,
+    transform 0.14s ease,
+    box-shadow 0.14s ease;
+}
+
+.dispatch-toast-close > span {
+  transform: translateY(-1px);
+}
+
+.dispatch-toast-close:hover {
+  background-color: rgba(21, 128, 61, 0.16);
+  border-color: rgba(21, 128, 61, 0.52);
+  color: rgba(20, 83, 45, 0.92);
+}
+
+.dispatch-toast-close:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.95),
+    0 0 0 4px rgba(21, 128, 61, 0.36);
+}
+
+.dispatch-toast-close:active {
+  transform: scale(0.94);
+}
+
+@keyframes dispatch-toast-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes dispatch-toast-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(7px) scale(0.985);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dispatch-toast,
+  .dispatch-toast--closing,
+  .dispatch-toast-close {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .dispatch-toast-stack {
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    width: auto;
+  }
+}
+
 /* Secundario (gris oscuro del proyecto) */
 .btn.btn-secondary {
   background-color: var(--mmx-secondary) !important;

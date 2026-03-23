@@ -1,5 +1,54 @@
 const { poolPromise } = require("../config/db.config");
 
+async function getDeliverySchemaHealth(pool) {
+  const requiredColumns = [
+    { table: "motorizado", column: "id_usuario" },
+    { table: "envio", column: "id_motorizado" },
+    { table: "envio", column: "asignado_por" },
+    { table: "envio", column: "fecha_asignacion" },
+    { table: "envio", column: "fecha_inicio_ruta" },
+    { table: "envio", column: "fecha_entrega" },
+    { table: "envio", column: "motivo_no_entrega" },
+  ];
+
+  const requiredTables = ["entrega_evidencia"];
+
+  const { rows: columnRows } = await pool.query(
+    `
+      SELECT table_name, column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND (
+          (table_name = 'motorizado' AND column_name = 'id_usuario') OR
+          (table_name = 'envio' AND column_name IN ('id_motorizado', 'asignado_por', 'fecha_asignacion', 'fecha_inicio_ruta', 'fecha_entrega', 'motivo_no_entrega'))
+        )
+    `,
+  );
+
+  const { rows: tableRows } = await pool.query(
+    `
+      SELECT table_name
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+        AND table_name = ANY($1::text[])
+    `,
+    [requiredTables],
+  );
+
+  const columnSet = new Set((columnRows || []).map(r => `${r.table_name}.${r.column_name}`));
+  const tableSet = new Set((tableRows || []).map(r => r.table_name));
+
+  const missingColumns = requiredColumns.filter(c => !columnSet.has(`${c.table}.${c.column}`)).map(c => `${c.table}.${c.column}`);
+
+  const missingTables = requiredTables.filter(t => !tableSet.has(t));
+
+  return {
+    ok: missingColumns.length === 0 && missingTables.length === 0,
+    missingColumns,
+    missingTables,
+  };
+}
+
 async function getMotorizadoByUserId(pool, userId) {
   const { rows } = await pool.query(
     `
@@ -11,6 +60,48 @@ async function getMotorizadoByUserId(pool, userId) {
     [userId],
   );
   return rows?.[0] || null;
+}
+
+async function getRiderUserById(pool, userId) {
+  const { rows } = await pool.query(
+    `
+      SELECT id_usuario, nombre, apellido, telefono, rol, estado
+      FROM usuario
+      WHERE id_usuario = $1
+      LIMIT 1
+    `,
+    [userId],
+  );
+  return rows?.[0] || null;
+}
+
+async function findOrphanMotorizadoCandidate(poolOrTx, { nombre, apellido, telefono }) {
+  const conn = poolOrTx || (await poolPromise);
+  const { rows } = await conn.query(
+    `
+      SELECT id_motorizado, licencia
+      FROM motorizado
+      WHERE id_usuario IS NULL
+        AND LOWER(TRIM(nombre)) = LOWER(TRIM($1))
+        AND LOWER(TRIM(apellido)) = LOWER(TRIM($2))
+        AND COALESCE(TRIM(telefono), '') = $3
+      ORDER BY id_motorizado ASC
+      LIMIT 1
+    `,
+    [nombre, apellido, String(telefono || "").trim()],
+  );
+  return rows?.[0] || null;
+}
+
+async function relinkMotorizadoToUserTx(tx, { id_motorizado, id_usuario }) {
+  await tx.query(
+    `
+      UPDATE motorizado
+      SET id_usuario = $1
+      WHERE id_motorizado = $2
+    `,
+    [id_usuario, id_motorizado],
+  );
 }
 
 async function listRiders(pool) {
@@ -30,6 +121,19 @@ async function listRiders(pool) {
     `,
   );
   return rows || [];
+}
+
+async function getRiderById(pool, riderId) {
+  const { rows } = await pool.query(
+    `
+      SELECT id_motorizado, nombre, apellido, id_usuario
+      FROM motorizado
+      WHERE id_motorizado = $1
+      LIMIT 1
+    `,
+    [riderId],
+  );
+  return rows?.[0] || null;
 }
 
 async function listAssignableShipments(pool, { search = "", limit = 100 }) {
@@ -121,6 +225,49 @@ async function listMyShipments(pool, { userId, estado = "" }) {
   return rows || [];
 }
 
+async function getDeliveryDetailByOrderId(pool, orderId) {
+  const { rows } = await pool.query(
+    `
+      SELECT
+        pe.id_pedido,
+        pe.estado_pedido,
+        pe.direccion_envio,
+        e.id_envio,
+        e.estado_envio,
+        e.fecha_asignacion,
+        e.fecha_inicio_ruta,
+        e.fecha_entrega,
+        e.motivo_no_entrega,
+        c.nombre || ' ' || c.apellido AS cliente,
+        c.telefono AS cliente_telefono,
+        m.id_motorizado,
+        CASE WHEN m.id_motorizado IS NULL THEN NULL ELSE m.nombre || ' ' || m.apellido END AS repartidor,
+        u.email AS repartidor_email,
+        ev.nombre_receptor,
+        ev.dni_receptor,
+        ev.observacion,
+        ev.created_at AS evidencia_fecha
+      FROM pedido pe
+      LEFT JOIN envio e ON e.id_pedido = pe.id_pedido
+      LEFT JOIN usuario c ON c.id_usuario = pe.id_usuario
+      LEFT JOIN motorizado m ON m.id_motorizado = e.id_motorizado
+      LEFT JOIN usuario u ON u.id_usuario = m.id_usuario
+      LEFT JOIN LATERAL (
+        SELECT nombre_receptor, dni_receptor, observacion, created_at
+        FROM entrega_evidencia ee
+        WHERE ee.id_pedido = pe.id_pedido
+        ORDER BY ee.created_at DESC, ee.id_entrega_evidencia DESC
+        LIMIT 1
+      ) ev ON TRUE
+      WHERE pe.id_pedido = $1
+      LIMIT 1
+    `,
+    [orderId],
+  );
+
+  return rows?.[0] || null;
+}
+
 async function getShipmentByOrderIdTx(tx, orderId) {
   const { rows } = await tx.query(
     `
@@ -193,17 +340,7 @@ async function markFailedTx(tx, { orderId, reason }) {
   );
 }
 
-async function insertDeliveryEventTx(tx, { idEnvio, idPedido, tipoEvento, detalle, payloadJson, userId }) {
-  await tx.query(
-    `
-      INSERT INTO delivery_event (id_envio, id_pedido, tipo_evento, detalle, payload_json, id_usuario)
-      VALUES ($1, $2, $3, $4, $5, $6)
-    `,
-    [idEnvio, idPedido, tipoEvento, detalle || null, payloadJson || null, userId || null],
-  );
-}
-
-async function insertDeliveryEvidenceTx(tx, { idEnvio, idPedido, nombreReceptor, dniReceptor, observacion, fotoUrl, lat, lng, userId }) {
+async function insertDeliveryEvidenceTx(tx, { idEnvio, idPedido, nombreReceptor, dniReceptor, observacion, userId }) {
   await tx.query(
     `
       INSERT INTO entrega_evidencia (
@@ -212,29 +349,31 @@ async function insertDeliveryEvidenceTx(tx, { idEnvio, idPedido, nombreReceptor,
         nombre_receptor,
         dni_receptor,
         observacion,
-        foto_url,
-        lat,
-        lng,
         id_usuario
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      VALUES ($1, $2, $3, $4, $5, $6)
     `,
-    [idEnvio, idPedido, nombreReceptor, dniReceptor || null, observacion || null, fotoUrl || null, lat ?? null, lng ?? null, userId || null],
+    [idEnvio, idPedido, nombreReceptor, dniReceptor || null, observacion || null, userId || null],
   );
 }
 
 module.exports = {
   getPool: () => poolPromise,
+  getDeliverySchemaHealth,
   getMotorizadoByUserId,
+  getRiderUserById,
+  findOrphanMotorizadoCandidate,
+  relinkMotorizadoToUserTx,
   listRiders,
+  getRiderById,
   listAssignableShipments,
   listMyShipments,
+  getDeliveryDetailByOrderId,
   getShipmentByOrderIdTx,
   assignShipmentTx,
   startRouteTx,
   markDeliveredTx,
   markFailedTx,
-  insertDeliveryEventTx,
   insertDeliveryEvidenceTx,
 };
 

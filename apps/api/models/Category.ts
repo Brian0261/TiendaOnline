@@ -6,8 +6,13 @@ const Category = {
   async getAll() {
     const pool = await poolPromise;
     const result = await pool.query(`
-      SELECT id_categoria AS id, nombre_categoria AS nombre
-      FROM categoria
+      SELECT
+        c.id_categoria AS id,
+        c.nombre_categoria AS nombre,
+        COUNT(p.id_producto)::int AS total_productos
+      FROM categoria c
+      LEFT JOIN producto p ON p.id_categoria = c.id_categoria
+      GROUP BY c.id_categoria, c.nombre_categoria
       ORDER BY nombre_categoria ASC
     `);
     return result.rows || [];

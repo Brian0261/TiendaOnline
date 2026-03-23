@@ -57,7 +57,7 @@ export function ForgotPasswordPage() {
           <button className="btn btn-danger" type="submit" disabled={!canSubmit}>
             {loading ? "Enviando..." : "Enviar"}
           </button>
-          <Link className="btn btn-outline-secondary" to="/?login=1">
+          <Link className="btn btn-outline-secondary" to="/login">
             Volver a iniciar sesión
           </Link>
         </div>

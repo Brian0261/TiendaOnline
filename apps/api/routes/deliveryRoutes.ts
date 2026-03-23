@@ -6,6 +6,7 @@ const router = express.Router();
 
 router.get("/riders", authenticateToken, authorizeRoles("EMPLEADO", "ADMINISTRADOR"), deliveryController.listRiders);
 router.get("/queue", authenticateToken, authorizeRoles("EMPLEADO", "ADMINISTRADOR"), deliveryController.listAssignable);
+router.get("/:orderId/detail", authenticateToken, authorizeRoles("EMPLEADO", "ADMINISTRADOR"), deliveryController.getDeliveryDetail);
 router.patch("/assign", authenticateToken, authorizeRoles("EMPLEADO", "ADMINISTRADOR"), deliveryController.assignShipment);
 
 router.get("/my-shipments", authenticateToken, authorizeRoles("REPARTIDOR"), deliveryController.listMyShipments);

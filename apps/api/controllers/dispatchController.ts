@@ -4,8 +4,8 @@ const dispatchService = require("../services/dispatchService");
 exports.createDispatch = async (req, res) => {
   try {
     const userId = req.user?.id_usuario;
-    const { observacion = "", items = [], id_pedido = null } = req.body || {};
-    const data = await dispatchService.createDispatch({ userId, observacion, items, id_pedido });
+    const { observacion = "", items = [] } = req.body || {};
+    const data = await dispatchService.createDispatch({ userId, observacion, items });
     return res.json(data);
   } catch (err) {
     const status = err.status || 500;
@@ -28,7 +28,8 @@ exports.listOutbound = async (req, res) => {
     return res.json(rows);
   } catch (err) {
     console.error("listOutbound:", err);
-    res.status(500).json({ message: "Error al listar salidas" });
+    const status = err?.status || 500;
+    res.status(status).json({ message: err?.message || "Error al listar salidas" });
   }
 };
 
@@ -41,7 +42,8 @@ exports.exportOutbound = async (req, res) => {
     return res.send(csv);
   } catch (err) {
     console.error("exportOutbound:", err);
-    res.status(500).json({ message: "Error al exportar salidas" });
+    const status = err?.status || 500;
+    res.status(status).json({ message: err?.message || "Error al exportar salidas" });
   }
 };
 

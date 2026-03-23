@@ -1,4 +1,4 @@
-const PLACEHOLDER_PRODUCT = "/assets/images/placeholder-product.png";
+export const PLACEHOLDER_PRODUCT = "/assets/images/placeholder-product.png";
 
 /**
  * Normaliza cualquier valor de imagen a una URL válida del sitio.
@@ -9,7 +9,7 @@ const PLACEHOLDER_PRODUCT = "/assets/images/placeholder-product.png";
  * - "views/products/assets/images/x" -> "/assets/images/x"
  * - "x.webp" -> "/api/uploads/images/x.webp"
  */
-function normalizeImageUrl(raw) {
+export function normalizeImageUrl(raw) {
   if (!raw) return PLACEHOLDER_PRODUCT;
   if (typeof raw !== "string") return PLACEHOLDER_PRODUCT;
 
@@ -45,7 +45,9 @@ function normalizeImageUrl(raw) {
   return `/api/uploads/images/${cleaned}`;
 }
 
-module.exports = {
-  PLACEHOLDER_PRODUCT,
-  normalizeImageUrl,
-};
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    PLACEHOLDER_PRODUCT,
+    normalizeImageUrl,
+  };
+}

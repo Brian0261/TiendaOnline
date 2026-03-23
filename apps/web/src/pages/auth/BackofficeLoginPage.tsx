@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { LoginForm } from "./LoginForm";
+import { getPublicStoreUrl, isBackofficeHost } from "../../utils/host";
 
 function dashboardPath(rol: string | undefined): string {
   const r = String(rol || "")
@@ -13,7 +14,7 @@ function dashboardPath(rol: string | undefined): string {
 
 export function BackofficeLoginPage() {
   const nav = useNavigate();
-  const publicStoreUrl = "https://minimarketexpress.shop/?login=1";
+  const publicStoreUrl = isBackofficeHost() ? getPublicStoreUrl() : "/?login=1";
 
   useEffect(() => {
     document.title = "Backoffice | Minimarket Express";

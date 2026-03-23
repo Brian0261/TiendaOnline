@@ -46,7 +46,23 @@ async function insertHistorialTx(tx, { descripcion, accion, idPedido, userId }) 
   );
 }
 
-async function listOutbound(pool, { whereSql, params }) {
+async function listOutbound(pool, { whereSql, params, limit = 20, offset = 0 }) {
+  const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 200);
+  const safeOffset = Math.max(Number(offset) || 0, 0);
+
+  const totalRs = await pool.query(
+    `
+      SELECT COUNT(*)::int AS total
+      FROM salida_inventario si
+      JOIN inventario i ON i.id_inventario = si.id_inventario
+      JOIN producto  p ON p.id_producto   = i.id_producto
+      JOIN almacen   a ON a.id_almacen    = i.id_almacen
+      LEFT JOIN usuario u ON u.id_usuario = si.id_usuario
+      ${whereSql}
+    `,
+    params,
+  );
+
   const rows = await pool.query(
     `
       SELECT
@@ -64,10 +80,15 @@ async function listOutbound(pool, { whereSql, params }) {
       LEFT JOIN usuario u ON u.id_usuario = si.id_usuario
       ${whereSql}
       ORDER BY si.fecha_salida DESC, si.id_salida_inventario DESC
+      LIMIT $${params.length + 1}
+      OFFSET $${params.length + 2}
     `,
-    params,
+    [...params, safeLimit, safeOffset],
   );
-  return rows.rows || [];
+  return {
+    rows: rows.rows || [],
+    total: Number(totalRs.rows?.[0]?.total) || 0,
+  };
 }
 
 module.exports = {

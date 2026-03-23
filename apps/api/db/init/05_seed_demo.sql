@@ -7,7 +7,7 @@ INSERT INTO usuario (nombre, apellido, email, contrasena, telefono, direccion_pr
 ('Juan', 'Pérez', 'cli@email.com', '$2a$10$tKJ56pQTAAvrb8Uerajsyuq5h30XvGp6NBaqwRGwZpF/ZkPsjUMPS', '987654321', 'Av. Lima 123', 'CLIENTE', true),
 ('María', 'Gómez', 'emp@email.com', '$2a$10$tKJ56pQTAAvrb8Uerajsyuq5h30XvGp6NBaqwRGwZpF/ZkPsjUMPS', '987654322', 'Av. Arequipa 456', 'EMPLEADO', true),
 ('Carlos', 'López', 'admin@email.com', '$2a$10$tKJ56pQTAAvrb8Uerajsyuq5h30XvGp6NBaqwRGwZpF/ZkPsjUMPS', '987654323', 'Jr. Cusco 789', 'ADMINISTRADOR', true),
-('Diego', 'Reyes', 'repartidor@email.com', '$2a$10$tKJ56pQTAAvrb8Uerajsyuq5h30XvGp6NBaqwRGwZpF/ZkPsjUMPS', '987654331', 'Av. Delivery 100', 'REPARTIDOR', true),
+('Roberto', 'García', 'repartidor@email.com', '$2a$10$tKJ56pQTAAvrb8Uerajsyuq5h30XvGp6NBaqwRGwZpF/ZkPsjUMPS', '987111111', 'Av. Delivery 100', 'REPARTIDOR', true),
 ('Ana', 'Rodríguez', 'ana@email.com', '$2a$10$B5o9vCtVsQC9xGNbeQjfleBj.ZpUNIK/3uO8KJwCUVsOTiedHdu0K', '987654324', 'Av. Tacna 321', 'CLIENTE', true),
 ('Luis', 'Martínez', 'luis@email.com', '$2a$10$B5o9vCtVsQC9xGNbeQjfleBj.ZpUNIK/3uO8KJwCUVsOTiedHdu0K', '987654325', 'Jr. Ayacucho 654', 'CLIENTE', true),
 ('Pedro', 'Sánchez', 'pedro@email.com', '$2a$10$B5o9vCtVsQC9xGNbeQjfleBj.ZpUNIK/3uO8KJwCUVsOTiedHdu0K', '987654326', 'Av. Bolívar 987', 'ADMINISTRADOR', true),
@@ -16,10 +16,32 @@ INSERT INTO usuario (nombre, apellido, email, contrasena, telefono, direccion_pr
 ('Miguel', 'Torres', 'miguel@email.com', '$2a$10$B5o9vCtVsQC9xGNbeQjfleBj.ZpUNIK/3uO8KJwCUVsOTiedHdu0K', '987654329', 'Jr. Junín 159', 'CLIENTE', true),
 ('Elena', 'Ruiz', 'elena@email.com', '$2a$10$B5o9vCtVsQC9xGNbeQjfleBj.ZpUNIK/3uO8KJwCUVsOTiedHdu0K', '987654330', 'Av. Brasil 753', 'CLIENTE', true);
 
+INSERT INTO usuario (nombre, apellido, email, contrasena, telefono, direccion_principal, rol, email_verificado) VALUES
+('Jorge', 'Vargas', 'repartidor2@email.com', '$2a$10$tKJ56pQTAAvrb8Uerajsyuq5h30XvGp6NBaqwRGwZpF/ZkPsjUMPS', '987111112', 'Av. Delivery 101', 'REPARTIDOR', true),
+('Daniel', 'Quispe', 'repartidor3@email.com', '$2a$10$tKJ56pQTAAvrb8Uerajsyuq5h30XvGp6NBaqwRGwZpF/ZkPsjUMPS', '987111113', 'Av. Delivery 102', 'REPARTIDOR', true),
+('Fernando', 'Salas', 'repartidor4@email.com', '$2a$10$tKJ56pQTAAvrb8Uerajsyuq5h30XvGp6NBaqwRGwZpF/ZkPsjUMPS', '987111114', 'Av. Delivery 103', 'REPARTIDOR', true),
+('Ricardo', 'Mendoza', 'repartidor5@email.com', '$2a$10$tKJ56pQTAAvrb8Uerajsyuq5h30XvGp6NBaqwRGwZpF/ZkPsjUMPS', '987111115', 'Av. Delivery 104', 'REPARTIDOR', true);
+
 -- Vincular usuario repartidor demo con un motorizado
 UPDATE motorizado
 SET id_usuario = (SELECT id_usuario FROM usuario WHERE email = 'repartidor@email.com')
 WHERE id_motorizado = 1;
+
+UPDATE motorizado
+SET id_usuario = (SELECT id_usuario FROM usuario WHERE email = 'repartidor2@email.com')
+WHERE id_motorizado = 2;
+
+UPDATE motorizado
+SET id_usuario = (SELECT id_usuario FROM usuario WHERE email = 'repartidor3@email.com')
+WHERE id_motorizado = 3;
+
+UPDATE motorizado
+SET id_usuario = (SELECT id_usuario FROM usuario WHERE email = 'repartidor4@email.com')
+WHERE id_motorizado = 4;
+
+UPDATE motorizado
+SET id_usuario = (SELECT id_usuario FROM usuario WHERE email = 'repartidor5@email.com')
+WHERE id_motorizado = 5;
 
 -- PRODUCTOS
 INSERT INTO producto (nombre_producto, descripcion, precio, imagen, id_categoria, id_marca) VALUES
@@ -42,31 +64,8 @@ INSERT INTO producto (nombre_producto, descripcion, precio, imagen, id_categoria
 ('Pan Carioca La Florencia 400 g', 'Pan carioca en bolsa 400 g', 6.50, '/api/uploads/images/pan-carioca-la-florencia-400g.webp', 7, 14),
 ('Pan de Molde Blanco La Florencia 500 g', 'Pan de molde blanco 500 g', 7.50, '/api/uploads/images/pan-molde-blanco-la-florencia-500g.webp', 7, 14),
 ('Pan de Molde Blanco XL Bimbo 770 g', 'Pan de molde blanco XL 770 g', 12.90, '/api/uploads/images/pan-molde-blanco-bimbo-xl-770g.webp', 7, 15),
-('Piqueo Snax Original 110 g', 'Snack piqueo sabor original 110 g', 6.90, '/api/uploads/images/piqueo-snax-original-110g.webp', 9, 9);
-
-
--- PROVEEDOR_PRODUCTO
-INSERT INTO proveedor_producto (precio_unitario, precio_costo, fecha_ultima_compra, id_producto, id_proveedor) VALUES
-(3.50, 4.50, '2025-10-01', 1, 1),
-(15.00, 17.00, '2025-10-02', 2, 2),
-(8.00, 9.00, '2025-10-03', 3, 3),
-(6.00, 7.00, '2025-10-04', 4, 4),
-(10.00, 11.00, '2025-10-05', 5, 5),
-(4.80, 5.50, '2025-10-06', 6, 6),
-(2.40, 2.80, '2025-10-07', 7, 7),
-(4.30, 5.00, '2025-10-08', 8, 8),
-(3.80, 4.20, '2025-10-09', 9, 9),
-(5.00, 5.80, '2025-10-10', 10, 10),
-(16.50, 14.00, '2025-10-11', 11, 5),
-(105.00, 95.00, '2025-10-12', 12, 3),
-(6.00, 5.20, '2025-10-13', 13, 2),
-(15.50, 13.50, '2025-10-14', 14, 1),
-(13.00, 11.20, '2025-10-15', 15, 4),
-(6.20, 5.00, '2025-10-16', 16, 6),
-(7.00, 5.80, '2025-10-17', 17, 6),
-(11.50, 9.80, '2025-10-18', 18, 7),
-(5.80, 4.90, '2025-10-19', 19, 2),
-(5.50, 4.70, '2025-10-20', 20, 2);
+('Piqueo Snax Original 110 g', 'Snack piqueo sabor original 110 g', 6.90, '/api/uploads/images/piqueo-snax-original-110g.webp', 9, 9),
+('Condimento SIBARITA Palillo amarillito Sobre 32.4Gr', 'Condimento SIBARITA Palillo amarillito Sobre 32.4Gr', 1.00, '/api/uploads/images/sibarita_palillo_amarillito_32.4g.webp', 1, 4);
 
 -- INVENTARIO
 INSERT INTO inventario (cantidad_disponible, id_producto, id_almacen) VALUES
@@ -75,21 +74,22 @@ INSERT INTO inventario (cantidad_disponible, id_producto, id_almacen) VALUES
 (200, 3, 1),
 (80, 4, 1),
 (50, 5, 1),
-(120, 6, 2),
-(90, 7, 2),
-(180, 8, 2),
-(70, 9, 3),
-(110, 10, 3),
+(120, 6, 1),
+(90, 7, 1),
+(180, 8, 1),
+(70, 9, 1),
+(110, 10, 1),
 (45, 11, 1),
 (25, 12, 1),
-(60, 13, 2),
-(40, 14, 2),
+(60, 13, 1),
+(40, 14, 1),
 (55, 15, 1),
-(70, 16, 3),
-(60, 17, 3),
+(70, 16, 1),
+(60, 17, 1),
 (45, 18, 1),
-(80, 19, 3),
-(75, 20, 2);
+(80, 19, 1),
+(75, 20, 1),
+(100, 21, 1);
 
 -- ENTRADA_INVENTARIO
 INSERT INTO entrada_inventario (cantidad_recibida, fecha_entrada, motivo_entrada, id_inventario) VALUES
@@ -164,86 +164,86 @@ INSERT INTO salida_inventario (cantidad_salida, fecha_salida, motivo_salida, id_
 -- PEDIDO
 INSERT INTO pedido (id_pedido, fecha_creacion, estado_pedido, total_pedido, costo_envio, direccion_envio, id_usuario, id_metodo_pago) VALUES
 (1,  '2025-01-05', 'ENTREGADO', 19.50, 5.00, 'Av. Lima 123', 1, 1),
-(2,  '2025-01-20', 'EN CAMINO', 25.30, 5.00, 'Av. Arequipa 456', 4, 2),
+(2,  '2025-01-20', 'EN CAMINO', 25.30, 5.00, 'Av. Arequipa 456', 11, 2),
 (3,  '2025-02-07', 'ENTREGADO', 25.80, 5.00, 'Jr. Cusco 789', 5, 3),
-(4,  '2025-02-21', 'PENDIENTE', 28.20, 5.00, 'Av. Tacna 321', 8, 4),
+(4,  '2025-02-21', 'PENDIENTE', 28.20, 5.00, 'Av. Tacna 321', 6, 4),
 (5,  '2025-03-03', 'ENTREGADO', 22.40, 5.00, 'Jr. Ayacucho 654', 9, 1),
 (6,  '2025-03-18', 'CANCELADO', 31.70, 5.00, 'Av. Bolívar 987', 10, 2),
 (7,  '2025-04-09', 'ENTREGADO', 33.60, 5.00, 'Av. Lima 123', 1, 3),
-(8,  '2025-04-25', 'EN CAMINO', 20.50, 5.00, 'Av. Arequipa 456', 4, 4),
+(8,  '2025-04-25', 'EN CAMINO', 20.50, 5.00, 'Av. Arequipa 456', 11, 4),
 (9,  '2025-05-06', 'ENTREGADO', 18.30, 5.00, 'Jr. Cusco 789', 5, 1),
-(10, '2025-05-22', 'PENDIENTE', 46.00, 5.00, 'Av. Tacna 321', 8, 2),
+(10, '2025-05-22', 'PENDIENTE', 46.00, 5.00, 'Av. Tacna 321', 6, 2),
 (11, '2025-06-04', 'ENTREGADO', 22.20, 5.00, 'Jr. Ayacucho 654', 9, 3),
 (12, '2025-06-19', 'PREPARADO', 44.30, 5.00, 'Av. Bolívar 987', 10, 4),
 (13, '2025-07-08', 'ENTREGADO', 22.00, 5.00, 'Av. Lima 123', 1, 1),
-(14, '2025-07-23', 'EN CAMINO', 30.50, 5.00, 'Av. Arequipa 456', 4, 2),
+(14, '2025-07-23', 'EN CAMINO', 30.50, 5.00, 'Av. Arequipa 456', 11, 2),
 (15, '2025-08-11', 'ENTREGADO', 44.10, 5.00, 'Jr. Cusco 789', 5, 3),
-(16, '2025-08-27', 'PENDIENTE', 33.80, 5.00, 'Av. Tacna 321', 8, 4),
+(16, '2025-08-27', 'PENDIENTE', 33.80, 5.00, 'Av. Tacna 321', 6, 4),
 (17, '2025-09-02', 'ENTREGADO', 21.20, 5.00, 'Jr. Ayacucho 654', 9, 1),
 (18, '2025-09-16', 'PREPARADO', 25.30, 5.00, 'Av. Bolívar 987', 10, 2),
 (19, '2025-10-01', 'ENTREGADO', 45.50, 5.00, 'Av. Lima 123', 1, 1),
-(20, '2025-10-02', 'EN CAMINO', 38.70, 5.00, 'Av. Arequipa 456', 4, 2),
+(20, '2025-10-02', 'EN CAMINO', 38.70, 5.00, 'Av. Arequipa 456', 11, 2),
 (21, '2025-10-03', 'PENDIENTE', 52.30, 5.00, 'Jr. Cusco 789', 5, 3),
-(22, '2025-10-04', 'ENTREGADO', 27.90, 5.00, 'Av. Tacna 321', 8, 4),
+(22, '2025-10-04', 'ENTREGADO', 27.90, 5.00, 'Av. Tacna 321', 6, 4),
 (23, '2025-10-05', 'EN CAMINO', 64.20, 5.00, 'Jr. Ayacucho 654', 9, 1),
 (24, '2025-10-06', 'ENTREGADO', 19.80, 5.00, 'Av. Bolívar 987', 10, 2),
 (25, '2025-10-07', 'PENDIENTE', 42.50, 5.00, 'Jr. Huancavelica 654', 1, 3),
-(26, '2025-10-08', 'ENTREGADO', 35.70, 5.00, 'Av. Salaverry 321', 4, 4),
+(26, '2025-10-08', 'ENTREGADO', 35.70, 5.00, 'Av. Salaverry 321', 11, 4),
 (27, '2025-10-09', 'EN CAMINO', 58.90, 5.00, 'Jr. Junín 159', 5, 1),
-(28, '2025-10-10', 'PENDIENTE', 23.40, 5.00, 'Av. Brasil 753', 8, 2),
+(28, '2025-10-10', 'PENDIENTE', 23.40, 5.00, 'Av. Brasil 753', 6, 2),
 (29, '2025-11-01', 'ENTREGADO', 45.50, 5.00, 'Av. Lima 123', 9, 1),
 (30, '2025-11-02', 'EN CAMINO', 38.70, 5.00, 'Av. Arequipa 456', 10, 2),
 (31, '2025-11-03', 'ENTREGADO', 52.30, 5.00, 'Jr. Cusco 789', 1, 3),
-(32, '2025-11-04', 'ENTREGADO', 27.90, 5.00, 'Av. Tacna 321', 4, 4),
+(32, '2025-11-04', 'ENTREGADO', 27.90, 5.00, 'Av. Tacna 321', 11, 4),
 (33, '2025-11-05', 'EN CAMINO', 64.20, 5.00, 'Jr. Ayacucho 654', 5, 1),
-(34, '2025-12-06', 'ENTREGADO', 19.80, 5.00, 'Av. Bolívar 987', 8, 2),
+(34, '2025-12-06', 'ENTREGADO', 19.80, 5.00, 'Av. Bolívar 987', 6, 2),
 (35, '2025-12-07', 'PENDIENTE', 42.50, 5.00, 'Jr. Huancavelica 654', 9, 3),
 (36, '2025-12-08', 'ENTREGADO', 35.70, 5.00, 'Av. Salaverry 321', 10, 4),
 (37, '2025-12-09', 'ENTREGADO', 58.90, 5.00, 'Jr. Junín 159', 1, 1),
-(38, '2025-12-10', 'ENTREGADO', 23.40, 5.00, 'Av. Brasil 753', 4, 2);
+(38, '2025-12-10', 'ENTREGADO', 23.40, 5.00, 'Av. Brasil 753', 11, 2);
 
 SELECT setval(pg_get_serial_sequence('pedido','id_pedido'), (SELECT MAX(id_pedido) FROM pedido));
 
 -- ENVIO
-INSERT INTO envio (numero_rastreo, transportista, fecha_envio, estado_envio, costo_envio, id_pedido, id_delivery) VALUES
-('TRK021', 'Delivery Express', '2025-01-06', 'ENTREGADO', 5.00, 1, 1),
-('TRK022', 'Rápido Envíos', '2025-01-21', 'EN CAMINO', 5.00, 2, 2),
-('TRK023', 'Moto Mensajeros', '2025-02-08', 'ENTREGADO', 5.00, 3, 3),
-('TRK025', 'Veloz Delivery', '2025-03-04', 'ENTREGADO', 5.00, 5, 5),
-('TRK027', 'Express Motos', '2025-04-10', 'ENTREGADO', 5.00, 7, 2),
-('TRK028', 'Mensajeros YA', '2025-04-26', 'EN CAMINO', 5.00, 8, 3),
-('TRK029', 'Envíos Flash', '2025-05-07', 'ENTREGADO', 5.00, 9, 4),
-('TRK031', 'Delivery Express', '2025-06-05', 'ENTREGADO', 5.00, 11, 1),
-('TRK033', 'Moto Mensajeros', '2025-07-09', 'ENTREGADO', 5.00, 13, 3),
-('TRK034', 'Envíos Seguros', '2025-07-24', 'EN CAMINO', 5.00, 14, 4),
-('TRK035', 'Veloz Delivery', '2025-08-12', 'ENTREGADO', 5.00, 15, 5),
-('TRK037', 'Express Motos', '2025-09-03', 'ENTREGADO', 5.00, 17, 2),
-('TRK001', 'Delivery Express', '2025-10-01', 'ENTREGADO', 5.00, 19, 1),
-('TRK002', 'Rápido Envíos', '2025-10-02', 'EN CAMINO', 5.00, 20, 2),
-('TRK004', 'Envíos Seguros', '2025-10-04', 'ENTREGADO', 5.00, 22, 4),
-('TRK005', 'Veloz Delivery', '2025-10-05', 'EN CAMINO', 5.00, 23, 5),
-('TRK006', 'Moto Rápidos', '2025-10-06', 'ENTREGADO', 5.00, 24, 1),
-('TRK008', 'Mensajeros YA', '2025-10-08', 'ENTREGADO', 5.00, 26, 3),
-('TRK009', 'Envíos Flash', '2025-10-09', 'EN CAMINO', 5.00, 27, 4),
-('TRK011', 'Delivery Express', '2025-11-01', 'ENTREGADO', 5.00, 29, 1),
-('TRK012', 'Rápido Envíos', '2025-11-02', 'EN CAMINO', 5.00, 30, 2),
-('TRK013', 'Moto Mensajeros', '2025-11-03', 'ENTREGADO', 5.00, 31, 3),
-('TRK014', 'Envíos Seguros', '2025-11-04', 'ENTREGADO', 5.00, 32, 4),
-('TRK015', 'Veloz Delivery', '2025-11-05', 'EN CAMINO', 5.00, 33, 5),
-('TRK016', 'Moto Rápidos', '2025-12-06', 'ENTREGADO', 5.00, 34, 1),
-('TRK018', 'Mensajeros YA', '2025-12-08', 'ENTREGADO', 5.00, 36, 3),
-('TRK019', 'Envíos Flash', '2025-12-09', 'ENTREGADO', 5.00, 37, 4),
-('TRK020', 'Rápidos Moto', '2025-12-10', 'ENTREGADO', 5.00, 38, 5),
-('TRK003', 'Moto Mensajeros', NULL, 'PENDIENTE', 5.00, 21, 3),
-('TRK007', 'Express Motos', NULL, 'PENDIENTE', 5.00, 25, 2),
-('TRK010', 'Rápidos Moto', NULL, 'PENDIENTE', 5.00, 28, 5),
-('TRK017', 'Express Motos', NULL, 'PENDIENTE', 5.00, 35, 2),
-('TRK024', 'Envíos Seguros', NULL, 'PENDIENTE', 5.00, 4, 4),
-('TRK026', 'Moto Rápidos', NULL, 'PENDIENTE', 5.00, 6, 1),
-('TRK030', 'Rápidos Moto', NULL, 'PENDIENTE', 5.00, 10, 5),
-('TRK032', 'Rápido Envíos', NULL, 'PENDIENTE', 5.00, 12, 2),
-('TRK036', 'Moto Rápidos', NULL, 'PENDIENTE', 5.00, 16, 1),
-('TRK038', 'Mensajeros YA', NULL, 'PENDIENTE', 5.00, 18, 3);
+INSERT INTO envio (numero_rastreo, transportista, fecha_envio, estado_envio, costo_envio, id_pedido) VALUES
+('TRK021', 'Reparto interno', '2025-01-06', 'ENTREGADO', 5.00, 1),
+('TRK022', 'Reparto interno', '2025-01-21', 'EN_RUTA', 5.00, 2),
+('TRK023', 'Reparto interno', '2025-02-08', 'ENTREGADO', 5.00, 3),
+('TRK025', 'Reparto interno', '2025-03-04', 'ENTREGADO', 5.00, 5),
+('TRK027', 'Reparto interno', '2025-04-10', 'ENTREGADO', 5.00, 7),
+('TRK028', 'Reparto interno', '2025-04-26', 'EN_RUTA', 5.00, 8),
+('TRK029', 'Reparto interno', '2025-05-07', 'ENTREGADO', 5.00, 9),
+('TRK031', 'Reparto interno', '2025-06-05', 'ENTREGADO', 5.00, 11),
+('TRK033', 'Reparto interno', '2025-07-09', 'ENTREGADO', 5.00, 13),
+('TRK034', 'Reparto interno', '2025-07-24', 'EN_RUTA', 5.00, 14),
+('TRK035', 'Reparto interno', '2025-08-12', 'ENTREGADO', 5.00, 15),
+('TRK037', 'Reparto interno', '2025-09-03', 'ENTREGADO', 5.00, 17),
+('TRK001', 'Reparto interno', '2025-10-01', 'ENTREGADO', 5.00, 19),
+('TRK002', 'Reparto interno', '2025-10-02', 'EN_RUTA', 5.00, 20),
+('TRK004', 'Reparto interno', '2025-10-04', 'ENTREGADO', 5.00, 22),
+('TRK005', 'Reparto interno', '2025-10-05', 'EN_RUTA', 5.00, 23),
+('TRK006', 'Reparto interno', '2025-10-06', 'ENTREGADO', 5.00, 24),
+('TRK008', 'Reparto interno', '2025-10-08', 'ENTREGADO', 5.00, 26),
+('TRK009', 'Reparto interno', '2025-10-09', 'EN_RUTA', 5.00, 27),
+('TRK011', 'Reparto interno', '2025-11-01', 'ENTREGADO', 5.00, 29),
+('TRK012', 'Reparto interno', '2025-11-02', 'EN_RUTA', 5.00, 30),
+('TRK013', 'Reparto interno', '2025-11-03', 'ENTREGADO', 5.00, 31),
+('TRK014', 'Reparto interno', '2025-11-04', 'ENTREGADO', 5.00, 32),
+('TRK015', 'Reparto interno', '2025-11-05', 'EN_RUTA', 5.00, 33),
+('TRK016', 'Reparto interno', '2025-12-06', 'ENTREGADO', 5.00, 34),
+('TRK018', 'Reparto interno', '2025-12-08', 'ENTREGADO', 5.00, 36),
+('TRK019', 'Reparto interno', '2025-12-09', 'ENTREGADO', 5.00, 37),
+('TRK020', 'Reparto interno', '2025-12-10', 'ENTREGADO', 5.00, 38),
+('TRK003', 'Reparto interno', NULL, 'PENDIENTE', 5.00, 21),
+('TRK007', 'Reparto interno', NULL, 'PENDIENTE', 5.00, 25),
+('TRK010', 'Reparto interno', NULL, 'PENDIENTE', 5.00, 28),
+('TRK017', 'Reparto interno', NULL, 'PENDIENTE', 5.00, 35),
+('TRK024', 'Reparto interno', NULL, 'PENDIENTE', 5.00, 4),
+('TRK026', 'Reparto interno', NULL, 'PENDIENTE', 5.00, 6),
+('TRK030', 'Reparto interno', NULL, 'PENDIENTE', 5.00, 10),
+('TRK032', 'Reparto interno', NULL, 'PENDIENTE', 5.00, 12),
+('TRK036', 'Reparto interno', NULL, 'PENDIENTE', 5.00, 16),
+('TRK038', 'Reparto interno', NULL, 'PENDIENTE', 5.00, 18);
 
 -- COMPROBANTE
 INSERT INTO comprobante (tipo_comprobante, numero_comprobante, fecha_creacion, monto_total, estado_comprobante, fecha_emision, ultima_actualizacion, id_pedido, id_metodo_pago) VALUES
@@ -381,64 +381,23 @@ INSERT INTO detalle_pedido (cantidad, precio_unitario_venta, subtotal, id_pedido
 (3, 6.30, 18.90, 18, 6),
 (2, 3.20, 6.40, 18, 7);
 
--- DEVOLUCION
-INSERT INTO devolucion (fecha_solicitud, estado_devolucion, razon_devolucion, id_pedido, id_usuario) VALUES
-('2025-03-05', 'APROBADA', 'Producto dañado en la entrega', 5, 9),
-('2025-06-06', 'PENDIENTE', 'Producto equivocado', 11, 9),
-('2025-09-05', 'APROBADA', 'Empaque dañado', 17, 9),
-('2025-10-02', 'APROBADA', 'Leche vencida', 19, 1),
-('2025-10-03', 'PENDIENTE', 'Aceite derramado', 22, 4),
-('2025-10-05', 'APROBADA', 'Pollo en mal estado', 23, 5),
-('2025-10-07', 'RECHAZADA', 'Producto no gustó', 25, 7),
-('2025-10-09', 'APROBADA', 'Jabón sin empaque', 27, 9);
-
--- DETALLE_DEVOLUCION
-INSERT INTO detalle_devolucion (cantidad_devuelta, condicion_producto, precio_unitario_devolucion, id_devolucion, id_detalle_pedido) VALUES
-(1, 'DAÑADO', 4.80, 1, 50),
-(1, 'EQUIVOCADO', 6.30, 2, 62),
-(1, 'EMPAQUE DAÑADO', 4.80, 3, 74),
-(1, 'VENCIDO', 4.50, 4, 1),
-(1, 'DERRAMADO', 8.20, 5, 4),
-(1, 'MAL ESTADO', 12.80, 6, 5),
-(1, 'BUEN ESTADO', 3.20, 7, 7),
-(1, 'SIN EMPAQUE', 4.80, 8, 9);
-
--- RECLAMO
-INSERT INTO reclamo (tipo_reclamo, descripcion_problema, estado_reclamo, fecha_creacion, id_usuario) VALUES
-('ENTREGA TARDÍA','Entrega con retraso','RESUELTO','2025-01-22',4),
-('PRODUCTO DAÑADO','Producto llegó roto','RESUELTO','2025-03-06',9),
-('ERROR EN FACTURA','Datos incorrectos en el comprobante','EN REVISIÓN','2025-05-23',8),
-('FALTA PRODUCTO','Faltó un ítem del pedido','PENDIENTE','2025-07-10',1),
-('PRODUCTO VENCIDO','Producto cercano a vencimiento','EN REVISIÓN','2025-09-06',9),
-('PRODUCTO DAÑADO','Leche llegó vencida','RESUELTO','2025-10-01',1),
-('ENTREGA TARDÍA','Pedido llegó con retraso','EN REVISIÓN','2025-10-02',2),
-('FALTA PRODUCTO','Faltó el yogurt','RESUELTO','2025-10-03',3),
-('PRODUCTO EQUIVOCADO','Enviaron fideos incorrectos','PENDIENTE','2025-10-04',4),
-('EMPAQUE DAÑADO','Aceite llegó derramado','RESUELTO','2025-10-05',5),
-('ENTREGA INCOMPLETA','Falta una manzana','EN REVISIÓN','2025-10-06',6),
-('PRODUCTO VENCIDO','Papas fritas vencidas','PENDIENTE','2025-10-07',7),
-('MAL ESTADO','Pollo con mal olor','RESUELTO','2025-10-08',8),
-('ERROR EN FACTURA','Monto incorrecto','EN REVISIÓN','2025-10-09',9),
-('PRODUCTO ABIERTO','Jabón sin empaque','PENDIENTE','2025-10-10',10),
-('ENTREGA INCOMPLETA','Paquete incompleto','PENDIENTE','2025-12-12',10);
-
 -- HISTORIAL
-INSERT INTO historial (descripcion, accion, fecha_accion, id_reclamo, id_pedido, id_usuario) VALUES
-('Seguimiento de retraso','VERIFICACIÓN','2025-01-23',1,2,6),
-('Reposición por producto dañado','REEMPLAZO PRODUCTO','2025-03-07',2,5,6),
-('Corrección de datos de comprobante','CORRECCIÓN FACTURA','2025-05-24',3,10,6),
-('Envío de ítem faltante','ENVÍO PRODUCTO','2025-07-11',4,13,6),
-('Revisión por producto vencido','VERIFICACIÓN','2025-09-07',5,17,6),
-('Se reemplazó producto dañado','REEMPLAZO PRODUCTO','2025-10-02',6,19,6),
-('Verificación de retraso en entrega','VERIFICACIÓN','2025-10-03',7,20,6),
-('Envío de producto faltante','ENVÍO PRODUCTO','2025-10-04',8,21,6),
-('Validación de producto equivocado','VERIFICACIÓN','2025-10-05',9,22,6),
-('Reembolso por empaque dañado','REEMBOLSO','2025-10-06',10,23,6),
-('Revisión de entrega incompleta','VERIFICACIÓN','2025-10-07',11,24,6),
-('Inspección por producto vencido','VERIFICACIÓN','2025-10-08',12,25,6),
-('Reemplazo de producto en mal estado','REEMPLAZO PRODUCTO','2025-10-09',13,26,6),
-('Corrección de factura errónea','CORRECCIÓN FACTURA','2025-10-10',14,27,6),
-('Revisión de producto abierto','VERIFICACIÓN','2025-10-11',15,28,6),
-('Revisión de entrega incompleta','VERIFICACIÓN','2025-12-13',16,36,6);
+INSERT INTO historial (descripcion, accion, fecha_accion, id_pedido, id_usuario) VALUES
+('Seguimiento de retraso','VERIFICACIÓN','2025-01-23',2,6),
+('Reposición por producto dañado','REEMPLAZO PRODUCTO','2025-03-07',5,6),
+('Corrección de datos de comprobante','CORRECCIÓN FACTURA','2025-05-24',10,6),
+('Envío de ítem faltante','ENVÍO PRODUCTO','2025-07-11',13,6),
+('Revisión por producto vencido','VERIFICACIÓN','2025-09-07',17,6),
+('Se reemplazó producto dañado','REEMPLAZO PRODUCTO','2025-10-02',19,6),
+('Verificación de retraso en entrega','VERIFICACIÓN','2025-10-03',20,6),
+('Envío de producto faltante','ENVÍO PRODUCTO','2025-10-04',21,6),
+('Validación de producto equivocado','VERIFICACIÓN','2025-10-05',22,6),
+('Reembolso por empaque dañado','REEMBOLSO','2025-10-06',23,6),
+('Revisión de entrega incompleta','VERIFICACIÓN','2025-10-07',24,6),
+('Inspección por producto vencido','VERIFICACIÓN','2025-10-08',25,6),
+('Reemplazo de producto en mal estado','REEMPLAZO PRODUCTO','2025-10-09',26,6),
+('Corrección de factura errónea','CORRECCIÓN FACTURA','2025-10-10',27,6),
+('Revisión de producto abierto','VERIFICACIÓN','2025-10-11',28,6),
+('Revisión de entrega incompleta','VERIFICACIÓN','2025-12-13',36,6);
 
 SELECT 1;
