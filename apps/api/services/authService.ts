@@ -31,9 +31,16 @@ function sha256Hex(value) {
 }
 
 function getWebBaseUrl() {
-  return String(process.env.WEB_BASE_URL || process.env.PUBLIC_WEB_BASE_URL || process.env.PUBLIC_BASE_URL || "")
+  const raw = String(process.env.WEB_BASE_URL || process.env.PUBLIC_WEB_BASE_URL || process.env.PUBLIC_BASE_URL || "")
     .trim()
     .replace(/\/+$/, "");
+
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw)) return raw;
+
+  const normalized = `https://${raw}`;
+  console.warn(`[authService] WEB_BASE_URL sin esquema detectado. Se normaliza a: ${normalized}`);
+  return normalized;
 }
 
 function getEmailVerificationTtlMs() {

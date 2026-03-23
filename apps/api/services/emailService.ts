@@ -209,51 +209,116 @@ function escapeHtml(value) {
     .replace(/'/g, "&#039;");
 }
 
-function createPasswordResetTemplate({ resetLink, expiresMinutes }) {
-  const safeLink = escapeHtml(resetLink);
-  return {
-    subject: "Restablece tu contraseña",
-    text: [
-      "Recibimos una solicitud para restablecer tu contraseña.",
-      `Usa este enlace: ${resetLink}`,
-      `Este enlace expira en ${expiresMinutes} minutos.`,
-      "Si no solicitaste este cambio, ignora este mensaje.",
-    ].join("\n"),
-    html: `
-      <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;line-height:1.4;">
-        <h2>Restablece tu contraseña</h2>
-        <p>Recibimos una solicitud para restablecer tu contraseña.</p>
-        <p>
-          <a href="${safeLink}" style="display:inline-block;padding:10px 16px;background:#dc3545;color:#fff;text-decoration:none;border-radius:4px;">Restablecer contraseña</a>
-        </p>
-        <p>Este enlace expira en <strong>${expiresMinutes} minutos</strong>.</p>
-        <p>Si no solicitaste este cambio, ignora este mensaje.</p>
+function getBrandName() {
+  return String(process.env.MAIL_FROM_NAME || "TiendaOnline").trim();
+}
+
+function getRequestTimestamp() {
+  const now = new Date();
+  return now.toLocaleString("es-PE", {
+    timeZone: "America/Lima",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function createEmailCard({ preheader, title, intro, ctaLabel, ctaLink, ctaColor, expiresMinutes, securityText }) {
+  const brand = escapeHtml(getBrandName());
+  const safeTitle = escapeHtml(title);
+  const safeIntro = escapeHtml(intro);
+  const safeLabel = escapeHtml(ctaLabel);
+  const safeLink = escapeHtml(ctaLink);
+  const safePreheader = escapeHtml(preheader);
+  const safeSecurity = escapeHtml(securityText);
+
+  return `
+    <div style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;overflow:hidden;mso-hide:all;">${safePreheader}</div>
+    <div style="background:#f3f5f7;padding:20px 12px;font-family:Arial,sans-serif;">
+      <div style="max-width:620px;margin:0 auto;background:#ffffff;border:1px solid #e7ebef;border-radius:10px;overflow:hidden;">
+        <div style="background:#111827;color:#ffffff;padding:16px 20px;font-size:18px;font-weight:700;">${brand}</div>
+        <div style="padding:22px 20px 10px;">
+          <h1 style="margin:0 0 12px;font-size:24px;line-height:1.25;color:#111827;">${safeTitle}</h1>
+          <p style="margin:0 0 16px;color:#334155;font-size:15px;line-height:1.55;">${safeIntro}</p>
+          <div style="margin:18px 0 14px;">
+            <a href="${safeLink}" style="display:inline-block;background:${ctaColor};color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:8px;font-weight:700;font-size:15px;">${safeLabel}</a>
+          </div>
+          <p style="margin:0 0 10px;color:#334155;font-size:14px;line-height:1.5;">Este enlace expira en <strong>${expiresMinutes} minutos</strong>.</p>
+          <p style="margin:0 0 14px;color:#334155;font-size:14px;line-height:1.5;">Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
+          <div style="background:#f8fafc;border:1px solid #dbe4ee;border-radius:6px;padding:10px 12px;margin:0 0 16px;word-break:break-all;font-size:13px;line-height:1.5;color:#0f172a;">
+            ${safeLink}
+          </div>
+          <p style="margin:0;color:#475569;font-size:13px;line-height:1.5;">${safeSecurity}</p>
+        </div>
+        <div style="border-top:1px solid #e7ebef;padding:12px 20px 16px;color:#64748b;font-size:12px;line-height:1.5;">
+          Correo automático de ${brand}. No respondas a este mensaje.
+        </div>
       </div>
-    `,
+    </div>
+  `;
+}
+
+function createPasswordResetTemplate({ resetLink, expiresMinutes }) {
+  const requestedAt = getRequestTimestamp();
+  return {
+    subject: `${getBrandName()} | Restablece tu contraseña`,
+    text: [
+      `${getBrandName()} - Restablece tu contraseña`,
+      "",
+      "Recibimos una solicitud para restablecer tu contraseña.",
+      `Fecha de solicitud: ${requestedAt} (GMT-5).`,
+      "",
+      "Usa este enlace:",
+      `${resetLink}`,
+      "",
+      `Este enlace expira en ${expiresMinutes} minutos.`,
+      "Si no solicitaste este cambio, ignora este mensaje y revisa la seguridad de tu cuenta.",
+      "",
+      `Correo automático de ${getBrandName()}.`,
+    ].join("\n"),
+    html: createEmailCard({
+      preheader: `Usa este enlace para restablecer tu contraseña. Expira en ${expiresMinutes} minutos.`,
+      title: "Restablece tu contraseña",
+      intro: `Recibimos una solicitud para restablecer tu contraseña el ${requestedAt} (GMT-5).`,
+      ctaLabel: "Restablecer contraseña",
+      ctaLink: resetLink,
+      ctaColor: "#dc3545",
+      expiresMinutes,
+      securityText: "Si no solicitaste este cambio, ignora este mensaje y considera actualizar tu contraseña actual.",
+    }),
   };
 }
 
 function createEmailVerificationTemplate({ verifyLink, expiresMinutes }) {
-  const safeLink = escapeHtml(verifyLink);
+  const requestedAt = getRequestTimestamp();
   return {
-    subject: "Verifica tu correo",
+    subject: `${getBrandName()} | Verifica tu correo`,
     text: [
+      `${getBrandName()} - Verificación de correo`,
+      "",
       "Gracias por registrarte. Verifica tu correo para activar tu cuenta.",
-      `Usa este enlace: ${verifyLink}`,
+      `Fecha de solicitud: ${requestedAt} (GMT-5).`,
+      "",
+      "Usa este enlace:",
+      `${verifyLink}`,
+      "",
       `Este enlace expira en ${expiresMinutes} minutos.`,
       "Si no creaste una cuenta, ignora este mensaje.",
+      "",
+      `Correo automático de ${getBrandName()}.`,
     ].join("\n"),
-    html: `
-      <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;line-height:1.4;">
-        <h2>Verifica tu correo</h2>
-        <p>Gracias por registrarte. Verifica tu correo para activar tu cuenta.</p>
-        <p>
-          <a href="${safeLink}" style="display:inline-block;padding:10px 16px;background:#198754;color:#fff;text-decoration:none;border-radius:4px;">Verificar correo</a>
-        </p>
-        <p>Este enlace expira en <strong>${expiresMinutes} minutos</strong>.</p>
-        <p>Si no creaste una cuenta, ignora este mensaje.</p>
-      </div>
-    `,
+    html: createEmailCard({
+      preheader: `Verifica tu correo para activar tu cuenta. Expira en ${expiresMinutes} minutos.`,
+      title: "Verifica tu correo",
+      intro: `Gracias por registrarte. Solicitud generada el ${requestedAt} (GMT-5).`,
+      ctaLabel: "Verificar correo",
+      ctaLink: verifyLink,
+      ctaColor: "#198754",
+      expiresMinutes,
+      securityText: "Si no creaste una cuenta, ignora este mensaje sin hacer clic en el enlace.",
+    }),
   };
 }
 
