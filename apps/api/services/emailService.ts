@@ -13,22 +13,48 @@ function toPositiveInt(value, fallback) {
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }
 
+function getMailtrapApiConfig() {
+  const token = String(process.env.MAILTRAP_API_TOKEN || "").trim();
+  const inboxId = String(process.env.MAILTRAP_INBOX_ID || "").trim();
+  const timeoutMs = toPositiveInt(process.env.MAILTRAP_API_TIMEOUT_MS, 10_000);
+  const fallbackEnabled = toBool(process.env.MAILTRAP_API_FALLBACK_ENABLED, true);
+
+  return {
+    token,
+    inboxId,
+    timeoutMs,
+    fallbackEnabled,
+  };
+}
+
+function hasMailtrapApiConfig() {
+  const config = getMailtrapApiConfig();
+  return Boolean(config.token && config.inboxId);
+}
+
 function getEmailMode() {
   const explicit = String(process.env.EMAIL_PROVIDER || "")
     .trim()
     .toLowerCase();
   if (explicit === "smtp") return "smtp";
+  if (explicit === "mailtrap_api") return "mailtrap_api";
   if (explicit === "console") return "console";
 
   const hasSmtpHost = Boolean(String(process.env.SMTP_HOST || "").trim());
   const hasSmtpPort = Number.isFinite(Number.parseInt(String(process.env.SMTP_PORT || ""), 10));
   if (hasSmtpHost && hasSmtpPort) return "smtp";
+  if (hasMailtrapApiConfig()) return "mailtrap_api";
   return "console";
 }
 
-function getFromAddress() {
+function getFromParts() {
   const email = String(process.env.MAIL_FROM || "no-reply@tiendaonline.local").trim();
   const name = String(process.env.MAIL_FROM_NAME || "TiendaOnline").trim();
+  return { email, name };
+}
+
+function getFromAddress() {
+  const { email, name } = getFromParts();
   return `${name} <${email}>`;
 }
 
@@ -78,6 +104,69 @@ function getSmtpFallbackPorts(primaryPort) {
 function isRecoverableSmtpError(err) {
   const code = String(err?.code || "").toUpperCase();
   return ["ETIMEDOUT", "ECONNREFUSED", "EHOSTUNREACH", "ENOTFOUND", "ESOCKET", "ECONNECTION"].includes(code);
+}
+
+function toRecipientList(to) {
+  if (Array.isArray(to)) {
+    return to
+      .map(value => String(value || "").trim())
+      .filter(Boolean)
+      .map(email => ({ email }));
+  }
+
+  return String(to || "")
+    .split(",")
+    .map(value => value.trim())
+    .filter(Boolean)
+    .map(email => ({ email }));
+}
+
+async function sendViaMailtrapApi({ to, subject, text, html }) {
+  const config = getMailtrapApiConfig();
+  if (!config.token || !config.inboxId) {
+    throw new Error("MAILTRAP_API_TOKEN/MAILTRAP_INBOX_ID no configurados para fallback por API.");
+  }
+
+  const from = getFromParts();
+  const recipients = toRecipientList(to);
+  if (!recipients.length) {
+    throw new Error("No hay destinatarios válidos para envío por Mailtrap API.");
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), config.timeoutMs);
+
+  try {
+    const response = await fetch(`https://sandbox.api.mailtrap.io/api/send/${encodeURIComponent(config.inboxId)}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${config.token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to: recipients,
+        subject,
+        text,
+        html,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`Mailtrap API respondió ${response.status}: ${errorBody}`);
+    }
+  } catch (err) {
+    if (err?.name === "AbortError") {
+      const timeoutError = new Error("Timeout en Mailtrap API");
+      (timeoutError as any).code = "ETIMEDOUT";
+      throw timeoutError;
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 async function sendViaSmtp(message) {
@@ -178,13 +267,35 @@ async function sendEmail({ to, subject, text, html, kind, debugLink }) {
     return { delivered: false, mode };
   }
 
-  await sendViaSmtp({
-    from: getFromAddress(),
-    to,
-    subject,
-    text,
-    html,
-  });
+  if (mode === "mailtrap_api") {
+    await sendViaMailtrapApi({ to, subject, text, html });
+
+    if (canLogDevLinks() && debugLink) {
+      console.log(`[DEV:${kind}] ${debugLink}`);
+    }
+
+    return { delivered: true, mode };
+  }
+
+  try {
+    await sendViaSmtp({
+      from: getFromAddress(),
+      to,
+      subject,
+      text,
+      html,
+    });
+  } catch (smtpErr) {
+    const apiConfig = getMailtrapApiConfig();
+    const shouldFallbackToApi = apiConfig.fallbackEnabled && hasMailtrapApiConfig();
+
+    if (!shouldFallbackToApi || !isRecoverableSmtpError(smtpErr)) {
+      throw smtpErr;
+    }
+
+    console.warn(`[emailService] SMTP agotado; intentando Mailtrap API fallback (${smtpErr?.code || smtpErr?.message || "UNKNOWN"}).`);
+    await sendViaMailtrapApi({ to, subject, text, html });
+  }
 
   if (canLogDevLinks() && debugLink) {
     console.log(`[DEV:${kind}] ${debugLink}`);
