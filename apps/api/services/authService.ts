@@ -173,8 +173,8 @@ async function register({ nombre, apellido, email, plainPwd, telefono, direccion
   }
 
   return {
-    message: "Registro exitoso. Revisa tu correo para verificar tu cuenta.",
-    requiresEmailVerification: true,
+    message: "Registro exitoso. Ya puedes iniciar sesión. Te enviamos un correo de verificación opcional.",
+    requiresEmailVerification: false,
   };
 }
 
@@ -184,11 +184,6 @@ async function login({ email, plainPwd }) {
 
   if (String(userRow.estado || "ACTIVO").toUpperCase() !== "ACTIVO") {
     throw createHttpError(403, "Tu cuenta está inactiva. Contacta al administrador.");
-  }
-
-  // Doble opt-in: no permitir login si el email no fue verificado.
-  if (userRow.email_verificado === 0 || userRow.email_verificado === false) {
-    throw createHttpError(403, "Debes verificar tu email antes de iniciar sesión.");
   }
 
   const stored = userRow.contrasena || userRow.password || userRow.password_hash || "";

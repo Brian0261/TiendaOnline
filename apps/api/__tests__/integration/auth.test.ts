@@ -158,6 +158,22 @@ describe("Pruebas de Integración - Auth recuperación de contraseña", () => {
     process.env.DEV_EMAIL_LINKS = "1";
   });
 
+  test("POST /api/auth/login/customer permite login aunque email no esté verificado", async () => {
+    const currentUser = mockDbState.usersByEmail.get("cli@email.com");
+    const unverifiedUser = {
+      ...currentUser,
+      email_verificado: false,
+    };
+
+    mockDbState.usersByEmail.set("cli@email.com", unverifiedUser);
+    mockDbState.usersById.set(1, unverifiedUser);
+
+    const response = await request(app).post("/api/auth/login/customer").send({ email: "cli@email.com", password: "Password1" });
+
+    expect(response.statusCode).toBe(200);
+    expect(String(response.body?.message || "")).toMatch(/inicio de sesión exitoso/i);
+  });
+
   test("POST /api/auth/forgot-password retorna mensaje genérico y envía correo si existe", async () => {
     const response = await request(app).post("/api/auth/forgot-password").send({ email: "cli@email.com" });
 
