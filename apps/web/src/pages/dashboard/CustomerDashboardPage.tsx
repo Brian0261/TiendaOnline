@@ -130,7 +130,7 @@ function getToken(): string | null {
 export function CustomerDashboardPage() {
   const nav = useNavigate();
   const qc = useQueryClient();
-  const { logout } = useAuth();
+  const { logout, user: authUser } = useAuth();
   const [params, setParams] = useSearchParams();
 
   const tabParam = params.get("tab") || "profile";
@@ -141,7 +141,22 @@ export function CustomerDashboardPage() {
     queryFn: () => api.get<{ user: Profile }>("/auth/me"),
   });
 
-  const profile = profileData?.user;
+  const profile = useMemo<Profile | undefined>(() => {
+    const fromApi = profileData?.user;
+    if (fromApi) return fromApi;
+    if (!authUser) return undefined;
+
+    return {
+      id_usuario: Number(authUser.id_usuario || 0),
+      nombre: String(authUser.nombre || ""),
+      apellido: String(authUser.apellido || ""),
+      email: String(authUser.email || ""),
+      telefono: "",
+      direccion_principal: "",
+      rol: authUser.rol,
+    };
+  }, [authUser, profileData?.user]);
+
   const firstName = useMemo(() => {
     const n = (profile?.nombre || "Cliente").trim();
     return n.split(" ")[0] || "Cliente";
@@ -280,9 +295,9 @@ export function CustomerDashboardPage() {
           <div className="card-body">
             <h5 className="card-title">Datos personales</h5>
             <ProfileForm
-              key={`${profile?.id_usuario || "u"}:${profile?.nombre || ""}:${profile?.apellido || ""}:${profile?.telefono || ""}:${
-                profile?.direccion_principal || ""
-              }`}
+              key={`${profile?.id_usuario || "u"}:${profile?.nombre || ""}:${profile?.apellido || ""}:${profile?.email || ""}:${
+                profile?.telefono || ""
+              }:${profile?.direccion_principal || ""}`}
               initial={initialForm}
               isPending={updateProfile.isPending}
               onSubmit={values => updateProfile.mutate(values)}
