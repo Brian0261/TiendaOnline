@@ -1,4 +1,5 @@
 import * as sharedImageModule from "@shared/image.js";
+import { API_BASE_URL } from "../api/baseUrl";
 
 type SharedImageModule = {
   normalizeImageUrl?: (value?: unknown) => string;
@@ -20,7 +21,7 @@ const PLACEHOLDER_PRODUCT_ANY =
 
 export const PLACEHOLDER_PRODUCT: string = PLACEHOLDER_PRODUCT_ANY;
 
-const API_BASE = import.meta.env.VITE_API_BASE || "/api";
+const API_BASE = API_BASE_URL;
 
 function getApiOrigin(): string {
   try {

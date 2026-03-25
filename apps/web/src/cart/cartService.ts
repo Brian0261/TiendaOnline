@@ -1,8 +1,9 @@
 import { api } from "../api/http";
+import { API_BASE_URL } from "../api/baseUrl";
 import { normalizeImageUrl } from "../shared/image";
 
 const LS_KEY = "shoppingCart";
-const BASE_URL = import.meta.env.VITE_API_BASE || "/api";
+const BASE_URL = API_BASE_URL;
 const AUTH_EXPIRED_EVENT = "auth:expired";
 
 export type CartProduct = {

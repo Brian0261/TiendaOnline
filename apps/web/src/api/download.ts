@@ -1,3 +1,5 @@
+import { API_BASE_URL } from "./baseUrl";
+
 type DownloadError = {
   status: number;
   message: string;
@@ -22,7 +24,7 @@ function setToken(token: string): void {
   localStorage.setItem("auth_token", token);
 }
 
-const BASE_URL = import.meta.env.VITE_API_BASE || "/api";
+const BASE_URL = API_BASE_URL;
 
 function buildUrl(path: string): string {
   if (path.startsWith("http")) return path;

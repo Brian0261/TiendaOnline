@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../../api/http";
+import { buildApiUrl } from "../../api/baseUrl";
 import { useAuth } from "../../auth/useAuth";
 import { formatDateTime } from "../../shared/datetime";
 
@@ -206,7 +207,7 @@ export function CustomerDashboardPage() {
     const connect = () => {
       if (closed) return;
       try {
-        es = new EventSource(`/api/orders/stream?token=${encodeURIComponent(token)}`);
+        es = new EventSource(buildApiUrl(`/orders/stream?token=${encodeURIComponent(token)}`));
         es.addEventListener("order-update", () => {
           void qc.invalidateQueries({ queryKey: ["orders", "my"] });
         });

@@ -1,5 +1,25 @@
 const { poolPromise } = require("../config/db.config");
 
+let hasEstadoColumnCache = null;
+
+async function hasUsuarioEstadoColumn() {
+  if (hasEstadoColumnCache !== null) return hasEstadoColumnCache;
+  const pool = await poolPromise;
+  const result = await pool.query(
+    `
+      SELECT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'usuario'
+          AND column_name = 'estado'
+      ) AS has_estado
+    `,
+  );
+  hasEstadoColumnCache = Boolean(result.rows?.[0]?.has_estado);
+  return hasEstadoColumnCache;
+}
+
 async function userExistsByEmail(email) {
   const pool = await poolPromise;
   const exists = await pool.query("SELECT 1 FROM usuario WHERE email = $1", [email]);
@@ -25,10 +45,12 @@ async function createUser({ nombre, apellido, email, contrasena, telefono, direc
 
 async function getUserProfileById(id_usuario) {
   const pool = await poolPromise;
+  const hasEstado = await hasUsuarioEstadoColumn();
+  const estadoSelect = hasEstado ? "estado" : "NULL::text AS estado";
   const result = await pool.query(
     `
       SELECT id_usuario, nombre, apellido, email,
-             telefono, direccion_principal, rol, estado
+             telefono, direccion_principal, rol, ${estadoSelect}
       FROM   usuario
       WHERE  id_usuario = $1
     `,
@@ -78,9 +100,11 @@ async function updateUserPasswordHashById(id_usuario, passwordHash) {
 
 async function getUserStatusById(id_usuario) {
   const pool = await poolPromise;
+  const hasEstado = await hasUsuarioEstadoColumn();
+  const estadoSelect = hasEstado ? "estado" : "NULL::text AS estado";
   const result = await pool.query(
     `
-      SELECT id_usuario, rol, estado
+      SELECT id_usuario, rol, ${estadoSelect}
       FROM usuario
       WHERE id_usuario = $1
       LIMIT 1
