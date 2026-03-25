@@ -6,6 +6,20 @@
 const dotenv = require("dotenv");
 dotenv.config();
 
+const nodeEnv = String(process.env.NODE_ENV || "")
+  .trim()
+  .toLowerCase();
+const requiresStrictSecrets = nodeEnv === "production" || nodeEnv === "staging";
+
+if (requiresStrictSecrets) {
+  if (!process.env.JWT_SECRET || !String(process.env.JWT_SECRET).trim()) {
+    throw new Error("JWT_SECRET es obligatorio en staging/producción");
+  }
+  if (!process.env.JWT_REFRESH_SECRET || !String(process.env.JWT_REFRESH_SECRET).trim()) {
+    throw new Error("JWT_REFRESH_SECRET es obligatorio en staging/producción");
+  }
+}
+
 /**
  * Exporta la clave y la duración del token.
  *  - JWT_SECRET     : clave para firmar y verificar JWT

@@ -11,6 +11,9 @@ RUN npm ci
 COPY apps/web/ /repo/apps/web/
 COPY packages/shared/ /repo/packages/shared/
 
+ARG VITE_API_BASE=/api
+ENV VITE_API_BASE=${VITE_API_BASE}
+
 RUN npm run build
 
 # Stage 2: serve with nginx

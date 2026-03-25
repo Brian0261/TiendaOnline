@@ -1,3 +1,5 @@
+import { API_BASE_URL, buildApiUrl } from "./baseUrl";
+
 export type ApiError = {
   status: number;
   message: string;
@@ -22,7 +24,7 @@ function setToken(token: string): void {
   localStorage.setItem("auth_token", token);
 }
 
-const BASE_URL = import.meta.env.VITE_API_BASE || "/api";
+const BASE_URL = API_BASE_URL;
 
 function isAuthPath(path: string): boolean {
   // Evita loops de refresh en endpoints de auth.
@@ -75,7 +77,7 @@ async function tryRefreshToken(): Promise<string | null> {
 }
 
 async function requestInternal<T>(path: string, options: RequestInit = {}, allowRefresh: boolean): Promise<T> {
-  const url = path.startsWith("http") ? path : `${BASE_URL}${path.startsWith("/") ? "" : "/"}${path}`;
+  const url = buildApiUrl(path);
 
   const headers = new Headers(options.headers || {});
   if (!headers.has("Content-Type") && shouldSetJsonContentType(options.body)) headers.set("Content-Type", "application/json");
