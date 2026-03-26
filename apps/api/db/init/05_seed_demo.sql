@@ -7,7 +7,7 @@ INSERT INTO usuario (nombre, apellido, email, contrasena, telefono, direccion_pr
 ('Juan', 'Pérez', 'cli@email.com', '$2a$10$tKJ56pQTAAvrb8Uerajsyuq5h30XvGp6NBaqwRGwZpF/ZkPsjUMPS', '987654321', 'Av. Lima 123', 'CLIENTE', true),
 ('María', 'Gómez', 'emp@email.com', '$2a$10$tKJ56pQTAAvrb8Uerajsyuq5h30XvGp6NBaqwRGwZpF/ZkPsjUMPS', '987654322', 'Av. Arequipa 456', 'EMPLEADO', true),
 ('Carlos', 'López', 'admin@email.com', '$2a$10$tKJ56pQTAAvrb8Uerajsyuq5h30XvGp6NBaqwRGwZpF/ZkPsjUMPS', '987654323', 'Jr. Cusco 789', 'ADMINISTRADOR', true),
-('Roberto', 'García', 'repartidor@email.com', '$2a$10$tKJ56pQTAAvrb8Uerajsyuq5h30XvGp6NBaqwRGwZpF/ZkPsjUMPS', '987111111', 'Av. Delivery 100', 'REPARTIDOR', true),
+('Diego', 'Reyes', 'repartidor@email.com', '$2a$10$tKJ56pQTAAvrb8Uerajsyuq5h30XvGp6NBaqwRGwZpF/ZkPsjUMPS', '987654331', 'Av. Delivery 100', 'REPARTIDOR', true),
 ('Ana', 'Rodríguez', 'ana@email.com', '$2a$10$B5o9vCtVsQC9xGNbeQjfleBj.ZpUNIK/3uO8KJwCUVsOTiedHdu0K', '987654324', 'Av. Tacna 321', 'CLIENTE', true),
 ('Luis', 'Martínez', 'luis@email.com', '$2a$10$B5o9vCtVsQC9xGNbeQjfleBj.ZpUNIK/3uO8KJwCUVsOTiedHdu0K', '987654325', 'Jr. Ayacucho 654', 'CLIENTE', true),
 ('Pedro', 'Sánchez', 'pedro@email.com', '$2a$10$B5o9vCtVsQC9xGNbeQjfleBj.ZpUNIK/3uO8KJwCUVsOTiedHdu0K', '987654326', 'Av. Bolívar 987', 'ADMINISTRADOR', true),
@@ -45,6 +45,15 @@ UPDATE motorizado
 SET id_usuario = (SELECT id_usuario FROM usuario WHERE email = 'repartidor@email.com')
 WHERE id_motorizado = 1;
 
+UPDATE motorizado m
+SET
+	nombre = u.nombre,
+	apellido = u.apellido,
+	telefono = COALESCE(NULLIF(u.telefono, ''), m.telefono)
+FROM usuario u
+WHERE u.email = 'repartidor@email.com'
+	AND m.id_motorizado = 1;
+
 UPDATE motorizado
 SET id_usuario = (SELECT id_usuario FROM usuario WHERE email = 'repartidor2@email.com')
 WHERE id_motorizado = 2;
@@ -60,6 +69,32 @@ WHERE id_motorizado = 4;
 UPDATE motorizado
 SET id_usuario = (SELECT id_usuario FROM usuario WHERE email = 'repartidor5@email.com')
 WHERE id_motorizado = 5;
+
+-- Forzar identidad canónica para repartidor oficial y sincronizar todos los motorizados vinculados
+UPDATE usuario
+SET
+	nombre = 'Diego',
+	apellido = 'Reyes',
+	telefono = COALESCE(NULLIF(telefono, ''), '987654331'),
+	direccion_principal = COALESCE(NULLIF(direccion_principal, ''), 'Av. Delivery 100')
+WHERE LOWER(email) = 'repartidor@email.com'
+	AND rol = 'REPARTIDOR';
+
+UPDATE motorizado m
+SET
+	nombre = u.nombre,
+	apellido = u.apellido,
+	telefono = COALESCE(NULLIF(u.telefono, ''), m.telefono)
+FROM usuario u
+WHERE m.id_usuario = u.id_usuario
+	AND (
+		COALESCE(m.nombre, '') IS DISTINCT FROM COALESCE(u.nombre, '')
+		OR COALESCE(m.apellido, '') IS DISTINCT FROM COALESCE(u.apellido, '')
+		OR (
+			NULLIF(u.telefono, '') IS NOT NULL
+			AND COALESCE(m.telefono, '') IS DISTINCT FROM u.telefono
+		)
+	);
 
 -- PRODUCTOS
 INSERT INTO producto (nombre_producto, descripcion, precio, imagen, id_categoria, id_marca) VALUES

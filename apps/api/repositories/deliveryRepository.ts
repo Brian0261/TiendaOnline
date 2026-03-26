@@ -131,8 +131,8 @@ async function listRiders(pool) {
     `
       SELECT
         m.id_motorizado,
-        m.nombre,
-        m.apellido,
+        COALESCE(NULLIF(TRIM(u.nombre), ''), m.nombre) AS nombre,
+        COALESCE(NULLIF(TRIM(u.apellido), ''), m.apellido) AS apellido,
         m.telefono,
         m.licencia,
         m.id_usuario,

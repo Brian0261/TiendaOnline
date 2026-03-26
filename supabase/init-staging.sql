@@ -647,6 +647,32 @@ UPDATE motorizado
 SET id_usuario = (SELECT id_usuario FROM usuario WHERE email = 'repartidor@email.com')
 WHERE id_motorizado = 1;
 
+-- Forzar identidad canónica para repartidor oficial y sincronizar todos los motorizados vinculados
+UPDATE usuario
+SET
+        nombre = 'Diego',
+        apellido = 'Reyes',
+        telefono = COALESCE(NULLIF(telefono, ''), '987654331'),
+        direccion_principal = COALESCE(NULLIF(direccion_principal, ''), 'Av. Delivery 100')
+WHERE LOWER(email) = 'repartidor@email.com'
+    AND rol = 'REPARTIDOR';
+
+UPDATE motorizado m
+SET
+        nombre = u.nombre,
+        apellido = u.apellido,
+        telefono = COALESCE(NULLIF(u.telefono, ''), m.telefono)
+FROM usuario u
+WHERE m.id_usuario = u.id_usuario
+    AND (
+        COALESCE(m.nombre, '') IS DISTINCT FROM COALESCE(u.nombre, '')
+        OR COALESCE(m.apellido, '') IS DISTINCT FROM COALESCE(u.apellido, '')
+        OR (
+            NULLIF(u.telefono, '') IS NOT NULL
+            AND COALESCE(m.telefono, '') IS DISTINCT FROM u.telefono
+        )
+    );
+
 -- PRODUCTOS
 INSERT INTO producto (nombre_producto, descripcion, precio, imagen, id_categoria, id_marca) VALUES
 ('Leche Entera Gloria 1L', 'Leche entera en caja 1 L', 4.50, '/api/uploads/images/leche-gloria-1l.webp', 3, 1),

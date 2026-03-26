@@ -1,5 +1,31 @@
 const { poolPromise } = require("../config/db.config");
 
+let hasUsuarioEstadoColumnCache = null;
+
+function createStatusError(status, message) {
+  const err = new Error(message) as Error & { status?: number };
+  err.status = status;
+  return err;
+}
+
+async function hasUsuarioEstadoColumn(poolOrTx) {
+  if (hasUsuarioEstadoColumnCache !== null) return hasUsuarioEstadoColumnCache;
+  const conn = poolOrTx || (await poolPromise);
+  const { rows } = await conn.query(
+    `
+      SELECT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'usuario'
+          AND column_name = 'estado'
+      ) AS has_estado
+    `,
+  );
+  hasUsuarioEstadoColumnCache = Boolean(rows?.[0]?.has_estado);
+  return hasUsuarioEstadoColumnCache;
+}
+
 function normalizeRoleForFilter(rol) {
   const value = String(rol || "")
     .trim()
@@ -18,6 +44,7 @@ function normalizeStateForFilter(estado) {
 
 async function listUsersPaginated({ page = 1, pageSize = 20, rol = "", estado = "", search = "" } = {}) {
   const pool = await poolPromise;
+  const hasEstadoColumn = await hasUsuarioEstadoColumn(pool);
   const safePage = Math.max(Number(page) || 1, 1);
   const safePageSize = Math.min(Math.max(Number(pageSize) || 20, 1), 100);
   const safeOffset = (safePage - 1) * safePageSize;
@@ -33,8 +60,20 @@ async function listUsersPaginated({ page = 1, pageSize = 20, rol = "", estado = 
 
   const estadoFilter = normalizeStateForFilter(estado);
   if (estadoFilter) {
-    params.push(estadoFilter);
-    where.push(`u.estado = $${params.length}`);
+    if (!hasEstadoColumn && estadoFilter === "INACTIVO") {
+      return {
+        rows: [],
+        total: 0,
+        page: safePage,
+        pageSize: safePageSize,
+        totalPages: 1,
+      };
+    }
+
+    if (hasEstadoColumn) {
+      params.push(estadoFilter);
+      where.push(`u.estado = $${params.length}`);
+    }
   }
 
   const searchValue = String(search || "").trim();
@@ -52,6 +91,7 @@ async function listUsersPaginated({ page = 1, pageSize = 20, rol = "", estado = 
   }
 
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  const estadoSelect = hasEstadoColumn ? "u.estado" : "'ACTIVO'::text AS estado";
 
   const totalResult = await pool.query(
     `
@@ -73,7 +113,7 @@ async function listUsersPaginated({ page = 1, pageSize = 20, rol = "", estado = 
         u.telefono,
         u.direccion_principal,
         u.rol,
-        u.estado,
+        ${estadoSelect},
         u.email_verificado,
         u.fecha_registro,
         m.id_motorizado,
@@ -102,6 +142,8 @@ async function listUsersPaginated({ page = 1, pageSize = 20, rol = "", estado = 
 
 async function getUserById(poolOrTx, userId) {
   const conn = poolOrTx || (await poolPromise);
+  const hasEstadoColumn = await hasUsuarioEstadoColumn(conn);
+  const estadoSelect = hasEstadoColumn ? "u.estado" : "'ACTIVO'::text AS estado";
   const { rows } = await conn.query(
     `
       SELECT
@@ -112,7 +154,7 @@ async function getUserById(poolOrTx, userId) {
         u.telefono,
         u.direccion_principal,
         u.rol,
-        u.estado,
+        ${estadoSelect},
         u.email_verificado,
         u.fecha_registro,
         m.id_motorizado,
@@ -129,9 +171,11 @@ async function getUserById(poolOrTx, userId) {
 
 async function getUserByEmail(poolOrTx, email) {
   const conn = poolOrTx || (await poolPromise);
+  const hasEstadoColumn = await hasUsuarioEstadoColumn(conn);
+  const estadoSelect = hasEstadoColumn ? "estado" : "'ACTIVO'::text AS estado";
   const { rows } = await conn.query(
     `
-      SELECT id_usuario, email, rol, estado
+      SELECT id_usuario, email, rol, ${estadoSelect}
       FROM usuario
       WHERE LOWER(email) = LOWER($1)
       LIMIT 1
@@ -142,14 +186,20 @@ async function getUserByEmail(poolOrTx, email) {
 }
 
 async function createUserWithRoleTx(tx, { nombre, apellido, email, contrasena, telefono, direccion_principal, rol }) {
-  const { rows } = await tx.query(
-    `
+  const hasEstadoColumn = await hasUsuarioEstadoColumn(tx);
+  const insertSql = hasEstadoColumn
+    ? `
       INSERT INTO usuario (nombre, apellido, email, contrasena, telefono, direccion_principal, rol, estado, email_verificado, email_verificado_en)
       VALUES ($1, $2, $3, $4, $5, $6, $7, 'ACTIVO', true, NOW())
       RETURNING id_usuario
-    `,
-    [nombre, apellido, email, contrasena, telefono || null, direccion_principal || null, rol],
-  );
+    `
+    : `
+      INSERT INTO usuario (nombre, apellido, email, contrasena, telefono, direccion_principal, rol, email_verificado, email_verificado_en)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, true, NOW())
+      RETURNING id_usuario
+    `;
+
+  const { rows } = await tx.query(insertSql, [nombre, apellido, email, contrasena, telefono || null, direccion_principal || null, rol]);
   return rows?.[0]?.id_usuario || null;
 }
 
@@ -169,6 +219,10 @@ async function updateUserByIdTx(tx, userId, { nombre, apellido, email, telefono,
 }
 
 async function setUserInactiveByIdTx(tx, userId) {
+  const hasEstadoColumn = await hasUsuarioEstadoColumn(tx);
+  if (!hasEstadoColumn) {
+    throw createStatusError(409, "No se puede desactivar usuarios en este entorno legacy porque falta la columna usuario.estado.");
+  }
   await tx.query(
     `
       UPDATE usuario
@@ -180,6 +234,10 @@ async function setUserInactiveByIdTx(tx, userId) {
 }
 
 async function setUserActiveByIdTx(tx, userId) {
+  const hasEstadoColumn = await hasUsuarioEstadoColumn(tx);
+  if (!hasEstadoColumn) {
+    throw createStatusError(409, "No se puede reactivar usuarios en este entorno legacy porque falta la columna usuario.estado.");
+  }
   await tx.query(
     `
       UPDATE usuario
