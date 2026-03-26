@@ -6,7 +6,7 @@ function getHostFallbackBase(): string {
   if (typeof window === "undefined") return "/api";
   const host = window.location.hostname.toLowerCase();
   if (host === "minimarketexpress.shop" || host === "www.minimarketexpress.shop" || host === "backoffice.minimarketexpress.shop") {
-    return "https://api.minimarketexpress.shop/api";
+    return "https://tiendaonline-production-5b3b.up.railway.app/api";
   }
   if (host === "staging.minimarketexpress.shop" || host === "backoffice-staging.minimarketexpress.shop") {
     return "https://api-staging.minimarketexpress.shop/api";
