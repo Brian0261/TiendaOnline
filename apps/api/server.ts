@@ -37,6 +37,21 @@ const CORS_ORIGINS = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(",").map(s => s.trim())
   : ["http://localhost:3000", "http://localhost:5173", "http://localhost:8080"];
 
+function resolveAllowedOrigin(req) {
+  const requestOrigin = String(req.headers.origin || "").trim();
+  if (!requestOrigin) return "";
+  return CORS_ORIGINS.includes(requestOrigin) ? requestOrigin : "";
+}
+
+function applyApiCorsHeaders(req, res) {
+  const allowedOrigin = resolveAllowedOrigin(req);
+  if (allowedOrigin) {
+    res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+  }
+}
+
 app.use(
   cors({
     origin: CORS_ORIGINS,
@@ -45,6 +60,14 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
+
+app.use("/api", (req, res, next) => {
+  applyApiCorsHeaders(req, res);
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+  return next();
+});
 
 /* ────────────────────────────
    Logging (solo en dev)
@@ -167,6 +190,7 @@ app.use("*", (_req, res) => res.status(404).send("Not Found"));
    Manejador de errores genérico
 ────────────────────────────── */
 app.use((err, _req, res, _next) => {
+  applyApiCorsHeaders(_req, res);
   console.error(err);
   res.status(500).json({ error: "Algo salió mal en el servidor" });
 });

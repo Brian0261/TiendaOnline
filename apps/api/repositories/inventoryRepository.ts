@@ -5,6 +5,11 @@ let canonicalWarehouseCache = {
   fetchedAt: 0,
 };
 
+let inboundUserColumnCache = {
+  hasColumn: null,
+  fetchedAt: 0,
+};
+
 async function getCanonicalWarehouseId(pool) {
   const configured = Number(process.env.CANONICAL_WAREHOUSE_ID || 0);
   if (Number.isInteger(configured) && configured > 0) {
@@ -31,6 +36,33 @@ async function getCanonicalWarehouseId(pool) {
     fetchedAt: now,
   };
   return id;
+}
+
+async function hasInboundUserColumn(pool) {
+  const now = Date.now();
+  if (typeof inboundUserColumnCache.hasColumn === "boolean" && now - inboundUserColumnCache.fetchedAt < 60_000) {
+    return inboundUserColumnCache.hasColumn;
+  }
+
+  const rs = await pool.query(
+    `
+      SELECT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'entrada_inventario'
+          AND column_name = 'id_usuario'
+      ) AS has_column
+    `,
+  );
+
+  const hasColumn = Boolean(rs.rows?.[0]?.has_column);
+  inboundUserColumnCache = {
+    hasColumn,
+    fetchedAt: now,
+  };
+
+  return hasColumn;
 }
 
 async function getAvailableStockByProductId(productId) {
@@ -322,63 +354,85 @@ async function listInventoryPaginated({ search = "", categoriaId = "", page = 1,
 
 async function listInboundInventoryPaginated({ search = "", categoriaId = "", page = 1, pageSize = 20 }) {
   const pool = await poolPromise;
-  const canonicalWarehouseId = await getCanonicalWarehouseId(pool);
-  const { params, where } = buildAdminInventoryFilters({ search, categoriaId, canonicalWarehouseId });
+  const tx = await pool.connect();
 
-  const countQuery = `
-    SELECT COUNT(*)::int AS total
-    FROM entrada_inventario ei
-    INNER JOIN inventario i ON i.id_inventario = ei.id_inventario
-    INNER JOIN producto p ON p.id_producto = i.id_producto
-    INNER JOIN almacen a ON a.id_almacen = i.id_almacen
-    LEFT JOIN categoria c ON c.id_categoria = p.id_categoria
-    ${where}
-  `;
+  try {
+    await tx.query("BEGIN");
+    await tx.query("SET LOCAL statement_timeout = '12000'");
 
-  const countResult = await pool.query(countQuery, params);
-  const total = Number(countResult.rows?.[0]?.total || 0);
+    const canonicalWarehouseId = await getCanonicalWarehouseId(tx);
+    const { params, where } = buildAdminInventoryFilters({ search, categoriaId, canonicalWarehouseId });
 
-  const safePageSize = Math.max(1, Math.min(Number(pageSize) || 20, 100));
-  const safePage = Math.max(1, Number(page) || 1);
-  const totalPages = Math.max(1, Math.ceil(total / safePageSize));
-  const boundedPage = Math.min(safePage, totalPages);
-  const offset = (boundedPage - 1) * safePageSize;
+    const countQuery = `
+      SELECT COUNT(*)::int AS total
+      FROM entrada_inventario ei
+      INNER JOIN inventario i ON i.id_inventario = ei.id_inventario
+      INNER JOIN producto p ON p.id_producto = i.id_producto
+      INNER JOIN almacen a ON a.id_almacen = i.id_almacen
+      LEFT JOIN categoria c ON c.id_categoria = p.id_categoria
+      ${where}
+    `;
 
-  const limitParamIdx = params.length + 1;
-  const offsetParamIdx = params.length + 2;
+    const countResult = await tx.query(countQuery, params);
+    const total = Number(countResult.rows?.[0]?.total || 0);
 
-  const rowsQuery = `
-    SELECT
-      ei.id_entrada_inventario,
-      (ei.fecha_entrada AT TIME ZONE 'UTC') AS fecha_entrada_utc,
-      p.nombre_producto AS producto,
-      ei.cantidad_recibida AS cantidad,
-      ei.motivo_entrada AS motivo,
-      a.nombre_almacen AS almacen,
-      ei.id_usuario,
-      COALESCE(u.nombre || ' ' || u.apellido, '-') AS responsable
-    FROM entrada_inventario ei
-    INNER JOIN inventario i ON i.id_inventario = ei.id_inventario
-    INNER JOIN producto p ON p.id_producto = i.id_producto
-    INNER JOIN almacen a ON a.id_almacen = i.id_almacen
-    LEFT JOIN categoria c ON c.id_categoria = p.id_categoria
-    LEFT JOIN usuario u ON u.id_usuario = ei.id_usuario
-    ${where}
-    ORDER BY ei.fecha_entrada DESC, ei.id_entrada_inventario DESC
-    LIMIT $${limitParamIdx}
-    OFFSET $${offsetParamIdx}
-  `;
+    const safePageSize = Math.max(1, Math.min(Number(pageSize) || 20, 100));
+    const safePage = Math.max(1, Number(page) || 1);
+    const totalPages = Math.max(1, Math.ceil(total / safePageSize));
+    const boundedPage = Math.min(safePage, totalPages);
+    const offset = (boundedPage - 1) * safePageSize;
 
-  const rowParams = [...params, safePageSize, offset];
-  const rowsResult = await pool.query(rowsQuery, rowParams);
+    const limitParamIdx = params.length + 1;
+    const offsetParamIdx = params.length + 2;
+    const hasIdUsuario = await hasInboundUserColumn(tx);
 
-  return {
-    rows: rowsResult.rows || [],
-    total,
-    page: boundedPage,
-    pageSize: safePageSize,
-    totalPages,
-  };
+    const selectResponsible = hasIdUsuario
+      ? "ei.id_usuario, COALESCE(u.nombre || ' ' || u.apellido, '-') AS responsable"
+      : "NULL::int AS id_usuario, '-' AS responsable";
+
+    const userJoin = hasIdUsuario ? "LEFT JOIN usuario u ON u.id_usuario = ei.id_usuario" : "";
+
+    const rowsQuery = `
+      SELECT
+        ei.id_entrada_inventario,
+        (ei.fecha_entrada AT TIME ZONE 'UTC') AS fecha_entrada_utc,
+        p.nombre_producto AS producto,
+        ei.cantidad_recibida AS cantidad,
+        ei.motivo_entrada AS motivo,
+        a.nombre_almacen AS almacen,
+        ${selectResponsible}
+      FROM entrada_inventario ei
+      INNER JOIN inventario i ON i.id_inventario = ei.id_inventario
+      INNER JOIN producto p ON p.id_producto = i.id_producto
+      INNER JOIN almacen a ON a.id_almacen = i.id_almacen
+      LEFT JOIN categoria c ON c.id_categoria = p.id_categoria
+      ${userJoin}
+      ${where}
+      ORDER BY ei.fecha_entrada DESC, ei.id_entrada_inventario DESC
+      LIMIT $${limitParamIdx}
+      OFFSET $${offsetParamIdx}
+    `;
+
+    const rowParams = [...params, safePageSize, offset];
+    const rowsResult = await tx.query(rowsQuery, rowParams);
+
+    await tx.query("COMMIT");
+
+    return {
+      rows: rowsResult.rows || [],
+      total,
+      page: boundedPage,
+      pageSize: safePageSize,
+      totalPages,
+    };
+  } catch (err) {
+    try {
+      await tx.query("ROLLBACK");
+    } catch {}
+    throw err;
+  } finally {
+    tx.release();
+  }
 }
 
 async function getInventoryRowByIdTx(tx, { idInventario }) {

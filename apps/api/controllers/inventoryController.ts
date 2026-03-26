@@ -69,8 +69,23 @@ exports.getInboundInventoryPaginated = async (req, res) => {
     const result = await inventoryService.getInboundInventoryPaginated(req.query);
     return res.json(result);
   } catch (err) {
-    console.error("getInboundInventoryPaginated:", err);
-    res.status(500).json({ message: "Error al listar entradas de inventario" });
+    const errorCode = String((err as any)?.code || "").toUpperCase();
+    const detail = String((err as any)?.message || "Error desconocido");
+    const isStatementTimeout = errorCode === "57014" || detail.toLowerCase().includes("statement timeout");
+    const status = isStatementTimeout ? 503 : 500;
+
+    console.error("getInboundInventoryPaginated:", {
+      code: errorCode || null,
+      message: detail,
+      query: req.originalUrl,
+    });
+
+    return res.status(status).json({
+      message: isStatementTimeout
+        ? "Inventario temporalmente no disponible. Intenta nuevamente."
+        : "Error al listar entradas de inventario",
+      code: errorCode || "INBOUND_INVENTORY_ERROR",
+    });
   }
 };
 
