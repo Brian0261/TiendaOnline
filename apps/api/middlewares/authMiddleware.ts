@@ -20,11 +20,12 @@ const authenticateToken = async (req, res, next) => {
     const userData = jwt.verify(token, JWT_SECRET);
     const userStatus = await authRepository.getUserStatusById(userData?.id_usuario);
     if (!userStatus) return res.status(401).json({ message: "Usuario no encontrado." });
-    if (String(userStatus.estado || "").toUpperCase() !== "ACTIVO") {
+    const normalizedState = String(userStatus.estado || "ACTIVO").toUpperCase();
+    if (normalizedState !== "ACTIVO") {
       return res.status(403).json({ message: "Tu cuenta está inactiva. Contacta al administrador." });
     }
 
-    req.user = { ...userData, estado: userStatus.estado };
+    req.user = { ...userData, estado: userStatus.estado || "ACTIVO" };
     req.userId = userData.id_usuario;
     return next();
   } catch {
@@ -48,13 +49,14 @@ const optionalAuthenticateToken = async (req, _res, next) => {
   try {
     const userData = jwt.verify(token, JWT_SECRET);
     const userStatus = await authRepository.getUserStatusById(userData?.id_usuario);
-    if (!userStatus || String(userStatus.estado || "").toUpperCase() !== "ACTIVO") {
+    const normalizedState = String(userStatus?.estado || "ACTIVO").toUpperCase();
+    if (!userStatus || normalizedState !== "ACTIVO") {
       req.user = null;
       req.userId = null;
       return next();
     }
 
-    req.user = { ...userData, estado: userStatus.estado };
+    req.user = { ...userData, estado: userStatus.estado || "ACTIVO" };
     req.userId = userData.id_usuario;
     return next();
   } catch {

@@ -14,13 +14,31 @@ INSERT INTO usuario (nombre, apellido, email, contrasena, telefono, direccion_pr
 ('Laura', 'Díaz', 'laura@email.com', '$2a$10$B5o9vCtVsQC9xGNbeQjfleBj.ZpUNIK/3uO8KJwCUVsOTiedHdu0K', '987654327', 'Jr. Huancavelica 654', 'EMPLEADO', true),
 ('Sofía', 'Hernández', 'sofia@email.com', '$2a$10$B5o9vCtVsQC9xGNbeQjfleBj.ZpUNIK/3uO8KJwCUVsOTiedHdu0K', '987654328', 'Av. Salaverry 321', 'CLIENTE', true),
 ('Miguel', 'Torres', 'miguel@email.com', '$2a$10$B5o9vCtVsQC9xGNbeQjfleBj.ZpUNIK/3uO8KJwCUVsOTiedHdu0K', '987654329', 'Jr. Junín 159', 'CLIENTE', true),
-('Elena', 'Ruiz', 'elena@email.com', '$2a$10$B5o9vCtVsQC9xGNbeQjfleBj.ZpUNIK/3uO8KJwCUVsOTiedHdu0K', '987654330', 'Av. Brasil 753', 'CLIENTE', true);
+('Elena', 'Ruiz', 'elena@email.com', '$2a$10$B5o9vCtVsQC9xGNbeQjfleBj.ZpUNIK/3uO8KJwCUVsOTiedHdu0K', '987654330', 'Av. Brasil 753', 'CLIENTE', true)
+ON CONFLICT (email) DO UPDATE
+SET
+	nombre = EXCLUDED.nombre,
+	apellido = EXCLUDED.apellido,
+	contrasena = EXCLUDED.contrasena,
+	telefono = EXCLUDED.telefono,
+	direccion_principal = EXCLUDED.direccion_principal,
+	rol = EXCLUDED.rol,
+	email_verificado = EXCLUDED.email_verificado;
 
 INSERT INTO usuario (nombre, apellido, email, contrasena, telefono, direccion_principal, rol, email_verificado) VALUES
 ('Jorge', 'Vargas', 'repartidor2@email.com', '$2a$10$tKJ56pQTAAvrb8Uerajsyuq5h30XvGp6NBaqwRGwZpF/ZkPsjUMPS', '987111112', 'Av. Delivery 101', 'REPARTIDOR', true),
 ('Daniel', 'Quispe', 'repartidor3@email.com', '$2a$10$tKJ56pQTAAvrb8Uerajsyuq5h30XvGp6NBaqwRGwZpF/ZkPsjUMPS', '987111113', 'Av. Delivery 102', 'REPARTIDOR', true),
 ('Fernando', 'Salas', 'repartidor4@email.com', '$2a$10$tKJ56pQTAAvrb8Uerajsyuq5h30XvGp6NBaqwRGwZpF/ZkPsjUMPS', '987111114', 'Av. Delivery 103', 'REPARTIDOR', true),
-('Ricardo', 'Mendoza', 'repartidor5@email.com', '$2a$10$tKJ56pQTAAvrb8Uerajsyuq5h30XvGp6NBaqwRGwZpF/ZkPsjUMPS', '987111115', 'Av. Delivery 104', 'REPARTIDOR', true);
+('Ricardo', 'Mendoza', 'repartidor5@email.com', '$2a$10$tKJ56pQTAAvrb8Uerajsyuq5h30XvGp6NBaqwRGwZpF/ZkPsjUMPS', '987111115', 'Av. Delivery 104', 'REPARTIDOR', true)
+ON CONFLICT (email) DO UPDATE
+SET
+	nombre = EXCLUDED.nombre,
+	apellido = EXCLUDED.apellido,
+	contrasena = EXCLUDED.contrasena,
+	telefono = EXCLUDED.telefono,
+	direccion_principal = EXCLUDED.direccion_principal,
+	rol = EXCLUDED.rol,
+	email_verificado = EXCLUDED.email_verificado;
 
 -- Vincular usuario repartidor demo con un motorizado
 UPDATE motorizado

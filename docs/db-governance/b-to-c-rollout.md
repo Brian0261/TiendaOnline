@@ -15,6 +15,22 @@ Aplicar racionalización progresiva del modelo de datos con enfoque seguro:
 
 Regla operativa: ningún cambio de esquema queda cerrado si `init` y `migrations` divergen en tablas/columnas/constraints requeridas por backend runtime.
 
+### Regla operativa de datos (credenciales/estado)
+
+- **Producción**: no ejecutar seeds demo (`05_seed_demo.sql` ni `init-staging.sql`).
+- **Producción**: usar únicamente migraciones + DML controlado para normalización de cuentas.
+- **Staging/Local**: seeds demo permitidos para QA funcional.
+- **Post-deploy** (producción): validar cuentas canónicas por rol y estado operativo antes de cerrar release.
+
+### Cuentas canónicas de QA
+
+- **Administrador**: `admin@email.com` / `123`
+- **Repartidor**: `repartidor@email.com` / `123`
+- **Empleado**: `emp@email.com` / `123`
+- **Cliente**: `cli@email.com` / `123` (o usuarios alternos seed con `Password1`)
+
+Nota: `empleado@email.com` y `cliente@email.com` no forman parte de las semillas canónicas actuales; evitar usarlos como referencia de smoke/regresión.
+
 ## Estado actual de implementación
 
 ### Fase B1 — Observabilidad y consistencia operativa

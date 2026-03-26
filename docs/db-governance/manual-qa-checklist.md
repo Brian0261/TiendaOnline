@@ -1,5 +1,17 @@
 # Checklist QA manual (post B→C)
 
+## 0) Cuentas canónicas para pruebas por rol
+
+- [ ] `ADMINISTRADOR`: `admin@email.com` / `123`
+- [ ] `EMPLEADO`: `emp@email.com` / `123`
+- [ ] `REPARTIDOR`: `repartidor@email.com` / `123`
+- [ ] `CLIENTE`: `cli@email.com` / `123` (alternos seed válidos con `Password1`)
+
+Notas:
+
+- [ ] No usar `cliente@email.com` ni `empleado@email.com` como cuentas base de smoke (no canónicas).
+- [ ] En producción, validar primero que las cuentas canónicas existan y estén operativas antes de ejecutar el resto del checklist.
+
 ## 1) Autenticación y roles
 
 - [ ] Login `CLIENTE` activo funciona.
@@ -61,3 +73,9 @@
 - [ ] `202603150004_refactor_historial_comprobante.sql` aplicada sin error.
 - [ ] `202603150005_refactor_motorizado_integrity.sql` aplicada sin error.
 - [ ] `202603150006_fix_text_mojibake.sql` aplicada sin error.
+
+## 7) Prevención de reincidencia (producción)
+
+- [ ] No se ejecutaron seeds demo (`05_seed_demo.sql` / `init-staging.sql`) en producción.
+- [ ] La normalización de cuentas se aplicó solo vía DML controlado.
+- [ ] Smoke de post-deploy por rol ejecutado y evidenciado con respuestas JSON (`/api/auth/me`, dashboard admin, envíos repartidor).
