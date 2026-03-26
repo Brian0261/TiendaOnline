@@ -1,5 +1,25 @@
 const { poolPromise } = require("../config/db.config");
 
+let hasEstadoColumnCache = null;
+
+async function hasUsuarioEstadoColumn(pool) {
+  if (hasEstadoColumnCache !== null) return hasEstadoColumnCache;
+  const conn = pool || (await poolPromise);
+  const result = await conn.query(
+    `
+      SELECT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'usuario'
+          AND column_name = 'estado'
+      ) AS has_estado
+    `,
+  );
+  hasEstadoColumnCache = Boolean(result.rows?.[0]?.has_estado);
+  return hasEstadoColumnCache;
+}
+
 async function getDeliverySchemaHealth(pool) {
   const requiredColumns = [
     { table: "motorizado", column: "id_usuario" },
@@ -63,9 +83,11 @@ async function getMotorizadoByUserId(pool, userId) {
 }
 
 async function getRiderUserById(pool, userId) {
+  const hasEstado = await hasUsuarioEstadoColumn(pool);
+  const estadoSelect = hasEstado ? "estado" : "NULL::text AS estado";
   const { rows } = await pool.query(
     `
-      SELECT id_usuario, nombre, apellido, telefono, rol, estado
+      SELECT id_usuario, nombre, apellido, telefono, rol, ${estadoSelect}
       FROM usuario
       WHERE id_usuario = $1
       LIMIT 1
