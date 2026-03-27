@@ -8,6 +8,7 @@ import { downloadApiFile } from "../../api/download";
 import { formatDateTime } from "../../shared/datetime";
 
 type Section = "pending" | "status-log" | "inventory" | "dispatch" | "delivery";
+type InventoryTab = "stock" | "inbound-form" | "inbound-history";
 
 type EmployeeKpis = {
   pendientes: number;
@@ -304,6 +305,11 @@ export function EmployeeDashboardPage() {
 
   const [inventoryDraft, setInventoryDraft] = useState<{ search: string }>({ search: "" });
   const [inventoryApplied, setInventoryApplied] = useState<{ search: string } | null>(null);
+  const [inventoryActiveTab, setInventoryActiveTab] = useState<InventoryTab>(() => {
+    if (typeof window === "undefined") return "stock";
+    const saved = window.sessionStorage.getItem("employee.inventory.activeTab");
+    return saved === "stock" || saved === "inbound-form" || saved === "inbound-history" ? saved : "stock";
+  });
   const [inventorySearchDebounced, setInventorySearchDebounced] = useState("");
   const [inventoryInboundPage, setInventoryInboundPage] = useState(1);
   const [inventoryInboundDraft, setInventoryInboundDraft] = useState<{ id_inventario: string; cantidad: string; motivo: string }>({
@@ -390,6 +396,11 @@ export function EmployeeDashboardPage() {
   }, [inventoryDraft.search]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.sessionStorage.setItem("employee.inventory.activeTab", inventoryActiveTab);
+  }, [inventoryActiveTab]);
+
+  useEffect(() => {
     const handle = window.setTimeout(() => {
       setDispatchInventorySearchDebounced(dispatchInventorySearchTerm.trim());
     }, 300);
@@ -472,7 +483,7 @@ export function EmployeeDashboardPage() {
       const qs = q.toString();
       return api.get<InventoryRow[]>(`/inventory${qs ? `?${qs}` : ""}`);
     },
-    enabled: section === "inventory",
+    enabled: section === "inventory" && (inventoryActiveTab === "stock" || inventoryActiveTab === "inbound-form"),
   });
 
   const {
@@ -489,7 +500,7 @@ export function EmployeeDashboardPage() {
       if (f.search.trim()) q.set("search", f.search.trim());
       return api.get<InboundResponse>(`/inventory/inbound?${q.toString()}`);
     },
-    enabled: section === "inventory" && !!inventoryApplied,
+    enabled: section === "inventory" && inventoryActiveTab === "inbound-history" && !!inventoryApplied,
   });
 
   const {
@@ -1327,385 +1338,443 @@ export function EmployeeDashboardPage() {
 
               <div className="small text-muted mb-3">La búsqueda por producto se aplica automáticamente después de una pausa breve al escribir.</div>
 
-              {inventoryError ? <div className="alert alert-danger">{getErrorMessage(inventoryError)}</div> : null}
-              {inboundError ? <div className="alert alert-danger">{getErrorMessage(inboundError)}</div> : null}
-              {inventoryLoading ? <div className="text-muted">Cargando...</div> : null}
-
-              <div className="card border mb-4">
-                <div className="card-body">
-                  <h6 className="mb-2">Registrar entrada</h6>
-                  <div className="small text-muted mb-3">
-                    Flujo operativo principal: busca el producto, selecciónalo y registra la cantidad. Despachos se mantiene exclusivamente para
-                    salidas.
-                  </div>
-
-                  {inventoryInboundSuccess ? <div className="alert alert-success py-2">{inventoryInboundSuccess}</div> : null}
-                  {createInboundInventory.isError ? (
-                    <div className="alert alert-danger py-2">{getErrorMessage(createInboundInventory.error)}</div>
-                  ) : null}
-                  {inventoryInboundFormError ? <div className="alert alert-warning py-2">{inventoryInboundFormError}</div> : null}
-
-                  <form
-                    className="row g-2 align-items-end"
-                    onSubmit={e => {
-                      e.preventDefault();
-                      setInventoryInboundFormError(null);
-                      setInventoryInboundSuccess(null);
-
-                      const idInventario = Number(inventoryInboundDraft.id_inventario);
-                      const cantidad = Number(inventoryInboundDraft.cantidad);
-                      const motivo = inventoryInboundDraft.motivo.trim();
-
-                      if (!Number.isInteger(idInventario) || idInventario <= 0) {
-                        setInventoryInboundFormError("Selecciona un producto válido desde el buscador.");
-                        return;
-                      }
-
-                      if (!Number.isInteger(cantidad) || cantidad <= 0) {
-                        setInventoryInboundFormError("Ingresa una cantidad válida mayor que 0.");
-                        return;
-                      }
-
-                      if (!motivo) {
-                        setInventoryInboundFormError("Ingresa el motivo de la entrada.");
-                        return;
-                      }
-
-                      createInboundInventory.mutate({
-                        id_inventario: idInventario,
-                        cantidad,
-                        motivo,
-                      });
-                    }}
+              <ul className="nav nav-tabs mb-3" role="tablist" aria-label="Vistas de inventario empleado">
+                <li className="nav-item" role="presentation">
+                  <button
+                    type="button"
+                    role="tab"
+                    className={`nav-link ${inventoryActiveTab === "stock" ? "active" : ""}`}
+                    aria-selected={inventoryActiveTab === "stock"}
+                    onClick={() => setInventoryActiveTab("stock")}
                   >
-                    <div className="col-12 col-lg-6">
-                      <label className="form-label" htmlFor="emp-inbound-search">
-                        Buscar producto para entrada
-                      </label>
-                      <div className="position-relative" ref={inventoryInboundSearchWrapRef}>
-                        <input
-                          id="emp-inbound-search"
-                          type="search"
-                          className="form-control form-control-sm"
-                          placeholder="Nombre de producto o ID inventario"
-                          value={inventoryInboundSearchDraft}
-                          role="combobox"
-                          aria-autocomplete="list"
-                          aria-expanded={inventoryInboundDropdownVisible}
-                          aria-controls={inventoryInboundListboxId}
-                          aria-activedescendant={
-                            inventoryInboundDropdownVisible &&
-                            inventoryInboundSearchActiveIndex >= 0 &&
-                            inventoryInboundSearchActiveIndex < inventoryInboundSearchCandidates.length
-                              ? `emp-inbound-option-${inventoryInboundSearchCandidates[inventoryInboundSearchActiveIndex].id_inventario}`
-                              : undefined
-                          }
-                          onFocus={() => {
-                            if (inventoryInboundSearchDraft.trim().length > 0) {
-                              setInventoryInboundSearchOpen(true);
-                            }
-                          }}
-                          onBlur={() => {
-                            window.setTimeout(() => {
-                              setInventoryInboundSearchOpen(false);
-                              setInventoryInboundSearchActiveIndex(-1);
-                            }, 120);
-                          }}
-                          onKeyDown={e => {
-                            if (e.key === "Escape") {
-                              setInventoryInboundSearchOpen(false);
-                              setInventoryInboundSearchActiveIndex(-1);
-                              return;
-                            }
+                    Stock actual
+                  </button>
+                </li>
+                <li className="nav-item" role="presentation">
+                  <button
+                    type="button"
+                    role="tab"
+                    className={`nav-link ${inventoryActiveTab === "inbound-form" ? "active" : ""}`}
+                    aria-selected={inventoryActiveTab === "inbound-form"}
+                    onClick={() => setInventoryActiveTab("inbound-form")}
+                  >
+                    Registrar entrada
+                  </button>
+                </li>
+                <li className="nav-item" role="presentation">
+                  <button
+                    type="button"
+                    role="tab"
+                    className={`nav-link ${inventoryActiveTab === "inbound-history" ? "active" : ""}`}
+                    aria-selected={inventoryActiveTab === "inbound-history"}
+                    onClick={() => setInventoryActiveTab("inbound-history")}
+                  >
+                    Historial de entradas
+                  </button>
+                </li>
+              </ul>
 
-                            if (e.key === "ArrowDown") {
-                              if (!inventoryInboundSearchDraft.trim()) return;
-                              e.preventDefault();
-                              setInventoryInboundSearchOpen(true);
-                              if (inventoryInboundSearchCandidates.length > 0) {
-                                setInventoryInboundSearchActiveIndex(prev => {
-                                  const next = prev + 1;
-                                  return next >= inventoryInboundSearchCandidates.length ? 0 : next;
-                                });
-                              }
-                              return;
-                            }
-
-                            if (e.key === "ArrowUp") {
-                              if (!inventoryInboundSearchDraft.trim() || inventoryInboundSearchCandidates.length === 0) return;
-                              e.preventDefault();
-                              setInventoryInboundSearchOpen(true);
-                              setInventoryInboundSearchActiveIndex(prev => {
-                                if (prev < 0) return inventoryInboundSearchCandidates.length - 1;
-                                const next = prev - 1;
-                                return next < 0 ? inventoryInboundSearchCandidates.length - 1 : next;
-                              });
-                              return;
-                            }
-
-                            if (e.key === "Enter") {
-                              if (!inventoryInboundSearchDraft.trim()) return;
-                              e.preventDefault();
-                              const targetIndex =
-                                inventoryInboundSearchActiveIndex >= 0
-                                  ? inventoryInboundSearchActiveIndex
-                                  : inventoryInboundSearchCandidates.length > 0
-                                    ? 0
-                                    : -1;
-                              if (targetIndex < 0) return;
-                              const row = inventoryInboundSearchCandidates[targetIndex];
-                              if (!row) return;
-                              setInventoryInboundDraft(s => ({ ...s, id_inventario: String(row.id_inventario) }));
-                              setInventoryInboundSearchDraft(getInventorySelectionLabel(row));
-                              setInventoryInboundFormError(null);
-                              setInventoryInboundSearchOpen(false);
-                              setInventoryInboundSearchActiveIndex(-1);
-                              return;
-                            }
-                          }}
-                          onChange={e => {
-                            const nextValue = e.target.value;
-                            setInventoryInboundSearchDraft(nextValue);
-                            setInventoryInboundSearchOpen(nextValue.trim().length > 0);
-                            setInventoryInboundSearchActiveIndex(-1);
-                            setInventoryInboundFormError(null);
-                            setInventoryInboundDraft(s => ({ ...s, id_inventario: "" }));
-                          }}
-                        />
-
-                        {inventoryInboundDropdownVisible ? (
-                          <div
-                            id={inventoryInboundListboxId}
-                            className="position-absolute start-0 top-100 mt-1 bg-white border rounded shadow-sm"
-                            style={{ width: "100%", zIndex: 1070, maxHeight: 240, overflowY: "auto" }}
-                            role="listbox"
-                            aria-label="Resultados de búsqueda para entrada"
-                          >
-                            {inventoryError ? <div className="px-2 py-2 small text-danger">No se pudo cargar el stock para sugerencias.</div> : null}
-                            {!inventoryError && inventoryInboundSearchCandidates.length === 0 ? (
-                              <div className="px-2 py-2 small text-muted">Sin coincidencias en el stock cargado.</div>
-                            ) : null}
-
-                            {!inventoryError
-                              ? inventoryInboundSearchCandidates.map((r, index) => {
-                                  const isSelected = Number(inventoryInboundDraft.id_inventario) === Number(r.id_inventario);
-                                  const isActive = inventoryInboundSearchActiveIndex === index;
-                                  return (
-                                    <button
-                                      id={`emp-inbound-option-${r.id_inventario}`}
-                                      key={`emp-inbound-sel-${r.id_inventario}`}
-                                      type="button"
-                                      role="option"
-                                      aria-selected={isActive}
-                                      className={`list-group-item list-group-item-action d-flex justify-content-between align-items-center border-0 border-bottom rounded-0 ${isSelected || isActive ? "active" : ""}`}
-                                      onMouseDown={event => event.preventDefault()}
-                                      onMouseEnter={() => setInventoryInboundSearchActiveIndex(index)}
-                                      onClick={() => {
-                                        setInventoryInboundDraft(s => ({ ...s, id_inventario: String(r.id_inventario) }));
-                                        setInventoryInboundSearchDraft(getInventorySelectionLabel(r));
-                                        setInventoryInboundFormError(null);
-                                        setInventoryInboundSearchOpen(false);
-                                        setInventoryInboundSearchActiveIndex(-1);
-                                      }}
-                                    >
-                                      <span className="small">{getInventorySelectionLabel(r)}</span>
-                                      <span className={`badge ${isSelected || isActive ? "text-bg-light text-dark" : "text-bg-secondary"}`}>
-                                        Stock {r.stock ?? 0}
-                                      </span>
-                                    </button>
-                                  );
-                                })
-                              : null}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    <div className="col-12 col-md-3 col-lg-2">
-                      <label className="form-label" htmlFor="emp-inbound-quantity">
-                        Cantidad
-                      </label>
-                      <input
-                        id="emp-inbound-quantity"
-                        type="number"
-                        min="1"
-                        className="form-control form-control-sm"
-                        placeholder="Cantidad"
-                        value={inventoryInboundDraft.cantidad}
-                        onChange={e => setInventoryInboundDraft(s => ({ ...s, cantidad: e.target.value }))}
-                      />
-                    </div>
-
-                    <div className="col-12 col-md-9 col-lg-4">
-                      <label className="form-label" htmlFor="emp-inbound-reason">
-                        Motivo
-                      </label>
-                      <input
-                        id="emp-inbound-reason"
-                        type="text"
-                        className="form-control form-control-sm"
-                        placeholder="Ej: Compra mayorista, ajuste positivo, devolución cliente"
-                        value={inventoryInboundDraft.motivo}
-                        onChange={e => setInventoryInboundDraft(s => ({ ...s, motivo: e.target.value }))}
-                      />
-                    </div>
-
-                    <div className="col-12 d-flex flex-wrap gap-2 mt-2">
-                      <button type="submit" className="btn btn-sm btn-primary" disabled={createInboundInventory.isPending}>
-                        {createInboundInventory.isPending ? "Registrando..." : "Registrar entrada"}
-                      </button>
-                      {inventoryInboundSelectedId ? (
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-secondary"
-                          onClick={() => {
-                            setInventoryInboundDraft(s => ({ ...s, id_inventario: "" }));
-                            setInventoryInboundSearchDraft("");
-                            setInventoryInboundSearchOpen(false);
-                            setInventoryInboundSearchActiveIndex(-1);
-                          }}
-                        >
-                          Limpiar selección
-                        </button>
-                      ) : null}
-                    </div>
-                  </form>
-
-                  {inventoryInboundSelectedRow ? (
-                    <div className="alert alert-light border mt-3 mb-0">
-                      <div className="small text-muted">Producto seleccionado</div>
-                      <div className="fw-semibold">{inventoryInboundSelectedRow.nombre_producto}</div>
-                      <div className="small text-muted">
-                        ID inventario: {inventoryInboundSelectedRow.id_inventario} · Stock actual: {inventoryInboundSelectedRow.stock ?? 0}
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-
-              <h6 className="mb-2">Stock actual</h6>
-
-              {!inventoryLoading && inventoryRows && inventoryRows.length === 0 ? (
-                <div className="alert alert-info mb-0">Sin resultados para los filtros actuales.</div>
+              {inventoryActiveTab === "stock" || inventoryActiveTab === "inbound-form" ? (
+                inventoryError ? (
+                  <div className="alert alert-danger">{getErrorMessage(inventoryError)}</div>
+                ) : null
+              ) : null}
+              {inventoryActiveTab === "stock" || inventoryActiveTab === "inbound-form" ? (
+                inventoryLoading ? (
+                  <div className="text-muted">Cargando...</div>
+                ) : null
+              ) : null}
+              {inventoryActiveTab === "inbound-history" ? (
+                inboundError ? (
+                  <div className="alert alert-danger">{getErrorMessage(inboundError)}</div>
+                ) : null
               ) : null}
 
-              {!inventoryLoading && inventoryRows && inventoryRows.length > 0 ? (
-                <div className="table-responsive">
-                  <table className="table table-hover align-middle mb-0">
-                    <thead>
-                      <tr>
-                        <th style={{ width: 120 }}>ID inventario</th>
-                        <th>Producto</th>
-                        <th className="text-end">Stock</th>
-                        <th className="text-end" style={{ width: 160 }}>
-                          Acción
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {inventoryRows.map(r => (
-                        <tr key={r.id_inventario}>
-                          <td className="fw-semibold">#{r.id_inventario}</td>
-                          <td>{r.nombre_producto}</td>
-                          <td className="text-end fw-semibold">
-                            <span className={`badge ${Number(r.stock ?? 0) <= 20 ? "text-bg-warning" : "text-bg-success"}`}>{r.stock ?? 0}</span>
-                          </td>
-                          <td className="text-end">
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-primary"
-                              onClick={() => {
-                                setInventoryInboundDraft(s => ({ ...s, id_inventario: String(r.id_inventario) }));
-                                setInventoryInboundSearchDraft(getInventorySelectionLabel(r));
+              {inventoryActiveTab === "inbound-form" ? (
+                <div className="card border mb-4">
+                  <div className="card-body">
+                    <h6 className="mb-2">Registrar entrada</h6>
+                    <div className="small text-muted mb-3">
+                      Flujo operativo principal: busca el producto, selecciónalo y registra la cantidad. Despachos se mantiene exclusivamente para
+                      salidas.
+                    </div>
+
+                    {inventoryInboundSuccess ? <div className="alert alert-success py-2">{inventoryInboundSuccess}</div> : null}
+                    {createInboundInventory.isError ? (
+                      <div className="alert alert-danger py-2">{getErrorMessage(createInboundInventory.error)}</div>
+                    ) : null}
+                    {inventoryInboundFormError ? <div className="alert alert-warning py-2">{inventoryInboundFormError}</div> : null}
+
+                    <form
+                      className="row g-2 align-items-end"
+                      onSubmit={e => {
+                        e.preventDefault();
+                        setInventoryInboundFormError(null);
+                        setInventoryInboundSuccess(null);
+
+                        const idInventario = Number(inventoryInboundDraft.id_inventario);
+                        const cantidad = Number(inventoryInboundDraft.cantidad);
+                        const motivo = inventoryInboundDraft.motivo.trim();
+
+                        if (!Number.isInteger(idInventario) || idInventario <= 0) {
+                          setInventoryInboundFormError("Selecciona un producto válido desde el buscador.");
+                          return;
+                        }
+
+                        if (!Number.isInteger(cantidad) || cantidad <= 0) {
+                          setInventoryInboundFormError("Ingresa una cantidad válida mayor que 0.");
+                          return;
+                        }
+
+                        if (!motivo) {
+                          setInventoryInboundFormError("Ingresa el motivo de la entrada.");
+                          return;
+                        }
+
+                        createInboundInventory.mutate({
+                          id_inventario: idInventario,
+                          cantidad,
+                          motivo,
+                        });
+                      }}
+                    >
+                      <div className="col-12 col-lg-6">
+                        <label className="form-label" htmlFor="emp-inbound-search">
+                          Buscar producto para entrada
+                        </label>
+                        <div className="position-relative" ref={inventoryInboundSearchWrapRef}>
+                          <input
+                            id="emp-inbound-search"
+                            type="search"
+                            className="form-control form-control-sm"
+                            placeholder="Nombre de producto o ID inventario"
+                            value={inventoryInboundSearchDraft}
+                            role="combobox"
+                            aria-autocomplete="list"
+                            aria-expanded={inventoryInboundDropdownVisible}
+                            aria-controls={inventoryInboundListboxId}
+                            aria-activedescendant={
+                              inventoryInboundDropdownVisible &&
+                              inventoryInboundSearchActiveIndex >= 0 &&
+                              inventoryInboundSearchActiveIndex < inventoryInboundSearchCandidates.length
+                                ? `emp-inbound-option-${inventoryInboundSearchCandidates[inventoryInboundSearchActiveIndex].id_inventario}`
+                                : undefined
+                            }
+                            onFocus={() => {
+                              if (inventoryInboundSearchDraft.trim().length > 0) {
+                                setInventoryInboundSearchOpen(true);
+                              }
+                            }}
+                            onBlur={() => {
+                              window.setTimeout(() => {
+                                setInventoryInboundSearchOpen(false);
+                                setInventoryInboundSearchActiveIndex(-1);
+                              }, 120);
+                            }}
+                            onKeyDown={e => {
+                              if (e.key === "Escape") {
+                                setInventoryInboundSearchOpen(false);
+                                setInventoryInboundSearchActiveIndex(-1);
+                                return;
+                              }
+
+                              if (e.key === "ArrowDown") {
+                                if (!inventoryInboundSearchDraft.trim()) return;
+                                e.preventDefault();
+                                setInventoryInboundSearchOpen(true);
+                                if (inventoryInboundSearchCandidates.length > 0) {
+                                  setInventoryInboundSearchActiveIndex(prev => {
+                                    const next = prev + 1;
+                                    return next >= inventoryInboundSearchCandidates.length ? 0 : next;
+                                  });
+                                }
+                                return;
+                              }
+
+                              if (e.key === "ArrowUp") {
+                                if (!inventoryInboundSearchDraft.trim() || inventoryInboundSearchCandidates.length === 0) return;
+                                e.preventDefault();
+                                setInventoryInboundSearchOpen(true);
+                                setInventoryInboundSearchActiveIndex(prev => {
+                                  if (prev < 0) return inventoryInboundSearchCandidates.length - 1;
+                                  const next = prev - 1;
+                                  return next < 0 ? inventoryInboundSearchCandidates.length - 1 : next;
+                                });
+                                return;
+                              }
+
+                              if (e.key === "Enter") {
+                                if (!inventoryInboundSearchDraft.trim()) return;
+                                e.preventDefault();
+                                const targetIndex =
+                                  inventoryInboundSearchActiveIndex >= 0
+                                    ? inventoryInboundSearchActiveIndex
+                                    : inventoryInboundSearchCandidates.length > 0
+                                      ? 0
+                                      : -1;
+                                if (targetIndex < 0) return;
+                                const row = inventoryInboundSearchCandidates[targetIndex];
+                                if (!row) return;
+                                setInventoryInboundDraft(s => ({ ...s, id_inventario: String(row.id_inventario) }));
+                                setInventoryInboundSearchDraft(getInventorySelectionLabel(row));
                                 setInventoryInboundFormError(null);
                                 setInventoryInboundSearchOpen(false);
                                 setInventoryInboundSearchActiveIndex(-1);
-                              }}
+                                return;
+                              }
+                            }}
+                            onChange={e => {
+                              const nextValue = e.target.value;
+                              setInventoryInboundSearchDraft(nextValue);
+                              setInventoryInboundSearchOpen(nextValue.trim().length > 0);
+                              setInventoryInboundSearchActiveIndex(-1);
+                              setInventoryInboundFormError(null);
+                              setInventoryInboundDraft(s => ({ ...s, id_inventario: "" }));
+                            }}
+                          />
+
+                          {inventoryInboundDropdownVisible ? (
+                            <div
+                              id={inventoryInboundListboxId}
+                              className="position-absolute start-0 top-100 mt-1 bg-white border rounded shadow-sm"
+                              style={{ width: "100%", zIndex: 1070, maxHeight: 240, overflowY: "auto" }}
+                              role="listbox"
+                              aria-label="Resultados de búsqueda para entrada"
                             >
-                              Usar en entrada
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : null}
+                              {inventoryError ? (
+                                <div className="px-2 py-2 small text-danger">No se pudo cargar el stock para sugerencias.</div>
+                              ) : null}
+                              {!inventoryError && inventoryInboundSearchCandidates.length === 0 ? (
+                                <div className="px-2 py-2 small text-muted">Sin coincidencias en el stock cargado.</div>
+                              ) : null}
 
-              <hr className="my-4" />
+                              {!inventoryError
+                                ? inventoryInboundSearchCandidates.map((r, index) => {
+                                    const isSelected = Number(inventoryInboundDraft.id_inventario) === Number(r.id_inventario);
+                                    const isActive = inventoryInboundSearchActiveIndex === index;
+                                    return (
+                                      <button
+                                        id={`emp-inbound-option-${r.id_inventario}`}
+                                        key={`emp-inbound-sel-${r.id_inventario}`}
+                                        type="button"
+                                        role="option"
+                                        aria-selected={isActive}
+                                        className={`list-group-item list-group-item-action d-flex justify-content-between align-items-center border-0 border-bottom rounded-0 ${isSelected || isActive ? "active" : ""}`}
+                                        onMouseDown={event => event.preventDefault()}
+                                        onMouseEnter={() => setInventoryInboundSearchActiveIndex(index)}
+                                        onClick={() => {
+                                          setInventoryInboundDraft(s => ({ ...s, id_inventario: String(r.id_inventario) }));
+                                          setInventoryInboundSearchDraft(getInventorySelectionLabel(r));
+                                          setInventoryInboundFormError(null);
+                                          setInventoryInboundSearchOpen(false);
+                                          setInventoryInboundSearchActiveIndex(-1);
+                                        }}
+                                      >
+                                        <span className="small">{getInventorySelectionLabel(r)}</span>
+                                        <span className={`badge ${isSelected || isActive ? "text-bg-light text-dark" : "text-bg-secondary"}`}>
+                                          Stock {r.stock ?? 0}
+                                        </span>
+                                      </button>
+                                    );
+                                  })
+                                : null}
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
 
-              <h6 className="mb-2">Historial de entradas</h6>
-              <div className="small text-muted mb-3">Trazabilidad de ingresos con responsable para los filtros aplicados.</div>
+                      <div className="col-12 col-md-3 col-lg-2">
+                        <label className="form-label" htmlFor="emp-inbound-quantity">
+                          Cantidad
+                        </label>
+                        <input
+                          id="emp-inbound-quantity"
+                          type="number"
+                          min="1"
+                          className="form-control form-control-sm"
+                          placeholder="Cantidad"
+                          value={inventoryInboundDraft.cantidad}
+                          onChange={e => setInventoryInboundDraft(s => ({ ...s, cantidad: e.target.value }))}
+                        />
+                      </div>
 
-              {!inventoryApplied ? <div className="alert alert-info">Aplica filtros para consultar el historial de entradas.</div> : null}
-              {inventoryApplied && inboundLoading ? <div className="text-muted">Cargando entradas...</div> : null}
+                      <div className="col-12 col-md-9 col-lg-4">
+                        <label className="form-label" htmlFor="emp-inbound-reason">
+                          Motivo
+                        </label>
+                        <input
+                          id="emp-inbound-reason"
+                          type="text"
+                          className="form-control form-control-sm"
+                          placeholder="Ej: Compra mayorista, ajuste positivo, devolución cliente"
+                          value={inventoryInboundDraft.motivo}
+                          onChange={e => setInventoryInboundDraft(s => ({ ...s, motivo: e.target.value }))}
+                        />
+                      </div>
 
-              {inventoryApplied && !inboundLoading && inboundRows && inboundRows.rows.length === 0 ? (
-                <div className="alert alert-info mb-0">Sin entradas para los filtros actuales.</div>
-              ) : null}
+                      <div className="col-12 d-flex flex-wrap gap-2 mt-2">
+                        <button type="submit" className="btn btn-sm btn-primary" disabled={createInboundInventory.isPending}>
+                          {createInboundInventory.isPending ? "Registrando..." : "Registrar entrada"}
+                        </button>
+                        {inventoryInboundSelectedId ? (
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-secondary"
+                            onClick={() => {
+                              setInventoryInboundDraft(s => ({ ...s, id_inventario: "" }));
+                              setInventoryInboundSearchDraft("");
+                              setInventoryInboundSearchOpen(false);
+                              setInventoryInboundSearchActiveIndex(-1);
+                            }}
+                          >
+                            Limpiar selección
+                          </button>
+                        ) : null}
+                      </div>
+                    </form>
 
-              {inventoryApplied && !inboundLoading && inboundRows && inboundRows.rows.length > 0 ? (
-                <div className="table-responsive">
-                  <table className="table table-hover align-middle mb-0">
-                    <thead>
-                      <tr>
-                        <th style={{ width: 150 }}>Fecha</th>
-                        <th>Producto</th>
-                        <th className="text-end" style={{ width: 100 }}>
-                          Cant.
-                        </th>
-                        <th>Motivo</th>
-                        <th>Responsable</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {inboundRows.rows.map(r => (
-                        <tr key={r.id_entrada_inventario}>
-                          <td className="text-nowrap">
-                            {(() => {
-                              const dt = formatDateTime(r.fecha_entrada_utc, "datetime");
-                              if (!dt) return <span className="text-muted">—</span>;
-                              return (
-                                <div title={dt.raw}>
-                                  <div className="fw-semibold">{dt.date}</div>
-                                  <div className="text-muted small">{dt.time}</div>
-                                </div>
-                              );
-                            })()}
-                          </td>
-                          <td>{r.producto}</td>
-                          <td className="text-end fw-semibold">{r.cantidad}</td>
-                          <td>{r.motivo || "—"}</td>
-                          <td>{r.responsable || "—"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-
-                  <div className="d-flex justify-content-between align-items-center mt-3 gap-2 flex-wrap">
-                    <div className="small text-muted">
-                      Página {inboundRows.page} de {inboundRows.totalPages} · {inboundRows.total} registros
-                    </div>
-                    <div className="btn-group btn-group-sm" role="group" aria-label="Paginación entradas empleado">
-                      <button
-                        type="button"
-                        className="btn btn-outline-secondary"
-                        disabled={inboundRows.page <= 1 || inboundLoading}
-                        onClick={() => setInventoryInboundPage(p => Math.max(p - 1, 1))}
-                      >
-                        Anterior
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-outline-secondary"
-                        disabled={inboundRows.page >= inboundRows.totalPages || inboundLoading}
-                        onClick={() => setInventoryInboundPage(p => Math.min(p + 1, inboundRows.totalPages))}
-                      >
-                        Siguiente
-                      </button>
-                    </div>
+                    {inventoryInboundSelectedRow ? (
+                      <div className="alert alert-light border mt-3 mb-0">
+                        <div className="small text-muted">Producto seleccionado</div>
+                        <div className="fw-semibold">{inventoryInboundSelectedRow.nombre_producto}</div>
+                        <div className="small text-muted">
+                          ID inventario: {inventoryInboundSelectedRow.id_inventario} · Stock actual: {inventoryInboundSelectedRow.stock ?? 0}
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
+              ) : null}
+
+              {inventoryActiveTab === "stock" ? (
+                <>
+                  <h6 className="mb-2">Stock actual</h6>
+
+                  {!inventoryLoading && inventoryRows && inventoryRows.length === 0 ? (
+                    <div className="alert alert-info mb-0">Sin resultados para los filtros actuales.</div>
+                  ) : null}
+
+                  {!inventoryLoading && inventoryRows && inventoryRows.length > 0 ? (
+                    <div className="table-responsive">
+                      <table className="table table-hover align-middle mb-0">
+                        <thead>
+                          <tr>
+                            <th style={{ width: 120 }}>ID inventario</th>
+                            <th>Producto</th>
+                            <th className="text-end">Stock</th>
+                            <th className="text-end" style={{ width: 160 }}>
+                              Acción
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {inventoryRows.map(r => (
+                            <tr key={r.id_inventario}>
+                              <td className="fw-semibold">#{r.id_inventario}</td>
+                              <td>{r.nombre_producto}</td>
+                              <td className="text-end fw-semibold">
+                                <span className={`badge ${Number(r.stock ?? 0) <= 20 ? "text-bg-warning" : "text-bg-success"}`}>{r.stock ?? 0}</span>
+                              </td>
+                              <td className="text-end">
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-primary"
+                                  onClick={() => {
+                                    setInventoryInboundDraft(s => ({ ...s, id_inventario: String(r.id_inventario) }));
+                                    setInventoryInboundSearchDraft(getInventorySelectionLabel(r));
+                                    setInventoryInboundFormError(null);
+                                    setInventoryInboundSearchOpen(false);
+                                    setInventoryInboundSearchActiveIndex(-1);
+                                  }}
+                                >
+                                  Usar en entrada
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
+
+              {inventoryActiveTab === "inbound-history" ? (
+                <>
+                  <h6 className="mb-2">Historial de entradas</h6>
+                  <div className="small text-muted mb-3">Trazabilidad de ingresos con responsable para los filtros aplicados.</div>
+
+                  {!inventoryApplied ? <div className="alert alert-info">Aplica filtros para consultar el historial de entradas.</div> : null}
+                  {inventoryApplied && inboundLoading ? <div className="text-muted">Cargando entradas...</div> : null}
+
+                  {inventoryApplied && !inboundLoading && inboundRows && inboundRows.rows.length === 0 ? (
+                    <div className="alert alert-info mb-0">Sin entradas para los filtros actuales.</div>
+                  ) : null}
+
+                  {inventoryApplied && !inboundLoading && inboundRows && inboundRows.rows.length > 0 ? (
+                    <div className="table-responsive">
+                      <table className="table table-hover align-middle mb-0">
+                        <thead>
+                          <tr>
+                            <th style={{ width: 150 }}>Fecha</th>
+                            <th>Producto</th>
+                            <th className="text-end" style={{ width: 100 }}>
+                              Cant.
+                            </th>
+                            <th>Motivo</th>
+                            <th>Responsable</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {inboundRows.rows.map(r => (
+                            <tr key={r.id_entrada_inventario}>
+                              <td className="text-nowrap">
+                                {(() => {
+                                  const dt = formatDateTime(r.fecha_entrada_utc, "datetime");
+                                  if (!dt) return <span className="text-muted">—</span>;
+                                  return (
+                                    <div title={dt.raw}>
+                                      <div className="fw-semibold">{dt.date}</div>
+                                      <div className="text-muted small">{dt.time}</div>
+                                    </div>
+                                  );
+                                })()}
+                              </td>
+                              <td>{r.producto}</td>
+                              <td className="text-end fw-semibold">{r.cantidad}</td>
+                              <td>{r.motivo || "—"}</td>
+                              <td>{r.responsable || "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+
+                      <div className="d-flex justify-content-between align-items-center mt-3 gap-2 flex-wrap">
+                        <div className="small text-muted">
+                          Página {inboundRows.page} de {inboundRows.totalPages} · {inboundRows.total} registros
+                        </div>
+                        <div className="btn-group btn-group-sm" role="group" aria-label="Paginación entradas empleado">
+                          <button
+                            type="button"
+                            className="btn btn-outline-secondary"
+                            disabled={inboundRows.page <= 1 || inboundLoading}
+                            onClick={() => setInventoryInboundPage(p => Math.max(p - 1, 1))}
+                          >
+                            Anterior
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-outline-secondary"
+                            disabled={inboundRows.page >= inboundRows.totalPages || inboundLoading}
+                            onClick={() => setInventoryInboundPage(p => Math.min(p + 1, inboundRows.totalPages))}
+                          >
+                            Siguiente
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </>
               ) : null}
             </div>
           </section>
