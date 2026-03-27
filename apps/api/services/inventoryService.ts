@@ -114,6 +114,7 @@ async function createInboundInventory({ userId, payload }) {
 
   const pool = await poolPromise;
   const tx = await pool.connect();
+  const normalizedUserId = Number.isInteger(Number(userId)) && Number(userId) > 0 ? Number(userId) : null;
 
   try {
     await tx.query("BEGIN");
@@ -127,31 +128,55 @@ async function createInboundInventory({ userId, payload }) {
 
     await inventoryRepository.incrementInventoryRowTx(tx, { idInventario, cantidad });
 
-    const inbound = await inventoryRepository.insertInboundInventoryTx(tx, {
-      cantidad,
-      motivo,
-      idInventario,
-      idUsuario: userId ?? null,
-    });
+    let resolvedResponsibleId = normalizedUserId;
+    let inbound;
 
-    if (userId) {
-      await tx.query(
-        `
-          INSERT INTO historial (descripcion, accion, id_pedido, id_usuario)
-          VALUES ($1, $2, $3, $4)
-        `,
-        [
-          `INVENTARIO_ENTRADA_REGISTRADA: +${cantidad} en inventario #${idInventario}. Motivo: ${motivo}`,
-          "INVENTARIO_ENTRADA_REGISTRADA",
-          null,
-          userId,
-        ],
-      );
+    try {
+      inbound = await inventoryRepository.insertInboundInventoryTx(tx, {
+        cantidad,
+        motivo,
+        idInventario,
+        idUsuario: resolvedResponsibleId,
+      });
+    } catch (err) {
+      const errorCode = String((err as any)?.code || "").toUpperCase();
+      if (errorCode === "23503" && resolvedResponsibleId) {
+        // Si el usuario del token no está disponible por inconsistencia temporal,
+        // no bloqueamos la operación de inventario y registramos la entrada sin responsable.
+        resolvedResponsibleId = null;
+        inbound = await inventoryRepository.insertInboundInventoryTx(tx, {
+          cantidad,
+          motivo,
+          idInventario,
+          idUsuario: null,
+        });
+      } else {
+        throw err;
+      }
     }
 
     const updated = await inventoryRepository.getInventoryRowByIdTx(tx, { idInventario });
 
     await tx.query("COMMIT");
+
+    if (resolvedResponsibleId) {
+      try {
+        await pool.query(
+          `
+            INSERT INTO historial (descripcion, accion, id_pedido, id_usuario)
+            VALUES ($1, $2, $3, $4)
+          `,
+          [
+            `INVENTARIO_ENTRADA_REGISTRADA: +${cantidad} en inventario #${idInventario}. Motivo: ${motivo}`,
+            "INVENTARIO_ENTRADA_REGISTRADA",
+            null,
+            resolvedResponsibleId,
+          ],
+        );
+      } catch (auditErr) {
+        console.warn("createInboundInventory audit warning:", (auditErr as any)?.message || auditErr);
+      }
+    }
 
     return {
       ok: true,
@@ -164,7 +189,7 @@ async function createInboundInventory({ userId, payload }) {
         almacen: String(updated?.nombre_almacen || inventoryRow.nombre_almacen || ""),
         cantidad,
         motivo,
-        responsable_id: userId ?? null,
+        responsable_id: resolvedResponsibleId,
       },
       stock: {
         anterior: Number(inventoryRow?.cantidad_disponible || 0),
