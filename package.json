@@ -22,6 +22,9 @@
     "db:lint": "npx supabase db lint",
     "db:push": "npx supabase db push",
     "db:pull": "npx supabase db pull",
-    "db:migration:new": "npx supabase migration new"
+    "db:migration:new": "npx supabase migration new",
+    "governance:db:parity": "cd apps/api && node scripts/check-db-parity.js",
+    "governance:env:check": "node scripts/check-env-parity.js",
+    "governance:smoke": "node scripts/smoke-business.js"
   }
 }

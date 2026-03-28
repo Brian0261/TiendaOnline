@@ -1,0 +1,11 @@
+{
+  "requiredInBoth": ["DATABASE_URL", "NODE_ENV", "TRUST_PROXY", "CORS_ORIGINS", "WEB_BASE_URL", "MP_ENV", "MP_USE_SANDBOX", "EMAIL_PROVIDER"],
+  "mustMatch": ["TRUST_PROXY", "MP_ENV", "MP_USE_SANDBOX"],
+  "expectedByEnvironment": {
+    "NODE_ENV": {
+      "production": "production",
+      "staging": "production"
+    }
+  },
+  "forbiddenInProduction": ["PG_HOST", "PG_PORT", "PG_DATABASE", "PG_USER", "PG_PASSWORD"]
+}

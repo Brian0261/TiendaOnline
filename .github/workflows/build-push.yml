@@ -1,4 +1,4 @@
-name: CI Monorepo (Railway + Cloudflare)
+name: CI/CD Governance (Atomic DB + App)
 
 on:
   workflow_dispatch:
@@ -7,17 +7,76 @@ on:
     paths:
       - "apps/api/**"
       - "apps/web/**"
+      - "supabase/migrations/**"
+      - "scripts/**"
       - "package.json"
       - ".github/workflows/build-push.yml"
+      - ".github/workflows/db-migrations.yml"
+      - ".github/governance/**"
   pull_request:
     branches: ["main", "staging"]
     paths:
       - "apps/api/**"
       - "apps/web/**"
+      - "supabase/migrations/**"
+      - "scripts/**"
       - "package.json"
       - ".github/workflows/build-push.yml"
+      - ".github/workflows/db-migrations.yml"
+      - ".github/governance/**"
 
 jobs:
+  env-governance:
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_WORKSPACE_ID: ${{ secrets.RAILWAY_WORKSPACE_ID }}
+      RAILWAY_PROD_PROJECT_ID: ${{ secrets.RAILWAY_PROD_PROJECT_ID }}
+      RAILWAY_PROD_SERVICE_ID: ${{ secrets.RAILWAY_PROD_SERVICE_ID }}
+      RAILWAY_STAGING_PROJECT_ID: ${{ secrets.RAILWAY_STAGING_PROJECT_ID }}
+      RAILWAY_STAGING_SERVICE_ID: ${{ secrets.RAILWAY_STAGING_SERVICE_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Export production variables
+        shell: bash
+        run: |
+          railway link --workspace "$RAILWAY_WORKSPACE_ID" --project "$RAILWAY_PROD_PROJECT_ID" --environment production --service "$RAILWAY_PROD_SERVICE_ID"
+          railway variable list --json > .tmp_prod_vars.json
+
+      - name: Export staging variables
+        shell: bash
+        run: |
+          railway link --workspace "$RAILWAY_WORKSPACE_ID" --project "$RAILWAY_STAGING_PROJECT_ID" --environment production --service "$RAILWAY_STAGING_SERVICE_ID"
+          railway variable list --json > .tmp_staging_vars.json
+
+      - name: Validate critical environment parity
+        run: |
+          node scripts/check-env-parity.js \
+            --contract .github/governance/env-contract.json \
+            --prod .tmp_prod_vars.json \
+            --staging .tmp_staging_vars.json
+
+  db-governance:
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging')
+    uses: ./.github/workflows/db-migrations.yml
+    needs: [env-governance]
+    with:
+      target_environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+    secrets: inherit
+
   build-api:
     runs-on: ubuntu-latest
     permissions:
@@ -74,15 +133,22 @@ jobs:
         working-directory: apps/web
         run: npm run build
 
-  smoke-production:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [build-api, build-web]
+  smoke-business:
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging')
+    needs: [db-governance, build-api, build-web]
     runs-on: ubuntu-latest
+    env:
+      API_BASE_URL: ${{ github.ref == 'refs/heads/main' && 'https://api.minimarketexpress.shop' || 'https://api-staging.minimarketexpress.shop' }}
+      SMOKE_STAFF_EMAIL: ${{ secrets.SMOKE_STAFF_EMAIL }}
+      SMOKE_STAFF_PASSWORD: ${{ secrets.SMOKE_STAFF_PASSWORD }}
     steps:
-      - name: Smoke test sitio público
-        run: |
-          curl -fsS "https://minimarketexpress.shop" > /dev/null
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Smoke test API Railway
-        run: |
-          curl -fsS "https://tiendaonline-production-5b3b.up.railway.app/health" > /dev/null
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Business smoke suite (inbound + riders + kpis)
+        run: node scripts/smoke-business.js
