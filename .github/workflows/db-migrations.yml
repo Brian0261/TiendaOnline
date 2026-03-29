@@ -42,7 +42,7 @@ jobs:
             exit 1
           fi
 
-          regex='^supabase/migrations/[0-9]{12}_[a-z0-9_]+\.sql$'
+          regex='^supabase/migrations/[0-9]{12}([0-9]{2})?_[a-z0-9_]+\.sql$'
           for f in "${files[@]}"; do
             if [[ ! "$f" =~ $regex ]]; then
               echo "Invalid migration filename: $f"
