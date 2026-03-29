@@ -110,7 +110,7 @@ jobs:
         run: supabase link --project-ref "${{ steps.target.outputs.project_ref }}"
 
       - name: Apply migrations
-        run: supabase db push --linked --password "${{ steps.target.outputs.db_password }}"
+        run: supabase db push --linked --include-all --password "${{ steps.target.outputs.db_password }}"
 
       - name: Run DB parity gatekeeper
         env:
