@@ -95,7 +95,15 @@ jobs:
             exit 1
           fi
           echo "::notice::RAILWAY_TOKEN normalized length=${#RAILWAY_TOKEN_CLEAN}"
-          railway whoami --json >/dev/null
+
+          if ! railway whoami --json >/dev/null 2>&1; then
+            echo "::warning::RAILWAY_TOKEN rejected as API token; retrying with Railway session config"
+            RAILWAY_ACCESS_TOKEN="$RAILWAY_TOKEN_CLEAN" node -e "const fs = require('fs'); const os = require('os'); const path = require('path'); const dir = path.join(os.homedir(), '.railway'); fs.mkdirSync(dir, { recursive: true }); const cfg = { projects: {}, user: { token: '', accessToken: process.env.RAILWAY_ACCESS_TOKEN || '', refreshToken: '', tokenExpiresAt: 4102444800 }, linkedFunctions: null }; fs.writeFileSync(path.join(dir, 'config.json'), JSON.stringify(cfg));"
+            unset RAILWAY_TOKEN
+            unset RAILWAY_API_TOKEN
+            railway whoami --json >/dev/null
+          fi
+
           railway link --workspace "$RAILWAY_WORKSPACE_ID_CLEAN" --project "$RAILWAY_PROD_PROJECT_ID_CLEAN" --environment production --service "$RAILWAY_PROD_SERVICE_ID_CLEAN"
           railway variable list --json > .tmp_prod_vars.json
 
@@ -144,7 +152,15 @@ jobs:
             exit 1
           fi
           echo "::notice::RAILWAY_TOKEN normalized length=${#RAILWAY_TOKEN_CLEAN}"
-          railway whoami --json >/dev/null
+
+          if ! railway whoami --json >/dev/null 2>&1; then
+            echo "::warning::RAILWAY_TOKEN rejected as API token; retrying with Railway session config"
+            RAILWAY_ACCESS_TOKEN="$RAILWAY_TOKEN_CLEAN" node -e "const fs = require('fs'); const os = require('os'); const path = require('path'); const dir = path.join(os.homedir(), '.railway'); fs.mkdirSync(dir, { recursive: true }); const cfg = { projects: {}, user: { token: '', accessToken: process.env.RAILWAY_ACCESS_TOKEN || '', refreshToken: '', tokenExpiresAt: 4102444800 }, linkedFunctions: null }; fs.writeFileSync(path.join(dir, 'config.json'), JSON.stringify(cfg));"
+            unset RAILWAY_TOKEN
+            unset RAILWAY_API_TOKEN
+            railway whoami --json >/dev/null
+          fi
+
           railway link --workspace "$RAILWAY_WORKSPACE_ID_CLEAN" --project "$RAILWAY_STAGING_PROJECT_ID_CLEAN" --environment production --service "$RAILWAY_STAGING_SERVICE_ID_CLEAN"
           railway variable list --json > .tmp_staging_vars.json
 
