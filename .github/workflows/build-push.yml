@@ -53,13 +53,35 @@ jobs:
       - name: Export production variables
         shell: bash
         run: |
-          railway link --workspace "$RAILWAY_WORKSPACE_ID" --project "$RAILWAY_PROD_PROJECT_ID" --environment production --service "$RAILWAY_PROD_SERVICE_ID"
+          normalize() {
+            printf '%s' "$1" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
+          }
+
+          RAILWAY_TOKEN_CLEAN="$(normalize "$RAILWAY_TOKEN")"
+          RAILWAY_WORKSPACE_ID_CLEAN="$(normalize "$RAILWAY_WORKSPACE_ID")"
+          RAILWAY_PROD_PROJECT_ID_CLEAN="$(normalize "$RAILWAY_PROD_PROJECT_ID")"
+          RAILWAY_PROD_SERVICE_ID_CLEAN="$(normalize "$RAILWAY_PROD_SERVICE_ID")"
+
+          export RAILWAY_TOKEN="$RAILWAY_TOKEN_CLEAN"
+          railway whoami >/dev/null
+          railway link --workspace "$RAILWAY_WORKSPACE_ID_CLEAN" --project "$RAILWAY_PROD_PROJECT_ID_CLEAN" --environment production --service "$RAILWAY_PROD_SERVICE_ID_CLEAN"
           railway variable list --json > .tmp_prod_vars.json
 
       - name: Export staging variables
         shell: bash
         run: |
-          railway link --workspace "$RAILWAY_WORKSPACE_ID" --project "$RAILWAY_STAGING_PROJECT_ID" --environment production --service "$RAILWAY_STAGING_SERVICE_ID"
+          normalize() {
+            printf '%s' "$1" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
+          }
+
+          RAILWAY_TOKEN_CLEAN="$(normalize "$RAILWAY_TOKEN")"
+          RAILWAY_WORKSPACE_ID_CLEAN="$(normalize "$RAILWAY_WORKSPACE_ID")"
+          RAILWAY_STAGING_PROJECT_ID_CLEAN="$(normalize "$RAILWAY_STAGING_PROJECT_ID")"
+          RAILWAY_STAGING_SERVICE_ID_CLEAN="$(normalize "$RAILWAY_STAGING_SERVICE_ID")"
+
+          export RAILWAY_TOKEN="$RAILWAY_TOKEN_CLEAN"
+          railway whoami >/dev/null
+          railway link --workspace "$RAILWAY_WORKSPACE_ID_CLEAN" --project "$RAILWAY_STAGING_PROJECT_ID_CLEAN" --environment production --service "$RAILWAY_STAGING_SERVICE_ID_CLEAN"
           railway variable list --json > .tmp_staging_vars.json
 
       - name: Validate critical environment parity
