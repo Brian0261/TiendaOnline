@@ -63,7 +63,12 @@ jobs:
           RAILWAY_PROD_SERVICE_ID_CLEAN="$(normalize "$RAILWAY_PROD_SERVICE_ID")"
 
           export RAILWAY_TOKEN="$RAILWAY_TOKEN_CLEAN"
-          railway whoami >/dev/null
+          export RAILWAY_API_TOKEN="$RAILWAY_TOKEN_CLEAN"
+          if [ ${#RAILWAY_TOKEN_CLEAN} -lt 20 ]; then
+            echo "RAILWAY_TOKEN appears too short for API access" >&2
+            exit 1
+          fi
+          railway whoami --json >/dev/null
           railway link --workspace "$RAILWAY_WORKSPACE_ID_CLEAN" --project "$RAILWAY_PROD_PROJECT_ID_CLEAN" --environment production --service "$RAILWAY_PROD_SERVICE_ID_CLEAN"
           railway variable list --json > .tmp_prod_vars.json
 
@@ -80,7 +85,12 @@ jobs:
           RAILWAY_STAGING_SERVICE_ID_CLEAN="$(normalize "$RAILWAY_STAGING_SERVICE_ID")"
 
           export RAILWAY_TOKEN="$RAILWAY_TOKEN_CLEAN"
-          railway whoami >/dev/null
+          export RAILWAY_API_TOKEN="$RAILWAY_TOKEN_CLEAN"
+          if [ ${#RAILWAY_TOKEN_CLEAN} -lt 20 ]; then
+            echo "RAILWAY_TOKEN appears too short for API access" >&2
+            exit 1
+          fi
+          railway whoami --json >/dev/null
           railway link --workspace "$RAILWAY_WORKSPACE_ID_CLEAN" --project "$RAILWAY_STAGING_PROJECT_ID_CLEAN" --environment production --service "$RAILWAY_STAGING_SERVICE_ID_CLEAN"
           railway variable list --json > .tmp_staging_vars.json
 
