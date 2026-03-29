@@ -57,7 +57,33 @@ jobs:
             printf '%s' "$1" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
           }
 
-          RAILWAY_TOKEN_CLEAN="$(normalize "$RAILWAY_TOKEN")"
+          extract_railway_token() {
+            local raw token
+            raw="$(normalize "$1")"
+
+            # Allow quoted or Authorization-like values accidentally pasted in GitHub Secrets.
+            raw="${raw#\"}"
+            raw="${raw%\"}"
+            if [[ "$raw" =~ ^[Bb]earer[[:space:]]+ ]]; then
+              raw="${raw#Bearer }"
+              raw="${raw#bearer }"
+            fi
+
+            # If the secret was pasted as raw JSON, extract common token keys.
+            if [[ "$raw" == \{* ]]; then
+              token="$(RAW_RAILWAY_TOKEN="$raw" node -e "const raw = process.env.RAW_RAILWAY_TOKEN || ''; try { const obj = JSON.parse(raw); const candidate = obj.token || obj.accountToken || obj.apiToken || obj.accessToken || ''; if (!candidate) process.exit(2); process.stdout.write(String(candidate)); } catch { process.exit(2); }" 2>/dev/null || true)"
+              if [ -n "$token" ]; then
+                raw="$token"
+              fi
+            fi
+
+            raw="$(normalize "$raw")"
+            raw="${raw#\"}"
+            raw="${raw%\"}"
+            printf '%s' "$raw"
+          }
+
+          RAILWAY_TOKEN_CLEAN="$(extract_railway_token "$RAILWAY_TOKEN")"
           RAILWAY_WORKSPACE_ID_CLEAN="$(normalize "$RAILWAY_WORKSPACE_ID")"
           RAILWAY_PROD_PROJECT_ID_CLEAN="$(normalize "$RAILWAY_PROD_PROJECT_ID")"
           RAILWAY_PROD_SERVICE_ID_CLEAN="$(normalize "$RAILWAY_PROD_SERVICE_ID")"
@@ -68,6 +94,7 @@ jobs:
             echo "RAILWAY_TOKEN appears too short for API access" >&2
             exit 1
           fi
+          echo "::notice::RAILWAY_TOKEN normalized length=${#RAILWAY_TOKEN_CLEAN}"
           railway whoami --json >/dev/null
           railway link --workspace "$RAILWAY_WORKSPACE_ID_CLEAN" --project "$RAILWAY_PROD_PROJECT_ID_CLEAN" --environment production --service "$RAILWAY_PROD_SERVICE_ID_CLEAN"
           railway variable list --json > .tmp_prod_vars.json
@@ -79,7 +106,33 @@ jobs:
             printf '%s' "$1" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
           }
 
-          RAILWAY_TOKEN_CLEAN="$(normalize "$RAILWAY_TOKEN")"
+          extract_railway_token() {
+            local raw token
+            raw="$(normalize "$1")"
+
+            # Allow quoted or Authorization-like values accidentally pasted in GitHub Secrets.
+            raw="${raw#\"}"
+            raw="${raw%\"}"
+            if [[ "$raw" =~ ^[Bb]earer[[:space:]]+ ]]; then
+              raw="${raw#Bearer }"
+              raw="${raw#bearer }"
+            fi
+
+            # If the secret was pasted as raw JSON, extract common token keys.
+            if [[ "$raw" == \{* ]]; then
+              token="$(RAW_RAILWAY_TOKEN="$raw" node -e "const raw = process.env.RAW_RAILWAY_TOKEN || ''; try { const obj = JSON.parse(raw); const candidate = obj.token || obj.accountToken || obj.apiToken || obj.accessToken || ''; if (!candidate) process.exit(2); process.stdout.write(String(candidate)); } catch { process.exit(2); }" 2>/dev/null || true)"
+              if [ -n "$token" ]; then
+                raw="$token"
+              fi
+            fi
+
+            raw="$(normalize "$raw")"
+            raw="${raw#\"}"
+            raw="${raw%\"}"
+            printf '%s' "$raw"
+          }
+
+          RAILWAY_TOKEN_CLEAN="$(extract_railway_token "$RAILWAY_TOKEN")"
           RAILWAY_WORKSPACE_ID_CLEAN="$(normalize "$RAILWAY_WORKSPACE_ID")"
           RAILWAY_STAGING_PROJECT_ID_CLEAN="$(normalize "$RAILWAY_STAGING_PROJECT_ID")"
           RAILWAY_STAGING_SERVICE_ID_CLEAN="$(normalize "$RAILWAY_STAGING_SERVICE_ID")"
@@ -90,6 +143,7 @@ jobs:
             echo "RAILWAY_TOKEN appears too short for API access" >&2
             exit 1
           fi
+          echo "::notice::RAILWAY_TOKEN normalized length=${#RAILWAY_TOKEN_CLEAN}"
           railway whoami --json >/dev/null
           railway link --workspace "$RAILWAY_WORKSPACE_ID_CLEAN" --project "$RAILWAY_STAGING_PROJECT_ID_CLEAN" --environment production --service "$RAILWAY_STAGING_SERVICE_ID_CLEAN"
           railway variable list --json > .tmp_staging_vars.json
