@@ -51,18 +51,16 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_PROJECT_TOKEN_PROD }}
         run: |
-          railway whoami --json || { echo "::error::RAILWAY_PROJECT_TOKEN_PROD auth failed"; exit 1; }
-          railway link --service "$RAILWAY_PROD_SERVICE_ID"
-          railway variable list --json > .tmp_prod_vars.json
+          railway variables --service "$RAILWAY_PROD_SERVICE_ID" --json > .tmp_prod_vars.json
+          echo "Exported $(jq length .tmp_prod_vars.json) production variables"
 
       - name: Export staging variables
         shell: bash
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_PROJECT_TOKEN_STAGING }}
         run: |
-          railway whoami --json || { echo "::error::RAILWAY_PROJECT_TOKEN_STAGING auth failed"; exit 1; }
-          railway link --service "$RAILWAY_STAGING_SERVICE_ID"
-          railway variable list --json > .tmp_staging_vars.json
+          railway variables --service "$RAILWAY_STAGING_SERVICE_ID" --json > .tmp_staging_vars.json
+          echo "Exported $(jq length .tmp_staging_vars.json) staging variables"
 
       - name: Validate critical environment parity
         run: |
