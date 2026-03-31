@@ -32,11 +32,7 @@ jobs:
     permissions:
       contents: read
     env:
-      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-      RAILWAY_WORKSPACE_ID: ${{ secrets.RAILWAY_WORKSPACE_ID }}
-      RAILWAY_PROD_PROJECT_ID: ${{ secrets.RAILWAY_PROD_PROJECT_ID }}
       RAILWAY_PROD_SERVICE_ID: ${{ secrets.RAILWAY_PROD_SERVICE_ID }}
-      RAILWAY_STAGING_PROJECT_ID: ${{ secrets.RAILWAY_STAGING_PROJECT_ID }}
       RAILWAY_STAGING_SERVICE_ID: ${{ secrets.RAILWAY_STAGING_SERVICE_ID }}
     steps:
       - name: Checkout
@@ -52,117 +48,19 @@ jobs:
 
       - name: Export production variables
         shell: bash
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_PROJECT_TOKEN_PROD }}
         run: |
-          normalize() {
-            printf '%s' "$1" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
-          }
-
-          extract_railway_token() {
-            local raw token
-            raw="$(normalize "$1")"
-
-            # Allow quoted or Authorization-like values accidentally pasted in GitHub Secrets.
-            raw="${raw#\"}"
-            raw="${raw%\"}"
-            if [[ "$raw" =~ ^[Bb]earer[[:space:]]+ ]]; then
-              raw="${raw#Bearer }"
-              raw="${raw#bearer }"
-            fi
-
-            # If the secret was pasted as raw JSON, extract common token keys.
-            if [[ "$raw" == \{* ]]; then
-              token="$(RAW_RAILWAY_TOKEN="$raw" node -e "const raw = process.env.RAW_RAILWAY_TOKEN || ''; try { const obj = JSON.parse(raw); const candidate = obj.token || obj.accountToken || obj.apiToken || obj.accessToken || ''; if (!candidate) process.exit(2); process.stdout.write(String(candidate)); } catch { process.exit(2); }" 2>/dev/null || true)"
-              if [ -n "$token" ]; then
-                raw="$token"
-              fi
-            fi
-
-            raw="$(normalize "$raw")"
-            raw="${raw#\"}"
-            raw="${raw%\"}"
-            printf '%s' "$raw"
-          }
-
-          RAILWAY_TOKEN_CLEAN="$(extract_railway_token "$RAILWAY_TOKEN")"
-          RAILWAY_WORKSPACE_ID_CLEAN="$(normalize "$RAILWAY_WORKSPACE_ID")"
-          RAILWAY_PROD_PROJECT_ID_CLEAN="$(normalize "$RAILWAY_PROD_PROJECT_ID")"
-          RAILWAY_PROD_SERVICE_ID_CLEAN="$(normalize "$RAILWAY_PROD_SERVICE_ID")"
-
-          export RAILWAY_TOKEN="$RAILWAY_TOKEN_CLEAN"
-          export RAILWAY_API_TOKEN="$RAILWAY_TOKEN_CLEAN"
-          if [ ${#RAILWAY_TOKEN_CLEAN} -lt 20 ]; then
-            echo "RAILWAY_TOKEN appears too short for API access" >&2
-            exit 1
-          fi
-          echo "::notice::RAILWAY_TOKEN normalized length=${#RAILWAY_TOKEN_CLEAN}"
-
-          if ! railway whoami --json >/dev/null 2>&1; then
-            echo "::warning::RAILWAY_TOKEN rejected as API token; retrying with Railway session config"
-            RAILWAY_ACCESS_TOKEN="$RAILWAY_TOKEN_CLEAN" node -e "const fs = require('fs'); const os = require('os'); const path = require('path'); const dir = path.join(os.homedir(), '.railway'); fs.mkdirSync(dir, { recursive: true }); const cfg = { projects: {}, user: { token: '', accessToken: process.env.RAILWAY_ACCESS_TOKEN || '', refreshToken: '', tokenExpiresAt: 4102444800 }, linkedFunctions: null }; fs.writeFileSync(path.join(dir, 'config.json'), JSON.stringify(cfg));"
-            unset RAILWAY_TOKEN
-            unset RAILWAY_API_TOKEN
-            railway whoami --json >/dev/null
-          fi
-
-          railway link --workspace "$RAILWAY_WORKSPACE_ID_CLEAN" --project "$RAILWAY_PROD_PROJECT_ID_CLEAN" --environment production --service "$RAILWAY_PROD_SERVICE_ID_CLEAN"
-          railway variable list --json > .tmp_prod_vars.json
+          railway variables --service "$RAILWAY_PROD_SERVICE_ID" --json > .tmp_prod_vars.json
+          echo "Exported $(jq length .tmp_prod_vars.json) production variables"
 
       - name: Export staging variables
         shell: bash
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_PROJECT_TOKEN_STAGING }}
         run: |
-          normalize() {
-            printf '%s' "$1" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
-          }
-
-          extract_railway_token() {
-            local raw token
-            raw="$(normalize "$1")"
-
-            # Allow quoted or Authorization-like values accidentally pasted in GitHub Secrets.
-            raw="${raw#\"}"
-            raw="${raw%\"}"
-            if [[ "$raw" =~ ^[Bb]earer[[:space:]]+ ]]; then
-              raw="${raw#Bearer }"
-              raw="${raw#bearer }"
-            fi
-
-            # If the secret was pasted as raw JSON, extract common token keys.
-            if [[ "$raw" == \{* ]]; then
-              token="$(RAW_RAILWAY_TOKEN="$raw" node -e "const raw = process.env.RAW_RAILWAY_TOKEN || ''; try { const obj = JSON.parse(raw); const candidate = obj.token || obj.accountToken || obj.apiToken || obj.accessToken || ''; if (!candidate) process.exit(2); process.stdout.write(String(candidate)); } catch { process.exit(2); }" 2>/dev/null || true)"
-              if [ -n "$token" ]; then
-                raw="$token"
-              fi
-            fi
-
-            raw="$(normalize "$raw")"
-            raw="${raw#\"}"
-            raw="${raw%\"}"
-            printf '%s' "$raw"
-          }
-
-          RAILWAY_TOKEN_CLEAN="$(extract_railway_token "$RAILWAY_TOKEN")"
-          RAILWAY_WORKSPACE_ID_CLEAN="$(normalize "$RAILWAY_WORKSPACE_ID")"
-          RAILWAY_STAGING_PROJECT_ID_CLEAN="$(normalize "$RAILWAY_STAGING_PROJECT_ID")"
-          RAILWAY_STAGING_SERVICE_ID_CLEAN="$(normalize "$RAILWAY_STAGING_SERVICE_ID")"
-
-          export RAILWAY_TOKEN="$RAILWAY_TOKEN_CLEAN"
-          export RAILWAY_API_TOKEN="$RAILWAY_TOKEN_CLEAN"
-          if [ ${#RAILWAY_TOKEN_CLEAN} -lt 20 ]; then
-            echo "RAILWAY_TOKEN appears too short for API access" >&2
-            exit 1
-          fi
-          echo "::notice::RAILWAY_TOKEN normalized length=${#RAILWAY_TOKEN_CLEAN}"
-
-          if ! railway whoami --json >/dev/null 2>&1; then
-            echo "::warning::RAILWAY_TOKEN rejected as API token; retrying with Railway session config"
-            RAILWAY_ACCESS_TOKEN="$RAILWAY_TOKEN_CLEAN" node -e "const fs = require('fs'); const os = require('os'); const path = require('path'); const dir = path.join(os.homedir(), '.railway'); fs.mkdirSync(dir, { recursive: true }); const cfg = { projects: {}, user: { token: '', accessToken: process.env.RAILWAY_ACCESS_TOKEN || '', refreshToken: '', tokenExpiresAt: 4102444800 }, linkedFunctions: null }; fs.writeFileSync(path.join(dir, 'config.json'), JSON.stringify(cfg));"
-            unset RAILWAY_TOKEN
-            unset RAILWAY_API_TOKEN
-            railway whoami --json >/dev/null
-          fi
-
-          railway link --workspace "$RAILWAY_WORKSPACE_ID_CLEAN" --project "$RAILWAY_STAGING_PROJECT_ID_CLEAN" --environment production --service "$RAILWAY_STAGING_SERVICE_ID_CLEAN"
-          railway variable list --json > .tmp_staging_vars.json
+          railway variables --service "$RAILWAY_STAGING_SERVICE_ID" --json > .tmp_staging_vars.json
+          echo "Exported $(jq length .tmp_staging_vars.json) staging variables"
 
       - name: Validate critical environment parity
         run: |
