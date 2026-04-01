@@ -7,6 +7,9 @@ import { api } from "../api/http";
 import { getCartCount } from "../cart/cartService";
 import { normalizeImageUrl, PLACEHOLDER_PRODUCT } from "../shared/image";
 import { LoginModal } from "./LoginModal";
+import { useA11y } from "../a11y/useA11y";
+import { COLOR_MODES, COLOR_MODE_LABELS } from "../a11y/types";
+import type { ColorMode } from "../a11y/types";
 
 type SearchProduct = {
   id: number;
@@ -62,6 +65,12 @@ function dashboardPath(rol: string | undefined): string {
   return "/dashboard/customer";
 }
 
+/** Detiene la propagación del click dentro del dropdown de a11y
+ *  para evitar que Bootstrap lo cierre al pulsar las opciones. */
+function stopProp(e: React.MouseEvent) {
+  e.stopPropagation();
+}
+
 export function Navbar() {
   const nav = useNavigate();
   const { pathname, search: locationSearch } = useLocation();
@@ -77,6 +86,7 @@ export function Navbar() {
 
   const [menuCategoryId, setMenuCategoryId] = useState<number | null>(null);
   const [menuAllHover, setMenuAllHover] = useState(false);
+  const { colorMode, motionMode, setColorMode, setMotionMode } = useA11y();
 
   const p = pathname.toLowerCase();
   const isStaffDashboard = p.startsWith("/dashboard/admin") || p.startsWith("/dashboard/employee");
@@ -291,6 +301,56 @@ export function Navbar() {
           </div>
 
           <div className="d-flex align-items-center gap-3 me-2 mmx-navbar-right">
+            {/* ===== Accessibility Mode Toggle ===== */}
+            <div className="dropdown">
+              <button
+                type="button"
+                className="btn btn-link text-white text-decoration-none p-0 mmx-a11y-trigger"
+                id="a11yMenuToggle"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+                aria-label="Opciones de accesibilidad"
+                title="Accesibilidad"
+              >
+                <i className="bi bi-universal-access fs-5" aria-hidden="true" />
+              </button>
+              <div className="dropdown-menu dropdown-menu-end shadow p-3 mmx-a11y-menu" aria-labelledby="a11yMenuToggle" onClick={stopProp}>
+                <p className="dropdown-header px-0 pt-0 pb-1 mb-1 fw-semibold text-uppercase mmx-a11y-menu-heading">Visión / Color</p>
+                {COLOR_MODES.map((mode: ColorMode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    className={`mmx-a11y-color-btn${colorMode === mode ? " is-active" : ""}`}
+                    onClick={() => setColorMode(mode)}
+                    aria-pressed={colorMode === mode}
+                  >
+                    <i className={`bi ${colorMode === mode ? "bi-check2" : "bi-circle"} flex-shrink-0`} style={{ width: 16 }} aria-hidden="true" />
+                    {COLOR_MODE_LABELS[mode]}
+                  </button>
+                ))}
+
+                <hr className="dropdown-divider my-2" />
+
+                <p className="dropdown-header px-0 pb-1 mb-1 fw-semibold text-uppercase mmx-a11y-menu-heading">Movimiento / Epilepsia</p>
+                <div className="px-1 py-1">
+                  <div className="form-check form-switch mb-0">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      role="switch"
+                      id="a11yMotionSwitch"
+                      checked={motionMode === "reduced"}
+                      onChange={e => setMotionMode(e.target.checked ? "reduced" : "default")}
+                    />
+                    <label className="form-check-label small" htmlFor="a11yMotionSwitch">
+                      Reducir movimiento y parpadeo
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* ===== /Accessibility Mode Toggle ===== */}
+
             {!isAuthenticated ? (
               <div className="dropdown">
                 <button

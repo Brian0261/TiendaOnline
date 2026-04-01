@@ -716,3 +716,221 @@
     min-height: 2.9rem;
   }
 }
+
+/* ============================================================
+   ACCESSIBILITY MODES — A11Y
+   Se activan mediante atributos en <html>:
+     data-a11y-color="protanopia|deuteranopia|tritanopia|high-contrast"
+     data-a11y-motion="reduced"
+   No requieren recarga ni re-render de React.
+   ============================================================ */
+
+/* --- Protanopía: reemplaza rojo-verde por azul distinguible -- */
+html[data-a11y-color="protanopia"] {
+  --mmx-primary: #0077cc;
+  --mmx-primary-hover: #005fa3;
+  --mmx-primary-border-hover: #005fa3;
+  --mmx-danger: #0066bb;
+  --mmx-danger-hover: #004f99;
+  --mmx-danger-border-hover: #004f99;
+  --mmx-warning: #f5a623;
+  --mmx-on-warning: #1a1a1a;
+}
+
+/* --- Deuteranopía: azul primario, naranja para peligro ------- */
+html[data-a11y-color="deuteranopia"] {
+  --mmx-primary: #0066cc;
+  --mmx-primary-hover: #004fa8;
+  --mmx-primary-border-hover: #004fa8;
+  --mmx-danger: #cc6600;
+  --mmx-danger-hover: #a85200;
+  --mmx-danger-border-hover: #a85200;
+  --mmx-warning: #9900cc;
+  --mmx-on-warning: #ffffff;
+}
+
+/* --- Tritanopía: magenta primario, verde para éxito/warning -- */
+html[data-a11y-color="tritanopia"] {
+  --mmx-primary: #cc0066;
+  --mmx-primary-hover: #a30052;
+  --mmx-primary-border-hover: #a30052;
+  --mmx-danger: #cc0066;
+  --mmx-danger-hover: #a30052;
+  --mmx-danger-border-hover: #a30052;
+  --mmx-warning: #00aa55;
+  --mmx-on-warning: #ffffff;
+}
+
+/* --- Alto Contraste: negro/blanco + amarillo como acento ----- */
+html[data-a11y-color="high-contrast"] {
+  --mmx-primary: #ffff00;
+  --mmx-primary-hover: #e6e600;
+  --mmx-primary-border-hover: #e6e600;
+  --mmx-danger: #ff6600;
+  --mmx-danger-hover: #cc5200;
+  --mmx-danger-border-hover: #cc5200;
+  --mmx-secondary: #ffffff;
+  --mmx-secondary-hover: #cccccc;
+  --mmx-warning: #ff6600;
+  --mmx-on-warning: #000000;
+  --bs-body-bg: #000000;
+  --bs-body-color: #ffffff;
+  --bs-border-color: #ffffff;
+}
+
+html[data-a11y-color="high-contrast"] body {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+html[data-a11y-color="high-contrast"] .mmx-navbar,
+html[data-a11y-color="high-contrast"] .bg-dark {
+  background-color: #000000 !important;
+  border-bottom: 2px solid #ffffff !important;
+}
+
+html[data-a11y-color="high-contrast"] .card,
+html[data-a11y-color="high-contrast"] .modal-content,
+html[data-a11y-color="high-contrast"] .offcanvas {
+  background-color: #111111 !important;
+  border-color: #ffffff !important;
+  color: #ffffff !important;
+}
+
+html[data-a11y-color="high-contrast"] .dropdown-menu {
+  background-color: #111111 !important;
+  border-color: #ffffff !important;
+  color: #ffffff !important;
+}
+
+html[data-a11y-color="high-contrast"] .dropdown-item {
+  color: #ffffff !important;
+}
+
+html[data-a11y-color="high-contrast"] .dropdown-item:hover,
+html[data-a11y-color="high-contrast"] .dropdown-item:focus {
+  background-color: #333333 !important;
+  color: #ffff00 !important;
+}
+
+html[data-a11y-color="high-contrast"] .mmx-search-box {
+  background: #1a1a1a !important;
+  border-color: #ffffff !important;
+}
+
+html[data-a11y-color="high-contrast"] .mmx-search-input {
+  background: transparent !important;
+  color: #ffffff !important;
+}
+
+html[data-a11y-color="high-contrast"] .mmx-search-input::placeholder {
+  color: #cccccc !important;
+}
+
+html[data-a11y-color="high-contrast"] .list-group-item {
+  background-color: #111111 !important;
+  border-color: #444444 !important;
+  color: #ffffff !important;
+}
+
+html[data-a11y-color="high-contrast"] .list-group-item.active {
+  background-color: #ffff00 !important;
+  border-color: #ffff00 !important;
+  color: #000000 !important;
+}
+
+/* ---- Reduced Motion (modo epilepsia / sensibilidad visual) ---
+   Usa 0.001ms para no romper librerías que comprueban
+   duration > 0 como condición antes de arrancar animaciones.
+   -------------------------------------------------------------- */
+html[data-a11y-motion="reduced"] *,
+html[data-a11y-motion="reduced"] *::before,
+html[data-a11y-motion="reduced"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Anula de forma explícita las @keyframes definidas en este archivo */
+html[data-a11y-motion="reduced"] .dispatch-toast,
+html[data-a11y-motion="reduced"] .dispatch-toast--closing {
+  animation: none !important;
+  transition: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+html[data-a11y-motion="reduced"] .dispatch-toast-close {
+  transition: none !important;
+  transform: none !important;
+}
+
+html[data-a11y-motion="reduced"] .featured-product-card {
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+}
+
+html[data-a11y-motion="reduced"] .account-dropdown-item {
+  transition: none !important;
+}
+
+/* Icono del toggle de accesibilidad en Navbar */
+.mmx-a11y-trigger {
+  line-height: 1;
+}
+
+.mmx-a11y-menu {
+  min-width: 268px;
+}
+
+.mmx-a11y-menu-heading {
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  color: #6c757d;
+}
+
+.mmx-a11y-color-btn {
+  border-radius: 0.45rem;
+  min-height: 2.25rem;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.875rem;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #212529;
+}
+
+.mmx-a11y-color-btn:hover,
+.mmx-a11y-color-btn:focus {
+  background: color-mix(in srgb, var(--mmx-primary) 8%, #fff);
+  color: #212529;
+  outline: none;
+}
+
+.mmx-a11y-color-btn.is-active {
+  background: color-mix(in srgb, var(--mmx-primary) 12%, #fff);
+  font-weight: 600;
+  color: #000000;
+}
+
+html[data-a11y-color="high-contrast"] .mmx-a11y-color-btn {
+  color: #ffffff !important;
+}
+
+html[data-a11y-color="high-contrast"] .mmx-a11y-color-btn:hover,
+html[data-a11y-color="high-contrast"] .mmx-a11y-color-btn:focus {
+  background: #333333 !important;
+  color: #ffff00 !important;
+}
+
+html[data-a11y-color="high-contrast"] .mmx-a11y-color-btn.is-active {
+  background: #333333 !important;
+  color: #ffff00 !important;
+}
