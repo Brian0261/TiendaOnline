@@ -203,7 +203,7 @@ async function createUserWithRoleTx(tx, { nombre, apellido, email, contrasena, t
   return rows?.[0]?.id_usuario || null;
 }
 
-async function updateUserByIdTx(tx, userId, { nombre, apellido, email, telefono, direccion_principal }) {
+async function updateUserByIdTx(tx, userId, { nombre, apellido, email, telefono, direccion_principal, rol }) {
   await tx.query(
     `
       UPDATE usuario
@@ -211,10 +211,11 @@ async function updateUserByIdTx(tx, userId, { nombre, apellido, email, telefono,
           apellido = $2,
           email = $3,
           telefono = $4,
-          direccion_principal = $5
-      WHERE id_usuario = $6
+          direccion_principal = $5,
+          rol = $6
+      WHERE id_usuario = $7
     `,
-    [nombre, apellido, email, telefono || null, direccion_principal || null, userId],
+    [nombre, apellido, email, telefono || null, direccion_principal || null, rol, userId],
   );
 }
 

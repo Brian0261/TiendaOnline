@@ -228,7 +228,7 @@ async function createRider({ actorUserId, nombre, apellido, email, plainPwd, tel
   }
 }
 
-async function updateUser({ actorUserId, userId, nombre, apellido, email, telefono, direccion_principal, licencia }) {
+async function updateUser({ actorUserId, userId, nombre, apellido, email, telefono, direccion_principal, licencia, rol }) {
   const actorId = assertActor(actorUserId);
   const targetId = Number(userId);
   if (!Number.isInteger(targetId) || targetId <= 0) throw createHttpError(400, "id de usuario inválido.");
@@ -240,7 +240,13 @@ async function updateUser({ actorUserId, userId, nombre, apellido, email, telefo
 
     const existing = await userManagementRepository.getUserById(tx, targetId);
     if (!existing) throw createHttpError(404, "Usuario no encontrado.");
-    assertUpdatableRole(String(existing.rol || "").toUpperCase());
+    const existingRol = String(existing.rol || "").toUpperCase();
+    assertUpdatableRole(existingRol);
+
+    // Determine effective role: accept only EMPLEADO/REPARTIDOR, otherwise keep existing
+    const requestedRol = normalizeRole(rol);
+    const effectiveRol = requestedRol === "EMPLEADO" || requestedRol === "REPARTIDOR" ? requestedRol : existingRol;
+    assertUpdatableRole(effectiveRol);
 
     const clean = {
       nombre: normText(nombre),
@@ -264,11 +270,27 @@ async function updateUser({ actorUserId, userId, nombre, apellido, email, telefo
       email: clean.email,
       telefono: clean.telefono || null,
       direccion_principal: clean.direccion_principal || null,
+      rol: effectiveRol,
     });
 
-    if (String(existing.rol || "").toUpperCase() === "REPARTIDOR") {
-      if (!isValidLicense(clean.licencia)) throw createHttpError(400, "Licencia inválida.");
+    const roleChanged = existingRol !== effectiveRol;
 
+    if (roleChanged && effectiveRol === "REPARTIDOR") {
+      // EMPLEADO → REPARTIDOR: validate licencia and create/link motorizado
+      if (!isValidLicense(clean.licencia)) throw createHttpError(400, "Licencia obligatoria para el nuevo rol de repartidor.");
+      await ensureRiderMotorizadoLinked(tx, {
+        userId: targetId,
+        nombre: clean.nombre,
+        apellido: clean.apellido,
+        telefono: clean.telefono || "",
+        licencia: clean.licencia,
+      });
+    } else if (roleChanged && effectiveRol === "EMPLEADO") {
+      // REPARTIDOR → EMPLEADO: unlink motorizado
+      await userManagementRepository.unlinkMotorizadoByUserIdTx(tx, targetId);
+    } else if (effectiveRol === "REPARTIDOR") {
+      // Same role (REPARTIDOR): update licencia/motorizado as before
+      if (!isValidLicense(clean.licencia)) throw createHttpError(400, "Licencia inválida.");
       if (existing.id_motorizado) {
         await userManagementRepository.updateMotorizadoByUserIdTx(tx, targetId, {
           nombre: clean.nombre,
@@ -287,12 +309,15 @@ async function updateUser({ actorUserId, userId, nombre, apellido, email, telefo
       }
     }
 
+    const auditDesc = roleChanged
+      ? `Actualizó usuario id=${targetId}, cambio de rol: ${existingRol} → ${effectiveRol}`
+      : `Actualizó usuario id=${targetId}`;
     await tx.query(
       `
         INSERT INTO historial (descripcion, accion, id_usuario)
         VALUES ($1, $2, $3)
       `,
-      [`Actualizó usuario id=${targetId}`, "USUARIO_ACTUALIZADO", actorId],
+      [auditDesc, "USUARIO_ACTUALIZADO", actorId],
     );
 
     await tx.query("COMMIT");

@@ -77,6 +77,7 @@ async function updateUser(req, res) {
       telefono: req.body?.telefono,
       direccion_principal: req.body?.direccion_principal,
       licencia: req.body?.licencia,
+      rol: req.body?.rol,
     });
     return res.status(200).json(data);
   } catch (err) {

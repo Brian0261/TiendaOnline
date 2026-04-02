@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { HomePage } from "./pages/HomePage";
 import { AboutPage } from "./pages/AboutPage";
@@ -5,10 +6,10 @@ import { CatalogPage } from "./pages/products/CatalogPage";
 import { ProductDetailPage } from "./pages/products/ProductDetailPage";
 import { CartPage } from "./pages/cart/CartPage";
 import { CheckoutPage } from "./pages/cart/CheckoutPage";
-import { AdminDashboardPage } from "./pages/dashboard/AdminDashboardPage";
-import { CustomerDashboardPage } from "./pages/dashboard/CustomerDashboardPage";
-import { EmployeeDashboardPage } from "./pages/dashboard/EmployeeDashboardPage";
-import { DeliveryDashboardPage } from "./pages/dashboard/DeliveryDashboardPage";
+const AdminDashboardPage = lazy(() => import("./pages/dashboard/AdminDashboardPage").then(m => ({ default: m.AdminDashboardPage })));
+const CustomerDashboardPage = lazy(() => import("./pages/dashboard/CustomerDashboardPage").then(m => ({ default: m.CustomerDashboardPage })));
+const EmployeeDashboardPage = lazy(() => import("./pages/dashboard/EmployeeDashboardPage").then(m => ({ default: m.EmployeeDashboardPage })));
+const DeliveryDashboardPage = lazy(() => import("./pages/dashboard/DeliveryDashboardPage").then(m => ({ default: m.DeliveryDashboardPage })));
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { RequireRole } from "./auth/RequireRole";
 import { RegisterPage } from "./pages/auth/RegisterPage.tsx";
@@ -44,7 +45,9 @@ function App() {
           path="/dashboard/admin"
           element={
             <RequireRole role="ADMINISTRADOR">
-              <AdminDashboardPage />
+              <Suspense fallback={<div className="text-center p-5">Cargando...</div>}>
+                <AdminDashboardPage />
+              </Suspense>
             </RequireRole>
           }
         />
@@ -52,7 +55,9 @@ function App() {
           path="/dashboard/customer"
           element={
             <RequireRole role="CLIENTE">
-              <CustomerDashboardPage />
+              <Suspense fallback={<div className="text-center p-5">Cargando...</div>}>
+                <CustomerDashboardPage />
+              </Suspense>
             </RequireRole>
           }
         />
@@ -60,7 +65,9 @@ function App() {
           path="/dashboard/employee"
           element={
             <RequireRole role="EMPLEADO">
-              <EmployeeDashboardPage />
+              <Suspense fallback={<div className="text-center p-5">Cargando...</div>}>
+                <EmployeeDashboardPage />
+              </Suspense>
             </RequireRole>
           }
         />
@@ -68,7 +75,9 @@ function App() {
           path="/dashboard/delivery"
           element={
             <RequireRole role="REPARTIDOR">
-              <DeliveryDashboardPage />
+              <Suspense fallback={<div className="text-center p-5">Cargando...</div>}>
+                <DeliveryDashboardPage />
+              </Suspense>
             </RequireRole>
           }
         />
