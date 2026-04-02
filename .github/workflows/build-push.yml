@@ -29,6 +29,7 @@ jobs:
   env-governance:
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging')
     runs-on: ubuntu-latest
+    timeout-minutes: 15  # 1. Sugerencia de Copilot: Evita que el job se cuelgue infinitamente
     permissions:
       contents: read
     env:
@@ -43,24 +44,49 @@ jobs:
         with:
           node-version: "20"
 
+      # 2. Sugerencia de Copilot: Garantiza que jq esté presente para procesar el JSON
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
-      - name: Export production variables
+      - name: Export production variables (con Reintentos)
         shell: bash
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_PROJECT_TOKEN_PROD }}
         run: |
-          railway variables --service "$RAILWAY_PROD_SERVICE_ID" --json > .tmp_prod_vars.json
-          echo "Exported $(jq length .tmp_prod_vars.json) production variables"
+          set -euo pipefail
+          # 3. Bucle de reintentos robusto: 5 intentos con espera progresiva
+          for i in 1 2 3 4 5; do
+            echo "Intento $i: Obteniendo variables de producción..."
+            if railway variables --service "$RAILWAY_PROD_SERVICE_ID" --json > .tmp_prod_vars.json; then
+              echo "Éxito: Exportadas $(jq length .tmp_prod_vars.json) variables."
+              exit 0
+            fi
+            echo "Fallo de red en Railway. Reintentando en $((i * 10)) segundos..."
+            sleep $((i * 10))
+          done
+          echo "ERROR: No se pudo conectar con Railway tras 5 intentos."
+          exit 1
 
-      - name: Export staging variables
+      - name: Export staging variables (con Reintentos)
         shell: bash
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_PROJECT_TOKEN_STAGING }}
         run: |
-          railway variables --service "$RAILWAY_STAGING_SERVICE_ID" --json > .tmp_staging_vars.json
-          echo "Exported $(jq length .tmp_staging_vars.json) staging variables"
+          set -euo pipefail
+          for i in 1 2 3 4 5; do
+            echo "Intento $i: Obteniendo variables de staging..."
+            if railway variables --service "$RAILWAY_STAGING_SERVICE_ID" --json > .tmp_staging_vars.json; then
+              echo "Éxito: Exportadas $(jq length .tmp_staging_vars.json) variables."
+              exit 0
+            fi
+            echo "Fallo de red en Railway. Reintentando en $((i * 10)) segundos..."
+            sleep $((i * 10))
+          done
+          echo "ERROR: No se pudo conectar con Railway tras 5 intentos."
+          exit 1
 
       - name: Validate critical environment parity
         run: |
