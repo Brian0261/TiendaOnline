@@ -9,7 +9,17 @@ export {
 } from "./inventoryService";
 export { fetchOutbound, searchDispatchInventory, createDispatch } from "./dispatchService";
 export { fetchEmployeeKpis, fetchPendingOrders, fetchStatusLog, fetchAdminOrders, markOrderPrepared, refundOrder } from "./ordersService";
-export { fetchDeliveryQueue, fetchDeliveryRiders, fetchDeliveryDetail, assignDelivery } from "./deliveryService";
+export {
+  fetchDeliveryQueue,
+  fetchDeliveryRiders,
+  fetchDeliveryDetail,
+  assignDelivery,
+  fetchMyShipments,
+  startRoute,
+  deliverOrder,
+  failDelivery,
+} from "./deliveryService";
+export { fetchProfile, updateProfile, fetchMyOrders } from "./customerService";
 export { fetchAuditHistory } from "./auditService";
 export {
   fetchProducts,

@@ -1,5 +1,5 @@
 export { getErrorMessage } from "./errors";
-export { money, formatStateLabel, toDateInputValue, getInventorySelectionLabel, getTodayDateInputInLima } from "./format";
+export { money, formatStateLabel, toDateInputValue, getInventorySelectionLabel, getTodayDateInputInLima, formatShipmentStateLabel } from "./format";
 export {
   createDefaultDispatchFilters,
   createEmptyDispatchItem,

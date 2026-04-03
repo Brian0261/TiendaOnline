@@ -40,3 +40,18 @@ export type DeliveryRider = {
   id_usuario: number | null;
   email_usuario: string;
 };
+
+export type Shipment = {
+  id_pedido: number;
+  fecha_creacion: string;
+  estado_pedido: "PREPARADO" | "EN CAMINO" | "ENTREGADO" | string;
+  direccion_envio: string;
+  total_pedido: number;
+  cliente: string;
+  telefono: string | null;
+  estado_envio: string;
+  fecha_asignacion?: string | null;
+  fecha_inicio_ruta?: string | null;
+  fecha_entrega?: string | null;
+  motivo_no_entrega?: string | null;
+};

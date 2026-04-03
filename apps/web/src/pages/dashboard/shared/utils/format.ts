@@ -25,3 +25,13 @@ export function getTodayDateInputInLima(): string {
   });
   return fmt.format(new Date());
 }
+
+export function formatShipmentStateLabel(value: string | null | undefined): string {
+  const raw = String(value || "")
+    .trim()
+    .toUpperCase();
+  if (!raw) return "—";
+  if (raw === "EN_RUTA") return "EN CAMINO";
+  if (raw === "NO_ENTREGADO") return "NO ENTREGADO";
+  return raw.replace(/_/g, " ");
+}

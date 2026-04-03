@@ -35,3 +35,7 @@ export type { ProductRow, ProductCatalogOption } from "./products.types";
 export type { DashboardOverview, SalesReport } from "./reports.types";
 
 export type { CategoryRow } from "./categories.types";
+
+export type { Profile, Order, ProfileFormValues } from "./customer.types";
+
+export type { Shipment } from "./delivery.types";
