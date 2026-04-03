@@ -174,6 +174,18 @@ async function markPaymentIntentConfirmed({ provider, orderId, providerPaymentId
   );
 }
 
+async function markPaymentIntentRefunded({ provider, orderId }) {
+  const pool = await poolPromise;
+  await pool.query(
+    `
+      UPDATE payment_intent
+      SET status = 'REFUNDED'
+      WHERE provider = $1 AND id_pedido = $2
+    `,
+    [provider, orderId],
+  );
+}
+
 async function insertWebhookEventIfNew({ provider, eventId, paymentId, rawBody }) {
   const pool = await poolPromise;
   try {
@@ -234,6 +246,7 @@ module.exports = {
   upsertPaymentIntent,
   getPaymentIntentByOrder,
   markPaymentIntentConfirmed,
+  markPaymentIntentRefunded,
   insertWebhookEventIfNew,
   getWebhookEvent,
   markWebhookEventProcessed,
