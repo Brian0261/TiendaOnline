@@ -46,6 +46,7 @@ export function StatusLogSection() {
         DELIVERY_EN_RUTA: "Inicio de ruta",
         DELIVERY_ENTREGADO: "Entrega completada",
         DELIVERY_NO_ENTREGADO: "Entrega no completada",
+        PICKUP_ENTREGADO: "Entrega en tienda",
       };
       parts.push(`Evento: ${eventLabelMap[f.evento] || f.evento}`);
     }
@@ -119,6 +120,7 @@ export function StatusLogSection() {
               <option value="DELIVERY_EN_RUTA">Inicio de ruta</option>
               <option value="DELIVERY_ENTREGADO">Entrega completada</option>
               <option value="DELIVERY_NO_ENTREGADO">Entrega no completada</option>
+              <option value="PICKUP_ENTREGADO">Entrega en tienda</option>
             </select>
           </div>
           <div className="col-12 col-md-2">

@@ -296,6 +296,7 @@ function getEventLabelByAction(action) {
   if (key === "DELIVERY_EN_RUTA") return "Inicio de ruta";
   if (key === "DELIVERY_ENTREGADO") return "Entrega completada";
   if (key === "DELIVERY_NO_ENTREGADO") return "Entrega no completada";
+  if (key === "PICKUP_ENTREGADO") return "Entrega en tienda";
   return key || "Evento";
 }
 
@@ -311,6 +312,7 @@ function getReadableDetailByAction(action, rawDetail) {
     if (key === "DELIVERY_EN_RUTA") return detail || "Pedido en ruta";
     if (key === "DELIVERY_ENTREGADO") return detail || "Entrega completada";
     if (key === "DELIVERY_NO_ENTREGADO") return detail || "Entrega no completada";
+    if (key === "PICKUP_ENTREGADO") return detail || "Pedido entregado en tienda (recojo)";
     return detail;
   }
 
@@ -319,6 +321,7 @@ function getReadableDetailByAction(action, rawDetail) {
   if (key === "DELIVERY_EN_RUTA") return "Pedido en ruta";
   if (key === "DELIVERY_ENTREGADO") return "Entrega completada";
   if (key === "DELIVERY_NO_ENTREGADO") return "Entrega no completada";
+  if (key === "PICKUP_ENTREGADO") return "Pedido entregado en tienda (recojo)";
 
   return "";
 }

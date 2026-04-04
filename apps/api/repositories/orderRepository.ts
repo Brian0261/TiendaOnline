@@ -375,6 +375,7 @@ async function listStatusLog({ limit = 20, offset = 0, idPedido = null, evento =
     "DELIVERY_EN_RUTA",
     "DELIVERY_ENTREGADO",
     "DELIVERY_NO_ENTREGADO",
+    "PICKUP_ENTREGADO",
   ];
 
   const params = [];
@@ -558,6 +559,7 @@ async function listStatusLogForExport({ limit = 5000, idPedido = null, evento = 
     "DELIVERY_EN_RUTA",
     "DELIVERY_ENTREGADO",
     "DELIVERY_NO_ENTREGADO",
+    "PICKUP_ENTREGADO",
   ];
 
   const params = [];
