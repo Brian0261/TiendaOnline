@@ -420,6 +420,12 @@ export function CheckoutPage() {
       if (init.mode === "redirect") {
         const redirectUrl = (init as { redirectUrl?: unknown }).redirectUrl;
         if (typeof redirectUrl === "string" && redirectUrl) {
+          // Guardar orderId para reconciliación post-pago
+          try {
+            sessionStorage.setItem("mp_pending_order", String(order.orderId));
+          } catch {
+            /* ignore */
+          }
           window.location.href = redirectUrl;
           return;
         }

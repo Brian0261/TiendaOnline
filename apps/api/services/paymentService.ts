@@ -223,10 +223,6 @@ function isMpTestPing({ query, body, paymentId }) {
   const syntheticId = String(paymentId || "").trim();
   if (/^(0|test|12345|123456|1234567890?|123456789)$/i.test(syntheticId)) return true;
 
-  // Body vacío o explícitamente de prueba
-  if (!body || (typeof body === "object" && Object.keys(body).length === 0)) return true;
-  if (body?.type === "test" || body?.action === "test") return true;
-
   // Query params de prueba
   const qTopic = String(query?.topic || "")
     .trim()
@@ -235,6 +231,16 @@ function isMpTestPing({ query, body, paymentId }) {
     .trim()
     .toLowerCase();
   if (qTopic === "test" || qType === "test") return true;
+
+  // Body explícitamente de prueba
+  if (body?.type === "test" || body?.action === "test") return true;
+
+  // Body vacío es indicador de ping SOLO si tampoco hay un paymentId válido.
+  // Las notificaciones IPN reales de MP envían el ID en query params con body vacío;
+  // si ya tenemos un paymentId no-sintético, NO es un ping.
+  if (!paymentId) {
+    if (!body || (typeof body === "object" && Object.keys(body).length === 0)) return true;
+  }
 
   return false;
 }
@@ -500,8 +506,9 @@ async function handleMercadoPagoWebhook({ headers, query, body }) {
   const paymentId = getWebhookResourceId(query, body);
   const hasBody = body && typeof body === "object" && Object.keys(body).length > 0;
   const hasSignature = !!getHeaderValue(headers, "x-signature");
+  const isIpnStyle = !hasBody && !!query?.topic && !!paymentId;
 
-  console.log("[MP-WEBHOOK] Webhook recibido", { topic, paymentId, hasSignature, hasBody });
+  console.log("[MP-WEBHOOK] Webhook recibido", { topic, paymentId, hasSignature, hasBody, isIpnStyle });
 
   // --- Detección de ping de prueba de Mercado Pago ---
   // MP envía peticiones con IDs sintéticos (123456, 12345, etc.) al registrar la URL.

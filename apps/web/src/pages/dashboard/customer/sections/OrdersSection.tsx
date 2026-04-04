@@ -1,7 +1,8 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "../../../../api/baseUrl";
+import { api } from "../../../../api/http";
 import { fetchMyOrders } from "../../shared/services/customerService";
 import type { Order } from "../../shared/types/customer.types";
 import { formatDateTime } from "../../../../shared/datetime";
@@ -11,6 +12,7 @@ function getToken(): string | null {
 }
 
 const statusMap: Record<string, string> = {
+  PENDIENTE_PAGO: "danger",
   PENDIENTE: "warning",
   "EN CAMINO": "info",
   PREPARADO: "primary",
@@ -22,12 +24,34 @@ const statusMap: Record<string, string> = {
 
 export function OrdersSection({ visible }: { visible: boolean }) {
   const qc = useQueryClient();
+  const reconciledRef = useRef(false);
 
   const { data: orders, isLoading: ordersLoading } = useQuery<Order[]>({
     queryKey: ["orders", "my"],
     queryFn: fetchMyOrders,
     enabled: visible,
   });
+
+  // Reconciliación post-pago: si volvemos de MP con un orderId pendiente,
+  // consultamos el estado del pago para finalizarlo si el webhook no llegó.
+  useEffect(() => {
+    if (!visible || reconciledRef.current) return;
+    const pendingOrder = sessionStorage.getItem("mp_pending_order");
+    if (!pendingOrder) return;
+    reconciledRef.current = true;
+    sessionStorage.removeItem("mp_pending_order");
+
+    api
+      .get<{ status: string }>(`/payment/mercadopago/status?orderId=${encodeURIComponent(pendingOrder)}`)
+      .then(result => {
+        if (result.status === "confirmed") {
+          void qc.invalidateQueries({ queryKey: ["orders", "my"] });
+        }
+      })
+      .catch(() => {
+        // Silenciar: el webhook puede haber funcionado correctamente
+      });
+  }, [visible, qc]);
 
   // SSE: refresca pedidos en tiempo real
   useEffect(() => {
