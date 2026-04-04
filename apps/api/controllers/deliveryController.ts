@@ -111,4 +111,17 @@ exports.markFailed = async (req, res) => {
   }
 };
 
+exports.pickupHandover = async (req, res) => {
+  try {
+    const data = await deliveryService.pickupHandover({
+      orderId: req.params?.orderId,
+      handedOverBy: req.user?.id_usuario,
+    });
+    return res.json(data);
+  } catch (err) {
+    console.error("pickupHandover:", err);
+    return res.status(getStatus(err)).json({ message: getMessage(err, "Error al registrar entrega en tienda") });
+  }
+};
+
 export {};

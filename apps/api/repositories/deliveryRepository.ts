@@ -162,8 +162,13 @@ async function listAssignableShipments(pool, { search = "", limit = 100 }) {
   const params = [];
   const filtros = [
     "pe.estado_pedido = 'PREPARADO'",
-    "pe.costo_envio > 0",
-    "(e.id_motorizado IS NULL OR e.estado_envio IN ('PENDIENTE', 'PENDIENTE_ASIGNACION', 'REPROGRAMADO'))",
+    // DOMICILIO: envio exists and not yet fully assigned / RECOJO: no envio row
+    `(
+      (pe.costo_envio > 0 AND e.id_envio IS NOT NULL
+        AND (e.id_motorizado IS NULL OR e.estado_envio IN ('PENDIENTE', 'PENDIENTE_ASIGNACION', 'REPROGRAMADO')))
+      OR
+      (pe.costo_envio = 0 AND e.id_envio IS NULL)
+    )`,
   ];
 
   if (search && String(search).trim()) {
@@ -189,9 +194,10 @@ async function listAssignableShipments(pool, { search = "", limit = 100 }) {
         c.telefono,
         e.id_envio,
         e.estado_envio,
-        e.id_motorizado
+        e.id_motorizado,
+        CASE WHEN pe.costo_envio = 0 THEN 'RECOJO' ELSE 'DOMICILIO' END AS tipo_entrega
       FROM pedido pe
-      INNER JOIN envio e ON e.id_pedido = pe.id_pedido
+      LEFT JOIN envio e ON e.id_pedido = pe.id_pedido
       INNER JOIN usuario c ON c.id_usuario = pe.id_usuario
       ${where}
       ORDER BY pe.fecha_creacion ASC, pe.id_pedido ASC

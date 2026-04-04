@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDateTime } from "../../../../shared/datetime";
-import { fetchDeliveryQueue, fetchDeliveryRiders, fetchDeliveryDetail, assignDelivery } from "../../shared/services/deliveryService";
+import { fetchDeliveryQueue, fetchDeliveryRiders, fetchDeliveryDetail, assignDelivery, pickupHandover } from "../../shared/services/deliveryService";
 import { getErrorMessage } from "../../shared/utils/errors";
 import type { DeliveryQueueRow, DeliveryRider, DeliveryDetail } from "../../shared/types/delivery.types";
 
@@ -50,6 +50,14 @@ export function DeliverySection() {
     },
   });
 
+  const pickupMut = useMutation({
+    mutationFn: pickupHandover,
+    onSuccess: async () => {
+      setSuccessMessage(`Pedido entregado en tienda correctamente.`);
+      await qc.invalidateQueries({ queryKey: ["employee", "delivery", "queue"] });
+    },
+  });
+
   return (
     <section className="card">
       <div className="card-body">
@@ -84,6 +92,7 @@ export function DeliverySection() {
         {ridersError ? <div className="alert alert-danger">{getErrorMessage(ridersError)}</div> : null}
         {detailError ? <div className="alert alert-danger">{getErrorMessage(detailError)}</div> : null}
         {assignMut.isError ? <div className="alert alert-danger">{getErrorMessage(assignMut.error)}</div> : null}
+        {pickupMut.isError ? <div className="alert alert-danger">{getErrorMessage(pickupMut.error)}</div> : null}
         {successMessage ? <div className="alert alert-success">{successMessage}</div> : null}
 
         {queueLoading || ridersLoading ? <div className="text-muted">Cargando...</div> : null}
@@ -97,71 +106,96 @@ export function DeliverySection() {
                 <tr>
                   <th>Pedido</th>
                   <th>Cliente</th>
+                  <th>Tipo</th>
                   <th>Dirección</th>
                   <th>Estado pedido</th>
                   <th>Estado envío</th>
-                  <th style={{ minWidth: 420 }}>Asignación</th>
+                  <th style={{ minWidth: 420 }}>Acción</th>
                 </tr>
               </thead>
               <tbody>
-                {queue.map(row => (
-                  <tr key={row.id_pedido}>
-                    <td>
-                      <div className="fw-semibold">#{row.id_pedido}</div>
-                      <div className="small text-muted">
-                        {(() => {
-                          const dt = formatDateTime(row.fecha_creacion, "datetime");
-                          return dt ? `${dt.date} ${dt.time}` : "—";
-                        })()}
-                      </div>
-                    </td>
-                    <td>
-                      <div className="fw-semibold">{row.cliente}</div>
-                      <div className="small text-muted">{row.telefono || "Sin teléfono"}</div>
-                    </td>
-                    <td className="text-truncate" style={{ maxWidth: 260 }} title={row.direccion_envio}>
-                      {row.direccion_envio}
-                    </td>
-                    <td>
-                      <span className="badge bg-secondary">{row.estado_pedido}</span>
-                    </td>
-                    <td>
-                      <span className="badge bg-light text-dark">{row.estado_envio || "PENDIENTE"}</span>
-                    </td>
-                    <td>
-                      <div className="d-flex gap-2 flex-wrap">
-                        <select
-                          className="form-select form-select-sm"
-                          value={assignedRiderByOrder[row.id_pedido] || ""}
-                          onChange={e => setAssignedRiderByOrder(prev => ({ ...prev, [row.id_pedido]: e.target.value }))}
-                        >
-                          <option value="">Selecciona repartidor</option>
-                          {(riders || []).map(r => (
-                            <option key={r.id_motorizado} value={String(r.id_motorizado)}>
-                              #{r.id_motorizado} · {r.nombre} {r.apellido}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-primary"
-                          disabled={assignMut.isPending || !assignedRiderByOrder[row.id_pedido]}
-                          onClick={() => {
-                            const ok = window.confirm(`¿Asignar repartidor al pedido #${row.id_pedido}?`);
-                            if (!ok) return;
-                            setSuccessMessage(null);
-                            assignMut.mutate({ orderId: row.id_pedido, motorizadoId: Number(assignedRiderByOrder[row.id_pedido]) });
-                          }}
-                        >
-                          {assignMut.isPending ? "Asignando..." : "Asignar"}
-                        </button>
-                        <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setDetailOrderId(row.id_pedido)}>
-                          Ver detalle
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {queue.map(row => {
+                  const isPickup = row.tipo_entrega === "RECOJO";
+                  return (
+                    <tr key={row.id_pedido}>
+                      <td>
+                        <div className="fw-semibold">#{row.id_pedido}</div>
+                        <div className="small text-muted">
+                          {(() => {
+                            const dt = formatDateTime(row.fecha_creacion, "datetime");
+                            return dt ? `${dt.date} ${dt.time}` : "—";
+                          })()}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="fw-semibold">{row.cliente}</div>
+                        <div className="small text-muted">{row.telefono || "Sin teléfono"}</div>
+                      </td>
+                      <td>
+                        <span className={`badge ${isPickup ? "bg-info text-dark" : "bg-primary"}`}>{isPickup ? "Recojo" : "Domicilio"}</span>
+                      </td>
+                      <td className="text-truncate" style={{ maxWidth: 260 }} title={row.direccion_envio}>
+                        {row.direccion_envio}
+                      </td>
+                      <td>
+                        <span className="badge bg-secondary">{row.estado_pedido}</span>
+                      </td>
+                      <td>
+                        <span className="badge bg-light text-dark">{isPickup ? "—" : row.estado_envio || "PENDIENTE"}</span>
+                      </td>
+                      <td>
+                        <div className="d-flex gap-2 flex-wrap">
+                          {isPickup ? (
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-success"
+                              disabled={pickupMut.isPending}
+                              onClick={() => {
+                                const ok = window.confirm(`¿Confirmar entrega en tienda del pedido #${row.id_pedido}?`);
+                                if (!ok) return;
+                                setSuccessMessage(null);
+                                pickupMut.mutate(row.id_pedido);
+                              }}
+                            >
+                              {pickupMut.isPending ? "Entregando..." : "Entregar en tienda"}
+                            </button>
+                          ) : (
+                            <>
+                              <select
+                                className="form-select form-select-sm"
+                                value={assignedRiderByOrder[row.id_pedido] || ""}
+                                onChange={e => setAssignedRiderByOrder(prev => ({ ...prev, [row.id_pedido]: e.target.value }))}
+                              >
+                                <option value="">Selecciona repartidor</option>
+                                {(riders || []).map(r => (
+                                  <option key={r.id_motorizado} value={String(r.id_motorizado)}>
+                                    #{r.id_motorizado} · {r.nombre} {r.apellido}
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-primary"
+                                disabled={assignMut.isPending || !assignedRiderByOrder[row.id_pedido]}
+                                onClick={() => {
+                                  const ok = window.confirm(`¿Asignar repartidor al pedido #${row.id_pedido}?`);
+                                  if (!ok) return;
+                                  setSuccessMessage(null);
+                                  assignMut.mutate({ orderId: row.id_pedido, motorizadoId: Number(assignedRiderByOrder[row.id_pedido]) });
+                                }}
+                              >
+                                {assignMut.isPending ? "Asignando..." : "Asignar"}
+                              </button>
+                            </>
+                          )}
+                          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setDetailOrderId(row.id_pedido)}>
+                            Ver detalle
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

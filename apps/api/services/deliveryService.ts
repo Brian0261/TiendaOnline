@@ -338,6 +338,58 @@ async function markFailed({ orderId, userId, motivo }) {
   }
 }
 
+async function pickupHandover({ orderId, handedOverBy }) {
+  const idPedido = Number(orderId);
+  const idUsuario = Number(handedOverBy);
+
+  if (!Number.isInteger(idPedido) || idPedido <= 0) throw createHttpError(400, "orderId inválido");
+
+  const pool = await deliveryRepository.getPool();
+  await ensureDeliverySchema(pool);
+
+  const tx = await pool.connect();
+  try {
+    await tx.query("BEGIN");
+
+    const { rows } = await tx.query(
+      `SELECT pe.id_pedido, pe.estado_pedido, pe.costo_envio, e.id_envio
+       FROM pedido pe
+       LEFT JOIN envio e ON e.id_pedido = pe.id_pedido
+       WHERE pe.id_pedido = $1
+       FOR UPDATE OF pe`,
+      [idPedido],
+    );
+    const pedido = rows?.[0];
+    if (!pedido) throw createHttpError(404, "Pedido no encontrado");
+
+    if (toUpper(pedido.estado_pedido) !== "PREPARADO") {
+      throw createHttpError(409, "Solo se pueden entregar en tienda pedidos en estado PREPARADO");
+    }
+    if (Number(pedido.costo_envio) > 0 || pedido.id_envio) {
+      throw createHttpError(409, "Este pedido es de tipo DOMICILIO, usa la asignación de repartidor");
+    }
+
+    await orderRepository.updateOrderStateTx(tx, idPedido, "ENTREGADO");
+
+    await orderRepository.insertHistoryTx(tx, {
+      descripcion: "PREPARADO -> ENTREGADO (recojo en tienda)",
+      accion: "PICKUP_ENTREGADO",
+      id_pedido: idPedido,
+      id_usuario: Number.isFinite(idUsuario) ? idUsuario : null,
+    });
+
+    await tx.query("COMMIT");
+    return { ok: true, id_pedido: idPedido, estado: "ENTREGADO" };
+  } catch (err) {
+    try {
+      await tx.query("ROLLBACK");
+    } catch {}
+    throw err;
+  } finally {
+    tx.release();
+  }
+}
+
 module.exports = {
   listRiders,
   listAssignableShipments,
@@ -347,6 +399,7 @@ module.exports = {
   startRoute,
   markDelivered,
   markFailed,
+  pickupHandover,
 };
 
 export {};

@@ -26,9 +26,10 @@ export type DeliveryQueueRow = {
   total_pedido: number;
   cliente: string;
   telefono: string | null;
-  id_envio: number;
+  id_envio: number | null;
   estado_envio: string | null;
   id_motorizado: number | null;
+  tipo_entrega: "DOMICILIO" | "RECOJO";
 };
 
 export type DeliveryRider = {

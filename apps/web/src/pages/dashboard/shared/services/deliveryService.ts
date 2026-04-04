@@ -42,3 +42,7 @@ export function deliverOrder(input: { orderId: number; nombreReceptor: string; d
 export function failDelivery(input: { orderId: number; motivo: string }): Promise<unknown> {
   return api.patch(`/delivery/${input.orderId}/fail`, { motivo: input.motivo });
 }
+
+export function pickupHandover(orderId: number): Promise<{ ok: boolean }> {
+  return api.patch<{ ok: boolean }>(`/delivery/${orderId}/pickup-handover`);
+}

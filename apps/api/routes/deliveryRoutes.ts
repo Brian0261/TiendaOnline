@@ -8,6 +8,7 @@ router.get("/riders", authenticateToken, authorizeRoles("EMPLEADO", "ADMINISTRAD
 router.get("/queue", authenticateToken, authorizeRoles("EMPLEADO", "ADMINISTRADOR"), deliveryController.listAssignable);
 router.get("/:orderId/detail", authenticateToken, authorizeRoles("EMPLEADO", "ADMINISTRADOR"), deliveryController.getDeliveryDetail);
 router.patch("/assign", authenticateToken, authorizeRoles("EMPLEADO", "ADMINISTRADOR"), deliveryController.assignShipment);
+router.patch("/:orderId/pickup-handover", authenticateToken, authorizeRoles("EMPLEADO", "ADMINISTRADOR"), deliveryController.pickupHandover);
 
 router.get("/my-shipments", authenticateToken, authorizeRoles("REPARTIDOR"), deliveryController.listMyShipments);
 router.patch("/:orderId/start-route", authenticateToken, authorizeRoles("REPARTIDOR"), deliveryController.startRoute);
