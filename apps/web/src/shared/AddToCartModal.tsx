@@ -24,11 +24,20 @@ export function AddToCartModal({ open, product, initialQty, onClose }: Props) {
   const qc = useQueryClient();
   const [qty, setQty] = useState<number>(Math.max(1, Math.floor(initialQty || 1)));
   const [busy, setBusy] = useState(false);
+  const [stockWarning, setStockWarning] = useState<string | null>(null);
+
+  const maxByStock = typeof product?.stock === "number" ? Math.max(0, Math.floor(product.stock)) : null;
 
   useEffect(() => {
     if (!open) return;
-    setQty(Math.max(1, Math.floor(initialQty || 1)));
-  }, [initialQty, open]);
+    const q = Math.max(1, Math.floor(initialQty || 1));
+    setQty(q);
+    if (maxByStock != null && q >= maxByStock) {
+      setStockWarning(`Solo hay ${maxByStock} unidades disponibles`);
+    } else {
+      setStockWarning(null);
+    }
+  }, [initialQty, open, maxByStock]);
 
   useEffect(() => {
     if (!open) return;
@@ -40,7 +49,6 @@ export function AddToCartModal({ open, product, initialQty, onClose }: Props) {
   }, [onClose, open]);
 
   const canDecrement = qty > 1 && !busy;
-  const maxByStock = typeof product?.stock === "number" ? Math.max(0, Math.floor(product.stock)) : null;
   const canIncrement = !busy && (maxByStock == null ? true : qty < maxByStock);
 
   const imageSrc = useMemo(() => {
@@ -51,7 +59,11 @@ export function AddToCartModal({ open, product, initialQty, onClose }: Props) {
   const changeQty = async (nextQty: number) => {
     if (!product) return;
     const q = Math.max(1, Math.floor(nextQty));
-    if (maxByStock != null && q > maxByStock) return;
+    if (maxByStock != null && q > maxByStock) {
+      setStockWarning(`Solo hay ${maxByStock} unidades disponibles`);
+      return;
+    }
+    setStockWarning(null);
 
     try {
       setBusy(true);
@@ -129,6 +141,13 @@ export function AddToCartModal({ open, product, initialQty, onClose }: Props) {
                   </div>
                 ) : null}
               </div>
+
+              {stockWarning ? (
+                <div className="alert alert-warning d-flex align-items-center gap-2 py-2 px-3 mt-2 mb-0 small" role="alert">
+                  <i className="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                  {stockWarning}
+                </div>
+              ) : null}
             </div>
 
             <div className="modal-footer" style={{ justifyContent: "space-between" }}>

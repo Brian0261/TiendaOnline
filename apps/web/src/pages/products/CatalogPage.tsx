@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../../api/http";
+import type { ApiError } from "../../api/http";
 import { addToCart } from "../../cart/cartService";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -154,19 +155,26 @@ export function CatalogPage() {
                           type="button"
                           disabled={disabled}
                           onClick={async () => {
-                            await addToCart({ id: p.id, nombre: p.nombre, precio: p.precio, imagen: p.imagen });
+                            try {
+                              await addToCart({ id: p.id, nombre: p.nombre, precio: p.precio, imagen: p.imagen });
+                            } catch (err) {
+                              const apiErr = err as Partial<ApiError>;
+                              if (apiErr.status !== 409) throw err;
+                              // Stock exceeded — still open the modal so user sees the limit
+                            }
                             await qc.invalidateQueries({ queryKey: ["cart", "count"] });
                             await qc.invalidateQueries({ queryKey: ["cart", "items"] });
 
                             const items = await loadCart();
                             const current = items.find(i => i.product.id === p.id);
 
+                            const parsedStock = Number(p.stock);
                             setAddedProduct({
                               id: p.id,
                               nombre: p.nombre,
                               precio: Number(p.precio ?? 0),
                               imagen: p.imagen,
-                              stock: typeof p.stock === "number" ? p.stock : undefined,
+                              stock: Number.isFinite(parsedStock) ? parsedStock : undefined,
                             });
                             setAddedQty(current?.quantity ?? 1);
                             setAddedOpen(true);

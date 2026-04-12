@@ -1,14 +1,25 @@
-import { useMemo } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { clearCart, loadCart, removeFromCart, setQuantity } from "../../cart/cartService";
 import { PLACEHOLDER_PRODUCT } from "../../shared/image";
+import type { ApiError } from "../../api/http";
 
 const SHIPPING = 5;
 
 export function CartPage() {
   const nav = useNavigate();
   const qc = useQueryClient();
+  const [stockAlerts, setStockAlerts] = useState<Record<number, string>>({});
+
+  const clearStockAlert = useCallback((productId: number) => {
+    setStockAlerts(prev => {
+      if (!(productId in prev)) return prev;
+      const next = { ...prev };
+      delete next[productId];
+      return next;
+    });
+  }, []);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["cart", "items"],
@@ -22,9 +33,20 @@ export function CartPage() {
 
   const mutateQty = useMutation({
     mutationFn: async (input: { productId: number; qty: number }) => setQuantity(input.productId, input.qty),
-    onSuccess: async () => {
+    onSuccess: async (_data, variables) => {
+      clearStockAlert(variables.productId);
       await qc.invalidateQueries({ queryKey: ["cart", "items"] });
       await qc.invalidateQueries({ queryKey: ["cart", "count"] });
+    },
+    onError: (error: unknown, variables) => {
+      const apiErr = error as Partial<ApiError>;
+      if (apiErr.status === 409) {
+        const details = apiErr.details as Record<string, unknown> | undefined;
+        const detail = details?.detail as Record<string, unknown> | undefined;
+        const disponible = detail?.disponible;
+        const msg = typeof disponible === "number" ? `Solo hay ${disponible} unidades disponibles` : "Stock insuficiente para la cantidad solicitada";
+        setStockAlerts(prev => ({ ...prev, [variables.productId]: msg }));
+      }
     },
   });
 
@@ -151,6 +173,12 @@ export function CartPage() {
                               <i className="fas fa-plus"></i>
                             </button>
                           </div>
+                          {stockAlerts[it.product.id] ? (
+                            <div className="alert alert-warning d-flex align-items-center gap-1 py-1 px-2 mt-1 mb-0 small" role="alert">
+                              <i className="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                              {stockAlerts[it.product.id]}
+                            </div>
+                          ) : null}
                         </td>
                         <td className="text-center fw-bold">S/ {rowSubtotal.toFixed(2)}</td>
                         <td className="text-center">

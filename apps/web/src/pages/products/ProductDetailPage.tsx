@@ -2,6 +2,7 @@ import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/http";
+import type { ApiError } from "../../api/http";
 import { addToCart, loadCart } from "../../cart/cartService";
 import { normalizeImageUrl, PLACEHOLDER_PRODUCT } from "../../shared/image";
 import { AddToCartModal, type AddToCartModalProduct } from "../../shared/AddToCartModal";
@@ -68,7 +69,7 @@ export function ProductDetailPage() {
             </p>
 
             <h4 className="mb-3">S/ {Number(data.precio ?? 0).toFixed(2)}</h4>
-            {typeof data.stock === "number" ? <p className="text-muted">Stock: {data.stock}</p> : null}
+            {data.stock != null && Number.isFinite(Number(data.stock)) ? <p className="text-muted">Stock: {Number(data.stock)}</p> : null}
 
             <div className="d-flex gap-2">
               <Link className="btn btn-outline-secondary" to="/products">
@@ -78,25 +79,31 @@ export function ProductDetailPage() {
                 className="btn btn-primary-custom"
                 type="button"
                 onClick={async () => {
-                  await addToCart({
-                    id: data.id,
-                    nombre: data.nombre,
-                    precio: data.precio,
-                    imagen: data.imagen,
-                    descripcion: data.descripcion,
-                  });
+                  try {
+                    await addToCart({
+                      id: data.id,
+                      nombre: data.nombre,
+                      precio: data.precio,
+                      imagen: data.imagen,
+                      descripcion: data.descripcion,
+                    });
+                  } catch (err) {
+                    const apiErr = err as Partial<ApiError>;
+                    if (apiErr.status !== 409) throw err;
+                  }
                   await qc.invalidateQueries({ queryKey: ["cart", "count"] });
                   await qc.invalidateQueries({ queryKey: ["cart", "items"] });
 
                   const items = await loadCart();
                   const current = items.find(i => i.product.id === data.id);
 
+                  const parsedStock = Number(data.stock);
                   setAddedProduct({
                     id: data.id,
                     nombre: data.nombre,
                     precio: Number(data.precio ?? 0),
                     imagen: data.imagen,
-                    stock: typeof data.stock === "number" ? data.stock : undefined,
+                    stock: Number.isFinite(parsedStock) ? parsedStock : undefined,
                   });
                   setAddedQty(current?.quantity ?? 1);
                   setAddedOpen(true);
