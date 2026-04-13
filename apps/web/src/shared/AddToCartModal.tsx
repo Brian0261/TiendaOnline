@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { normalizeImageUrl, PLACEHOLDER_PRODUCT } from "./image";
 import { setQuantity } from "../cart/cartService";
+import type { ApiError } from "../api/http";
 
 export type AddToCartModalProduct = {
   id: number;
@@ -23,8 +24,8 @@ export function AddToCartModal({ open, product, initialQty, onClose }: Props) {
   const nav = useNavigate();
   const qc = useQueryClient();
   const [qty, setQty] = useState<number>(Math.max(1, Math.floor(initialQty || 1)));
-  const [busy, setBusy] = useState(false);
   const [stockWarning, setStockWarning] = useState<string | null>(null);
+  const pendingRef = useRef(false);
 
   const maxByStock = typeof product?.stock === "number" ? Math.max(0, Math.floor(product.stock)) : null;
 
@@ -48,15 +49,15 @@ export function AddToCartModal({ open, product, initialQty, onClose }: Props) {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [onClose, open]);
 
-  const canDecrement = qty > 1 && !busy;
-  const canIncrement = !busy && (maxByStock == null ? true : qty < maxByStock);
+  const canDecrement = qty > 1;
+  const canIncrement = maxByStock == null ? true : qty < maxByStock;
 
   const imageSrc = useMemo(() => {
     if (!product) return PLACEHOLDER_PRODUCT;
     return normalizeImageUrl(product.imagen);
   }, [product]);
 
-  const changeQty = async (nextQty: number) => {
+  const changeQty = (nextQty: number) => {
     if (!product) return;
     const q = Math.max(1, Math.floor(nextQty));
     if (maxByStock != null && q > maxByStock) {
@@ -65,15 +66,42 @@ export function AddToCartModal({ open, product, initialQty, onClose }: Props) {
     }
     setStockWarning(null);
 
-    try {
-      setBusy(true);
-      setQty(q);
-      await setQuantity(product.id, q);
-      await qc.invalidateQueries({ queryKey: ["cart", "count"] });
-      await qc.invalidateQueries({ queryKey: ["cart", "items"] });
-    } finally {
-      setBusy(false);
-    }
+    // Optimistic: actualizar UI inmediatamente
+    const prevQty = qty;
+    setQty(q);
+
+    // Evitar ráfagas concurrentes que se pisen entre sí
+    if (pendingRef.current) return;
+    pendingRef.current = true;
+
+    setQuantity(product.id, q)
+      .then(() => {
+        // Sincronizar caches en background (no bloquea UI)
+        qc.invalidateQueries({ queryKey: ["cart", "count"] });
+        qc.invalidateQueries({ queryKey: ["cart", "items"] });
+      })
+      .catch((err: unknown) => {
+        const apiErr = err as Partial<ApiError>;
+        if (apiErr.status === 409) {
+          const details = apiErr.details as Record<string, unknown> | undefined;
+          const detail = details?.detail as Record<string, unknown> | undefined;
+          const disponible = detail?.disponible;
+          if (typeof disponible === "number") {
+            setStockWarning(`Solo hay ${disponible} unidades disponibles`);
+            setQty(Math.min(prevQty, disponible));
+          } else {
+            setStockWarning("Stock insuficiente para la cantidad solicitada");
+            setQty(prevQty);
+          }
+        } else {
+          // Re-lanzar errores no-409 para que no se oculten
+          setQty(prevQty);
+          throw err;
+        }
+      })
+      .finally(() => {
+        pendingRef.current = false;
+      });
   };
 
   if (!open || !product) return null;
@@ -151,7 +179,7 @@ export function AddToCartModal({ open, product, initialQty, onClose }: Props) {
             </div>
 
             <div className="modal-footer" style={{ justifyContent: "space-between" }}>
-              <button type="button" className="btn btn-link" onClick={onClose} disabled={busy}>
+              <button type="button" className="btn btn-link" onClick={onClose}>
                 Seguir comprando
               </button>
               <button
@@ -161,7 +189,6 @@ export function AddToCartModal({ open, product, initialQty, onClose }: Props) {
                   onClose();
                   nav("/cart");
                 }}
-                disabled={busy}
               >
                 Ir al Carro
               </button>

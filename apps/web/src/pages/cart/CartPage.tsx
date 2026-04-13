@@ -1,7 +1,7 @@
 import { useMemo, useState, useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
-import { clearCart, loadCart, removeFromCart, setQuantity } from "../../cart/cartService";
+import { clearCart, loadCart, removeFromCart, setQuantity, type CartItem } from "../../cart/cartService";
 import { PLACEHOLDER_PRODUCT } from "../../shared/image";
 import type { ApiError } from "../../api/http";
 
@@ -33,12 +33,28 @@ export function CartPage() {
 
   const mutateQty = useMutation({
     mutationFn: async (input: { productId: number; qty: number }) => setQuantity(input.productId, input.qty),
-    onSuccess: async (_data, variables) => {
+    onMutate: async variables => {
+      // Cancelar refetches en vuelo para que no sobreescriban nuestro update optimista
+      await qc.cancelQueries({ queryKey: ["cart", "items"] });
+
+      // Guardar snapshot para rollback
+      const previousItems = qc.getQueryData<CartItem[]>(["cart", "items"]);
+
+      // Actualizar cache optimistamente
+      qc.setQueryData<CartItem[]>(["cart", "items"], old => {
+        if (!old) return old;
+        return old.map(it => (it.product.id === variables.productId ? { ...it, quantity: Math.max(1, variables.qty) } : it));
+      });
+
       clearStockAlert(variables.productId);
-      await qc.invalidateQueries({ queryKey: ["cart", "items"] });
-      await qc.invalidateQueries({ queryKey: ["cart", "count"] });
+      return { previousItems };
     },
-    onError: (error: unknown, variables) => {
+    onError: (error: unknown, variables, context) => {
+      // Rollback al snapshot previo
+      if (context?.previousItems) {
+        qc.setQueryData(["cart", "items"], context.previousItems);
+      }
+
       const apiErr = error as Partial<ApiError>;
       if (apiErr.status === 409) {
         const details = apiErr.details as Record<string, unknown> | undefined;
@@ -47,6 +63,11 @@ export function CartPage() {
         const msg = typeof disponible === "number" ? `Solo hay ${disponible} unidades disponibles` : "Stock insuficiente para la cantidad solicitada";
         setStockAlerts(prev => ({ ...prev, [variables.productId]: msg }));
       }
+    },
+    onSettled: () => {
+      // Siempre sincronizar con servidor después de éxito o error
+      qc.invalidateQueries({ queryKey: ["cart", "items"] });
+      qc.invalidateQueries({ queryKey: ["cart", "count"] });
     },
   });
 
@@ -146,7 +167,7 @@ export function CartPage() {
                               className="btn btn-sm btn-outline-secondary quantity-btn"
                               type="button"
                               onClick={() => mutateQty.mutate({ productId: it.product.id, qty: Number(it.quantity ?? 1) - 1 })}
-                              disabled={mutateQty.isPending}
+                              disabled={Number(it.quantity ?? 1) <= 1}
                               aria-label="Disminuir"
                             >
                               <i className="fas fa-minus"></i>
@@ -161,13 +182,11 @@ export function CartPage() {
                                 if (!Number.isFinite(v)) return;
                                 mutateQty.mutate({ productId: it.product.id, qty: v });
                               }}
-                              disabled={mutateQty.isPending}
                             />
                             <button
                               className="btn btn-sm btn-outline-secondary quantity-btn"
                               type="button"
                               onClick={() => mutateQty.mutate({ productId: it.product.id, qty: Number(it.quantity ?? 1) + 1 })}
-                              disabled={mutateQty.isPending}
                               aria-label="Aumentar"
                             >
                               <i className="fas fa-plus"></i>
