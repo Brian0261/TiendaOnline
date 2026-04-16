@@ -402,6 +402,7 @@ module.exports = {
   updateProfile,
   getRefreshCookieOptions,
   getRefreshCookieName,
+  isStrongPassword,
 };
 
 export {};
